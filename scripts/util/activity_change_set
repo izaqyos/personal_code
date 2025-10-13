@@ -1,0 +1,16 @@
+#!/usr/bin/bash
+
+ARGS=1        # Number of arguments expected.
+E_BADARGS=65  # Exit value if incorrect number of args passed.
+
+test $# -ne $ARGS && \
+	     echo "Usage: `basename $0` activity name" && exit $E_BADARGS
+#  If condition 1 tests true (wrong number of args passed to script),
+#+ then the rest of the line executes, and script terminates.
+
+# This commnad is good for unix/linux
+#cleartool lsactivity -long $1 |  sed '/activity/,/change set versions/d; s/^.*ismg_israel_acs//; s_@@.*$__' | sort | uniq
+
+# This commnad is good for windows
+cleartool lsactivity -long $1 |  sed '/activity/,/change set versions/d; s/^.*ismg_israel_acs/\./; s_@@.*$__; s_\\_/_g' | sort | uniq
+

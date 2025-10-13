@@ -1,0 +1,78 @@
+# Compiled files
+*.pyc
+*.pyo
+*.class
+*.o
+*.so
+*.dll
+*.dylib
+*.exe
+
+# Backup files
+*.bak
+*.back
+*.old
+*.orig
+*.swp
+*.swo
+*~
+
+# Log files
+*.log
+*.out
+logs/
+
+# Archives (unless specifically needed)
+*.tar.gz
+*.tgz
+*.zip
+*.rar
+*.7z
+
+# Build directories
+build/
+dist/
+*.egg-info/
+__pycache__/
+.pytest_cache/
+.mypy_cache/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+.DS_Store
+Thumbs.db
+
+# Temporary files
+temp/
+tmp/
+*.tmp
+
+# Environment files
+.env
+.env.local
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+credentials.*
+secrets.*
+
+# Personal notes and work-specific files
+TODO.txt
+NOTES.txt
+stam
+stam.*
+test
+dirty*
+
+# Git directories (except root)
+**/.git/
+
+# Vim session files
+*.vim
+Session.vim
+

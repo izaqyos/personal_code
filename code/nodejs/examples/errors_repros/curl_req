@@ -1,0 +1,5 @@
+curl -X POST \             
+  -H "Content-Type: application/json" \
+  -d '{"message": "hello world", "value": 42}' \
+  http://localhost:3001/data
+

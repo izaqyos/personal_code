@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>Multiple service workers example</title>
+    </head>
+    <body>
+        <p>Result: <output id=result> </output></p>
+        <script>
+            const mainWorker = new Worker('worker.js');
+            mainWorker.onmessage = evt => {
+                document.getElementById("result").textContent = evt.data;
+            };
+        </script>
+    </body>
+</html>

@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>naive prime nums worker thread</title>
+    </head>
+
+    <body>
+        <p>Highest prime found: <output id="res"></output></p>
+        <script>
+            const worker = new Worker("worker.js");
+            worker.onmessage = (evt) => {
+                document.getElementById("res").textContent = evt.data;
+            };
+        </script>
+    </body>
+</html>

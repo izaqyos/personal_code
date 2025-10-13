@@ -1,0 +1,6 @@
+mkdir url-validate && cd url-validate
+npm init -y
+npm i ipaddr.js
+# Enable ESM
+npm pkg set type=module
+

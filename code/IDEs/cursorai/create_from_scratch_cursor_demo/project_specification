@@ -1,0 +1,146 @@
+
+# Project Code
+
+## 1. Data Generation Module (data_generator.py)
+
+
+## Project Structure
+
+## Technical Specification: Real Estate Price Prediction with Linear Regression and KNN
+
+**1. Introduction**
+
+This document outlines the technical specifications for a Python project that demonstrates price prediction for real estate using two different machine learning techniques:
+
+*   **Linear Regression with Gradient Descent:**  A foundational model for predicting a continuous target variable (price) based on features, optimized using Mean Squared Error (MSE) and gradient descent.
+*   **K-Nearest Neighbors (KNN):**  A non-parametric method that predicts the price based on the prices of the 'k' most similar houses in the dataset, using location as the primary similarity metric.
+
+The project will use a synthetic (mock) dataset of real estate properties to illustrate these concepts. The primary goal is educational, demonstrating the implementation of these algorithms and comparing their performance.
+
+**2. Goals**
+
+*   Implement linear regression with MSE cost function and gradient descent optimization from scratch (without using libraries like scikit-learn for the core regression logic).
+*   Implement KNN from scratch, focusing on location-based similarity.
+*   Generate a mock dataset with relevant features for real estate price prediction.
+*   Visualize the data and the results of both models.
+*   Compare the performance of the two models using appropriate metrics.
+*   Provide a clear and well-documented codebase suitable for learning and experimentation.
+
+**3. Data Model**
+
+The mock dataset will be generated programmatically and will consist of the following features:
+
+*   **`price` (float):**  The target variable; the price of the house (in a fictional currency, e.g., "credits").
+*   **`location_x` (float):**  The x-coordinate of the house's location (on a Cartesian plane).
+*   **`location_y` (float):**  The y-coordinate of the house's location.
+*   **`size_sqft` (float):** The size of the house in square feet.
+*   **`num_bedrooms` (int):** The number of bedrooms.
+*   **`num_bathrooms` (int):** The number of bathrooms.
+*   **`year_built` (int):**  The year the house was built.
+*  **`property_type` (str):** The property type (apartment, detached_house, townhouse).
+
+The data generation process will incorporate relationships between these features and the price.  For example:
+
+*   Price will generally increase with size, number of bedrooms/bathrooms.
+*   Location will influence price:  a central location (e.g., near (0, 0)) will be more expensive.
+*   Newer houses will generally be more expensive.
+*   Different property types will have different base prices.
+*   Random noise will be added to make the data more realistic.
+
+The dataset will be split into training (80%) and testing (20%) sets.
+
+**4. System Architecture**
+
+The project will be structured into the following modules:
+
+*   **`data_generator.py`:**
+    *   `generate_data(num_samples)`: Generates the mock dataset with the specified number of samples.  Returns a Pandas DataFrame.  Includes parameters to control the relationships between features and price (e.g., coefficients for size, location, etc., and a noise factor).
+*   **`linear_regression.py`:**
+    *   `LinearRegressionModel` class:
+        *   `__init__(self, learning_rate, num_iterations)`:  Initializes the model with hyperparameters.
+        *   `fit(self, X, y)`:  Trains the model using gradient descent.  Takes features (X) and target (y) as input.  Updates the model's weights.
+        *   `predict(self, X)`:  Predicts prices for new data (X).
+        *   `_mse_cost(self, X, y, weights)`: Calculates the Mean Squared Error. (Private helper function)
+        *   `_gradient_descent(self, X, y, weights, learning_rate)`: Performs one step of gradient descent. (Private helper function)
+*   **`knn.py`:**
+    *   `KNNModel` class:
+        *   `__init__(self, k)`: Initializes the model with the number of neighbors (k).
+        *   `fit(self, X, y)`:  Stores the training data (X, y).  KNN is a "lazy learner," so the "fitting" is just storing the data.
+        *   `predict(self, X)`: Predicts prices for new data (X) based on the k-nearest neighbors.
+        *   `_euclidean_distance(self, x1, x2)`: Calculates Euclidean distance between two data points. (Private helper function)
+        *   `_get_neighbors(self, X_train, x_test, y_train)`: Find k nearest neighbors based on location features. (Private helper function)
+*   **`visualization.py`:**
+    *   `plot_data(df)`: Creates scatter plots of the data (e.g., price vs. size, price vs. location).
+    *   `plot_regression_line(X, y, y_pred)`: (For linear regression) Plots the data and the regression line (if applicable, i.e., for 2D visualizations).
+    *   `plot_knn_predictions(X_train, y_train, X_test, y_pred, k)`: (For KNN) Visualizes the training data, test data, and KNN predictions, potentially using color-coding to represent predicted prices.
+*   **`evaluation.py`:**
+    *   `mean_squared_error(y_true, y_pred)`:  Calculates MSE.
+    *   `r2_score(y_true, y_pred)`: Calculates the R-squared score.
+*   **`main.py`:**
+    *   The main script that ties everything together:
+        1.  Generates the data.
+        2.  Splits the data into training and testing sets.
+        3.  Creates and trains the Linear Regression model.
+        4.  Creates and "trains" (stores data) the KNN model.
+        5.  Makes predictions on the test set using both models.
+        6.  Evaluates the models using MSE and R-squared.
+        7.  Calls visualization functions to display the data and results.
+
+**5. Technologies**
+
+*   **Python 3.7+**
+*   **Libraries:**
+    *   **Pandas:** For data manipulation and analysis.
+    *   **NumPy:** For numerical operations.
+    *   **Matplotlib:** For data visualization.
+*   **No external machine learning libraries (like scikit-learn) will be used for the core model implementations (linear regression and KNN).** This is to demonstrate the algorithms from scratch. Scikit-learn *can* be used for data splitting (`train_test_split`) and potentially for *comparing* results (as a sanity check), but not for the core model training or prediction.
+
+**6. Implementation Details**
+
+*   **Linear Regression:**
+    *   The model will use a closed-form solution as a baseline (for comparison).
+    *   Gradient descent will be implemented iteratively.
+    *   The learning rate and number of iterations will be adjustable hyperparameters.
+    *   Feature scaling (standardization or normalization) will be applied to the input features before training the linear regression model to improve convergence.
+
+*   **KNN:**
+    *   Euclidean distance will be used to measure the distance between data points, primarily based on `location_x` and `location_y`.  Consideration could be given to incorporating other features into the distance calculation (e.g., size), but this should be clearly documented and potentially offered as a configurable option.
+    *   The number of neighbors (`k`) will be an adjustable hyperparameter.
+    *   Prediction will be the average price of the k-nearest neighbors.
+
+*   **Data Generation:**
+    *   The `data_generator.py` module will have clear parameters to control the data generation process, allowing for easy experimentation with different data distributions.
+    * The relationship between price and features will be defined.  Example: `price = base_price + (size_coeff * size_sqft) + (location_coeff * (1 / (distance_to_center + 1))) + (year_coeff * (year_built - base_year)) + noise`
+
+**7. Testing**
+
+*   **Unit Tests:**  Unit tests will be written for individual functions within each module (e.g., `_mse_cost`, `_euclidean_distance`, `generate_data`).  These tests will ensure the correctness of the core logic.
+*   **Integration Tests:**  Integration tests will verify that the modules work together correctly (e.g., data generation feeds correctly into model training).
+*   **Sanity Checks:** The performance of the custom linear regression implementation will be compared against scikit-learn's `LinearRegression` to ensure it's producing reasonable results. This is *not* part of the core implementation, but a validation step.
+
+**8. Deliverables**
+
+*   Source code (well-documented Python files).
+*   A README file explaining how to run the project and interpret the results.
+*   Unit and integration tests.
+
+**9. Future Enhancements**
+
+*   **Regularization:** Add L1 (Lasso) or L2 (Ridge) regularization to the linear regression model to prevent overfitting.
+*   **Different Distance Metrics:** Implement other distance metrics for KNN (e.g., Manhattan distance).
+*   **Weighted KNN:** Implement weighted KNN, where closer neighbors have a greater influence on the prediction.
+*   **Cross-Validation:** Implement k-fold cross-validation to get a more robust estimate of model performance.
+*   **Interactive Visualization:** Create interactive plots using libraries like Plotly.
+* **Categorical Feature Handling:** Implement one-hot encoding or another suitable approach for handling the 'property_type' feature in the linear regression.
+
+**10. Success Criteria**
+
+*   The project runs without errors.
+*   The linear regression and KNN models are implemented correctly from scratch.
+*   The code is well-documented and easy to understand.
+*   The visualizations clearly show the data and model results.
+*   The performance metrics (MSE, R-squared) are calculated and displayed.
+*   Unit and integration tests pass.
+
+This detailed technical specification provides a clear roadmap for the development of the real estate price prediction project, ensuring that it meets the educational goals and provides a solid foundation for future enhancements.
+

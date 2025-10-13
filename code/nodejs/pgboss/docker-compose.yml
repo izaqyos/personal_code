@@ -1,0 +1,16 @@
+version: '3.8'
+services:
+  postgres:
+    image: postgres:latest  # Use the latest official PostgreSQL image
+    restart: always        # Restart the container if it fails
+    environment:
+      POSTGRES_USER: myuser
+      POSTGRES_PASSWORD: mypassword
+      POSTGRES_DB: mydb
+    ports:
+      - "5432:5432"         # Map the container's port 5432 to the host's port 5432
+    volumes:
+      - postgres_data:/var/lib/postgresql/data  # Persist database data
+
+volumes:
+  postgres_data:  # Define the named volume for data persistence

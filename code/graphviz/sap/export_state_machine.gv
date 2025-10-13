@@ -1,0 +1,18 @@
+digraph finite_state_machine {
+    rankdir=LR;
+    size="800,500"
+
+    node [shape = doublecircle]; RUNNING;
+    node [shape = point ]; qi
+
+    node [shape = circle];
+    qi -> RUNNING [ label = "got /start; ret 202" ];
+    RUNNING  -> SUCCEDED [ label = "site content zip created" ];
+    RUNNING  -> RUNNING  [ label = "got /start; ret 208" ];
+    SUCCEDED  -> RUNNING  [ label = "got /start; ret 200" ];
+    RUNNING  -> FAILED [ label = "internal or cdm store error" ];
+    FAILED  -> RUNNING  [ label = "got /start; ret 200" ];
+    RUNNING  -> CANCELED [ label = "got /cancel; ret 200, or running ttl expired" ];
+    CANCELED  -> RUNNING  [ label = "got /start; ret 200" ];
+}
+

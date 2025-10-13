@@ -1,0 +1,5 @@
+- use json-server (https://github.com/typicode/json-server) to create a dummy json server
+    npm install -g json-server
+    json-server --watch db.json
+- create Node.js project (npm init)
+- native server that interacts (native http request) with the json-server

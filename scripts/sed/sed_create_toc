@@ -1,0 +1,15 @@
+# Author Yosi Izaq
+# Description, extract outline for table of contents from documents structered in follwing format
+# 1. subject 1
+#	1.1 sub subject 1
+#	1.2 sub subject 2
+#	...
+# 2. subject 2.
+# ...
+
+# remove old TOC if any
+/Table Of Contents/,/TOC/d
+
+#Extract subject lines
+#/^[:space]+[:digit:]+/p
+/^\s*[0-9]\+/p

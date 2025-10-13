@@ -1,0 +1,151 @@
+https://leetcode.com/problems/partition-equal-subset-sum/discuss/1624390/C%2B%2B-Brute-Force-To-Optimized-SolutionO(N)-Time-or-W-Explanation
+[C++] Brute Force To Optimized Solution{O(N) Time} | W/ Explanation
+This Problem is similar to 0/1 Knapsack problem, for each index, the choice is whether to include it or not.
+
+Firstly, we calculate the sum of all the elements in the array nums.
+If the sum is odd (sum%2!=0), then we cannot divide the array elements into 2 subsets with equal sum, but if the sum is even, we might be able to divide the array into 2 equal subsets.
+If the sum is even, we check if there is a subset with the sum of elements = sum/2. If it exists, that means the other subset also has elements with sum = sum/2, so we return true.
+If we're not able to find any such subset, we finally return false.
+We're going to look at all the approaches to find a subset with sum/2.
+❌APPROACH - 1 : Brute Force - Recursion - Time Limit Excceds
+
+We can consider each item in the given array one by one. For each item, there are two possibilities :
+
+We can find a subset with sum/2 which includes the current element, so we include the current item in the subset and recur for remaining items with the remaining sum (sum - nums[idx]).
+We cannot find a subset with sum/2 with the current index value included. So, we exclude the current item from the subset and recur for remaining items.\
+Time Complexity : O(2^n)
+
+Space Complexity : O(1) - Excluding the recursive stack
+
+Code :
+
+class Solution {
+public:
+    bool canPartition(vector<int>& nums) {
+        int sum=0, partial_sum=0;
+        sum = accumulate(nums.begin(), nums.end(), sum);
+       
+        return (sum%2==0) && solve(nums, sum/2, 0);
+    }
+private:
+    //to check if we can find a subset of sum = sum/2
+    bool solve(vector<int> &nums, int sum, int idx){
+        if(sum==0) return true; //If we have found the subset return true
+        
+        if(idx == nums.size() || sum < 0) return false;  //If we've traversed the whole array or if the sum becomes negative return false
+        
+        return solve(nums, sum-nums[idx], idx+1) || solve(nums, sum, idx+1); //Decrement the sum by value of the index and recur to find the remaining sum or when the curr index value is not included.
+        
+    }
+};
+APPROACH -2 : DP - Tabulation (Bottom-up approach)
+
+The idea is to solve smaller subproblems first, then solve larger subproblems from them.
+The following bottom-up approach computes dp[i][j]. dp[i][j] means whether the specific sum j can be gotten from the first i numbers. If we can pick such a series of numbers from 0-i whose sum is j, dp[i][j] is true, otherwise it is false.
+dp[i][j] is true if dp[i-1][j] is true (meaning that we skipped this element, and took the sum of the previous result) or dp[i-1][j-nums[i]], i.e we're seraching for a subset with sum = sum - nums[i].
+If dp[n][sum/2] is true that means we were able to find a sum of sum/2 out of n elements which is what we want to check.
+Time Complexity : O(nxsum/2)
+
+Space Complexity : O(nxsum/2)
+
+Code :
+
+class Solution {
+public:
+    bool canPartition(vector<int>& nums) {
+        sum = accumulate(nums.begin(), nums.end(), sum);
+       
+        return (sum%2==0) && solve(nums, sum/2);
+    }
+private:
+    int sum = 0;
+    
+    bool solve(vector<int> &nums, int sum){
+        int n = nums.size();
+        bool dp[n+1][sum + 1];
+        
+        for(int i=0;i<=n;i++) dp[i][0] = true; //subset with 0 sum
+        
+        for(int j=1;j<=sum;j++) dp[0][j] = false; //non-zero sum with 0 elements
+        
+        for(int i=1;i<n+1;i++){
+            for(int j=1;j<=sum;j++){
+                if(nums[i-1] > j) dp[i][j] = dp[i-1][j]; //don't include ith element if it's greater then the rem sum
+                else dp[i][j] = dp[i-1][j] || dp[i-1][j-nums[i-1]];
+               
+            }
+        }
+        
+        return dp[n][sum];
+        
+        
+    }
+};
+APPROACH - 3 : DP - Space Optimized
+Instead of creating a 2-D array dp[n+1][sum/2+1], we can solve this problem using an array dp[sum/2+1] only.
+That is, since we only use the current index and previous index, the rest of the indexes are a waste of space and we can reduce it to O(sum/2) space.
+So, dp[j] = true, if there is a subset equal to sum 'j', and false otherwise.
+
+Time Complexity : O(nxsum/2)
+
+Space Complexity : O(sum/2)
+
+Code :
+
+class Solution {
+public:
+    bool canPartition(vector<int>& nums) {
+        sum = accumulate(nums.begin(), nums.end(), sum);
+       
+        return (sum%2==0) && solve(nums, sum/2);
+    }
+private:
+    int sum = 0;
+    
+    bool solve(vector<int> &nums, int sum){
+        int n = nums.size();
+        vector<bool> dp(sum+1, false);
+        
+        dp[0] = true;
+        
+        for (auto num : nums) {
+			for (int j = sum; j >= num; j--) {
+				if(dp[j-num] || j == num) dp[j] = true; 
+			}
+		}
+        return dp[sum];
+        
+        
+    }
+};
+APPROACH - 4 : Using Bitset
+We can replace the dp vector with a bitset, a bit bits[j] has the same meaning as dp[j].
+We use bit-manipulation which is more efficient.
+For instance,
+nums=[2, 3, 5], traversing through nums :
+
+When num=2, bits=101, which represents nums can sum to 0 and 2
+When num=3, bits=101101, which represents nums can sum to 0, 2, 3, 5
+When num=5, bits=10110101101, which represents nums can sum to 0, 2, 3, 5, 7, 8, 10
+Finally, we just need to check if bits[5] is 0 or 1.
+You can say that, for each new value, we are just shifting bits to the left by that many places and then performing the OR operation with its previous state. The 1’s left in the bitset will represent that there exists a sum equal to the index that will be equal to the sum of one of the subsets of the nums array.
+
+Time Complexity : O(N)
+
+Space Compelxity : O(sum)
+
+Code :
+
+class Solution {
+public:
+    bool canPartition(vector<int>& nums) {
+        int sum = accumulate(nums.begin(), nums.end(), 0); 
+        
+        if (sum%2) return false; 
+        bitset<10001> bits(1); 
+        for (auto &num : nums) bits |= bits << num; 
+        return bits[sum/2]; 
+    }
+    
+};
+If you like my solutions and explanation, please upvote!!

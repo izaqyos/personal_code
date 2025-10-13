@@ -1,0 +1,10 @@
+$ g++ -std=c++11 AttributeParserSTD2.cpp  -o AttributeParserSTD2
+$ g++ -std=c++11 AttributeParserSTD.cpp  -o AttributeParserSTD
+$ ./AttributeParserSTD < AttributeParserTestInput.txt 
+Name1
+Not Found!
+HelloWorld
+$ ./AttributeParserSTD2 < AttributeParserTestInput.txt 
+Name1
+Not Found!
+HelloWorld

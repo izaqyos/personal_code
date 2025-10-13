@@ -1,0 +1,107 @@
+/* Custom styling for the AI Assistant Tutorial */
+
+/* Chat message styling */
+.chat-message {
+    padding: 1.5rem; 
+    border-radius: 0.5rem; 
+    margin-bottom: 1rem; 
+    display: flex;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.chat-message.user {
+    background-color: #f0f2f6;
+}
+
+.chat-message.assistant {
+    background-color: #e6f7ff;
+}
+
+.chat-message .avatar {
+    width: 40px; 
+    height: 40px; 
+    border-radius: 50%; 
+    margin-right: 1rem;
+    display: flex; 
+    align-items: center; 
+    justify-content: center;
+}
+
+.chat-message .avatar.user {
+    background-color: #4285f4;
+    color: white;
+}
+
+.chat-message .avatar.assistant {
+    background-color: #34a853;
+    color: white;
+}
+
+.chat-message .message {
+    flex-grow: 1;
+    word-break: break-word;
+}
+
+/* Button styling */
+.stButton button {
+    border-radius: 4px;
+    padding: 0.5rem 1rem;
+    transition: all 0.2s ease;
+}
+
+.stButton button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+/* Input field styling */
+.stTextInput input, .stTextArea textarea {
+    border-radius: 4px;
+    border: 1px solid #ccc;
+}
+
+.stTextArea textarea:focus, .stTextInput input:focus {
+    border-color: #4285f4;
+    box-shadow: 0 0 0 2px rgba(66, 133, 244, 0.2);
+}
+
+/* Sidebar styling */
+.sidebar .sidebar-content {
+    background-color: #f9f9f9;
+}
+
+/* Expander styling */
+.streamlit-expanderHeader {
+    font-weight: 600;
+    color: #333;
+}
+
+/* Dataframe styling */
+.dataframe-container {
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+/* Plots styling */
+.plot-container {
+    margin-top: 1rem;
+    margin-bottom: 2rem;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+/* Main headers */
+h1, h2, h3 {
+    color: #1e3a8a;
+}
+
+/* Info, warning boxes */
+.stAlert {
+    border-radius: 8px;
+}
+
+/* Code block styling */
+.stCodeBlock {
+    border-radius: 8px;
+} 

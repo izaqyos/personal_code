@@ -1,0 +1,61 @@
+services:
+  # PostgreSQL for both Order and Delivery services
+  postgres:
+    image: postgres:15-alpine
+    container_name: order-processing-postgres
+    environment:
+      POSTGRES_DB: orderprocessing
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin123
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d orderprocessing"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - order-processing-network
+
+  # Redis for idempotency cache
+  redis:
+    image: redis:7-alpine
+    container_name: order-processing-redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - order-processing-network
+
+  # ElasticMQ as SQS mock for local development
+  elasticmq:
+    image: softwaremill/elasticmq-native:1.5.7
+    container_name: order-processing-sqs
+    ports:
+      - "9324:9324"  # SQS API
+      - "9325:9325"  # Management UI
+    networks:
+      - order-processing-network
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider 'http://localhost:9324/?Action=ListQueues&Version=2012-11-05' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Application Services (Order & Delivery) run natively via Node.js
+  # Started by: ./scripts/manage-system.sh up
+  # - Order Service: npm run dev:order (port 3001)
+  # - Delivery Service: npm run dev:delivery (port 3002)
+
+volumes:
+  postgres_data:
+
+networks:
+  order-processing-network:
+    driver: bridge 

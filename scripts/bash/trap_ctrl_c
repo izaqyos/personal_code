@@ -1,0 +1,8 @@
+#!/usr/bin/bash
+
+trap 'echo "you typed ctrl/c"; ' INT
+while true
+do
+ sleep 20
+done
+

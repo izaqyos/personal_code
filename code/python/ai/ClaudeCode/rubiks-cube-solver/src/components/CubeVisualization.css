@@ -1,0 +1,67 @@
+.cube-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+}
+
+.cube-net {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.cube-net-row {
+  display: flex;
+  gap: 2px;
+}
+
+.cube-net-space {
+  width: 120px;
+  height: 120px;
+}
+
+.cube-face {
+  width: 120px;
+  height: 120px;
+  display: flex;
+  flex-direction: column;
+  border: 2px solid #333;
+  border-radius: 4px;
+}
+
+.cube-row {
+  display: flex;
+  flex: 1;
+}
+
+.cube-square {
+  flex: 1;
+  border: 1px solid #666;
+  margin: 1px;
+  border-radius: 2px;
+}
+
+.cube-square.white {
+  background-color: #ffffff;
+}
+
+.cube-square.yellow {
+  background-color: #ffff00;
+}
+
+.cube-square.red {
+  background-color: #ff0000;
+}
+
+.cube-square.orange {
+  background-color: #ff8800;
+}
+
+.cube-square.blue {
+  background-color: #0066ff;
+}
+
+.cube-square.green {
+  background-color: #00ff00;
+}

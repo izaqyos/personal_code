@@ -1,0 +1,17 @@
+#!/usr/bin/bash
+
+#Author Yosi Izaq
+#Description For usage with VIM as makeprg setting. 
+# I like to open vim from projects root directory (for ACS that would be runtime for me)
+# and then open multiple buffers with relative paths.
+# I want make to compile the open buffer and not the whole runtime and that is what this small script does.
+# it will change path to parent of either src or test dir of a given module and compile this module only
+
+echo "initial file path is $1"
+CUR_PATH=`echo $1 |  sed -e 's_/src.*\|test.*__'`
+shift
+echo "Changing dir to ${CUR_PATH}"
+cd ${CUR_PATH}
+
+make $@
+

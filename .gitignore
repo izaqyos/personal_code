@@ -1,0 +1,593 @@
+# =============================================================================
+# Personal Code Repository - Comprehensive .gitignore
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# Security & Sensitive Files
+# -----------------------------------------------------------------------------
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.cert
+*.crt
+*.p12
+*.pfx
+*.der
+credentials.json
+credentials
+secrets.json
+secrets
+config/secrets.yml
+config/production.yml
+**/*secret*
+**/*password*
+**/*credential*
+
+# AWS
+.aws/
+aws-exports.js
+
+# SSH Keys
+id_rsa
+id_rsa.pub
+id_dsa
+id_dsa.pub
+id_ecdsa
+id_ecdsa.pub
+id_ed25519
+id_ed25519.pub
+
+# GPG
+secring.*
+*.gpg
+
+# -----------------------------------------------------------------------------
+# Operating System Files
+# -----------------------------------------------------------------------------
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msm
+*.msp
+*.lnk
+
+# Linux
+*~
+.directory
+.Trash-*
+.nfs*
+
+# -----------------------------------------------------------------------------
+# IDEs & Editors
+# -----------------------------------------------------------------------------
+
+# VSCode
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.code-workspace
+.history/
+
+# Cursor
+.cursor/
+
+# JetBrains (IntelliJ, WebStorm, PyCharm, etc.)
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+.idea_modules/
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Vim
+[._]*.s[a-v][a-z]
+[._]*.sw[a-p]
+[._]s[a-v][a-z]
+[._]sw[a-p]
+*~
+tags
+Session.vim
+.netrwhist
+
+# Emacs
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+auto-save-list
+tramp
+.\#*
+
+# -----------------------------------------------------------------------------
+# Node.js / JavaScript / TypeScript
+# -----------------------------------------------------------------------------
+node_modules/
+jspm_packages/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+pnpm-debug.log*
+.npm
+.eslintcache
+.node_repl_history
+*.tgz
+.yarn-integrity
+.pnp.*
+.yarn/
+!.yarn/releases
+!.yarn/plugins
+
+# TypeScript
+*.tsbuildinfo
+dist/
+build/
+*.js.map
+*.d.ts.map
+
+# Next.js
+.next/
+out/
+
+# Nuxt.js
+.nuxt/
+dist/
+
+# Gatsby
+.cache/
+public/
+
+# Serverless
+.serverless/
+.serverless-webpack/
+
+# Parcel
+.cache/
+dist/
+
+# Webpack
+.webpack/
+
+# -----------------------------------------------------------------------------
+# Python
+# -----------------------------------------------------------------------------
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+pip-log.txt
+pip-delete-this-directory.txt
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+cover/
+
+# Translations
+*.mo
+*.pot
+
+# Django
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+
+# Flask
+instance/
+.webassets-cache
+
+# Scrapy
+.scrapy
+
+# Sphinx documentation
+docs/_build/
+
+# PyBuilder
+target/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+*.ipynb_checkpoints
+
+# IPython
+profile_default/
+ipython_config.py
+
+# pyenv
+.python-version
+
+# pipenv
+Pipfile.lock
+
+# Poetry
+poetry.lock
+
+# PEP 582
+__pypackages__/
+
+# Celery
+celerybeat-schedule
+celerybeat.pid
+
+# SageMath
+*.sage.py
+
+# Virtual environments
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+virtualenv/
+.venv/
+
+# Spyder
+.spyderproject
+.spyproject
+
+# Rope
+.ropeproject
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre
+.pyre/
+
+# pytype
+.pytype/
+
+# Cython
+cython_debug/
+
+# -----------------------------------------------------------------------------
+# Java
+# -----------------------------------------------------------------------------
+*.class
+*.jar
+*.war
+*.ear
+*.nar
+hs_err_pid*
+target/
+.classpath
+.project
+.settings/
+.metadata/
+bin/
+tmp/
+*.tmp
+*.bak
+*.swp
+*~.nib
+local.properties
+.loadpath
+.recommenders
+.cache-main
+.scala_dependencies
+.worksheet
+
+# Maven
+dependency-reduced-pom.xml
+.mvn/timing.properties
+.mvn/wrapper/maven-wrapper.jar
+
+# Gradle
+.gradle
+build/
+!gradle-wrapper.jar
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+# -----------------------------------------------------------------------------
+# Rust
+# -----------------------------------------------------------------------------
+target/
+Cargo.lock
+**/*.rs.bk
+*.pdb
+
+# -----------------------------------------------------------------------------
+# C / C++
+# -----------------------------------------------------------------------------
+*.o
+*.ko
+*.obj
+*.elf
+*.ilk
+*.map
+*.exp
+*.gch
+*.pch
+*.lib
+*.a
+*.la
+*.lo
+*.dll
+*.so
+*.so.*
+*.dylib
+*.exe
+*.out
+*.app
+*.i*86
+*.x86_64
+*.hex
+*.dSYM/
+*.su
+*.idb
+*.pdb
+
+# CMake
+CMakeLists.txt.user
+CMakeCache.txt
+CMakeFiles
+CMakeScripts
+Testing
+Makefile
+cmake_install.cmake
+install_manifest.txt
+compile_commands.json
+CTestTestfile.cmake
+_deps
+
+# Autotools
+.deps/
+.libs/
+*.la
+*.lo
+Makefile
+Makefile.in
+/autom4te.cache
+/aclocal.m4
+/compile
+/configure
+/depcomp
+/install-sh
+/missing
+
+# -----------------------------------------------------------------------------
+# Go
+# -----------------------------------------------------------------------------
+*.exe
+*.exe~
+*.test
+*.prof
+vendor/
+go.work
+go.work.sum
+
+# -----------------------------------------------------------------------------
+# Ruby
+# -----------------------------------------------------------------------------
+*.gem
+*.rbc
+/.config
+/coverage/
+/InstalledFiles
+/pkg/
+/spec/reports/
+/spec/examples.txt
+/test/tmp/
+/test/version_tmp/
+/tmp/
+.bundle/
+lib/bundler/man/
+
+# -----------------------------------------------------------------------------
+# Database
+# -----------------------------------------------------------------------------
+*.sql
+*.sqlite
+*.sqlite3
+*.db
+*.db-journal
+*.db-shm
+*.db-wal
+
+# PostgreSQL
+*.dump
+*.psql
+
+# MongoDB
+*.bson
+
+# Redis
+dump.rdb
+
+# -----------------------------------------------------------------------------
+# Docker
+# -----------------------------------------------------------------------------
+docker-compose.override.yml
+.dockerignore
+
+# -----------------------------------------------------------------------------
+# Logs
+# -----------------------------------------------------------------------------
+logs/
+*.log
+log/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# -----------------------------------------------------------------------------
+# Temporary Files
+# -----------------------------------------------------------------------------
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+.#*
+\#*#
+
+# -----------------------------------------------------------------------------
+# Build Outputs
+# -----------------------------------------------------------------------------
+dist/
+build/
+out/
+output/
+release/
+Debug/
+Release/
+x64/
+x86/
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+
+# -----------------------------------------------------------------------------
+# Package Manager Lock Files (Optional - uncomment if needed)
+# -----------------------------------------------------------------------------
+# Uncomment these if you don't want to commit lock files
+# package-lock.json
+# yarn.lock
+# pnpm-lock.yaml
+# Gemfile.lock
+# composer.lock
+
+# -----------------------------------------------------------------------------
+# Documentation Generated Files
+# -----------------------------------------------------------------------------
+/doc/
+/docs/api/
+site/
+
+# -----------------------------------------------------------------------------
+# Test Coverage
+# -----------------------------------------------------------------------------
+coverage/
+.nyc_output/
+*.lcov
+
+# -----------------------------------------------------------------------------
+# Misc
+# -----------------------------------------------------------------------------
+.sass-cache/
+*.css.map
+*.sass.map
+*.scss.map
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Backups
+*.backup
+*.old
+*.orig
+*.rej
+*.bkp
+*.bak
+~*
+
+# Archives
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.rar
+*.7z
+*.dmg
+*.iso
+
+# Large files (adjust as needed)
+*.mp4
+*.mov
+*.avi
+*.mkv
+*.wmv
+*.flv
+*.mpeg
+*.mpg
+*.webm
+
+# -----------------------------------------------------------------------------
+# Project Specific
+# -----------------------------------------------------------------------------
+
+# Keep certain directories but ignore their contents
+# Add your project-specific ignore patterns below
+

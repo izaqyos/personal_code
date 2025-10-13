@@ -1,0 +1,4 @@
+curl -X POST http://localhost:3001/test \
+     -H "Content-Type: application/json" \
+     -d '{"name": "test", "value": 42}' \
+     -v

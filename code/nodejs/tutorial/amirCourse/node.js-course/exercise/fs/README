@@ -1,0 +1,9 @@
+Please install first, in cmd:
+npm install
+or
+npm install --https-proxy=http://proxy:8080
+
+usage of utils.js:
+require script in your code > var utils = require("./utils")
+create a pattern            > var pattern = utils.createPattern(p);
+match to a file name        > pattern.match(filename) // true/false

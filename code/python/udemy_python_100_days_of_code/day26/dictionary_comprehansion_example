@@ -1,0 +1,89 @@
+In [2]: student_names = [
+   ...:     "Alice Smith",
+   ...:     "Bob Johnson",
+   ...:     "Charlie Brown",
+   ...:     "David Lee",
+   ...:     "Emily Garcia",
+   ...:     "Frank Rodriguez",
+   ...:     "Grace Wilson",
+   ...:     "Henry Martinez",
+   ...:     "Isabella Robinson",
+   ...:     "Jack Thompson",
+   ...:     "Katherine White",
+   ...:     "Liam Anderson",
+   ...:     "Mia Thomas",
+   ...:     "Noah Jackson",
+   ...:     "Olivia Harris",
+   ...:     "Peter Martin",
+   ...:     "Quinn Lewis",
+   ...:     "Ryan Clark",
+   ...:     "Sophia Young",
+   ...:     "Thomas Allen"
+   ...: ]
+
+In [3]: import random
+
+In [4]: grades = {k:random.randint(40,100) for k in student_names}
+
+In [5]: grades
+Out[5]: 
+{'Alice Smith': 86,
+ 'Bob Johnson': 62,
+ 'Charlie Brown': 69,
+ 'David Lee': 61,
+ 'Emily Garcia': 57,
+ 'Frank Rodriguez': 65,
+ 'Grace Wilson': 55,
+ 'Henry Martinez': 60,
+ 'Isabella Robinson': 58,
+ 'Jack Thompson': 84,
+ 'Katherine White': 45,
+ 'Liam Anderson': 87,
+ 'Mia Thomas': 75,
+ 'Noah Jackson': 63,
+ 'Olivia Harris': 58,
+ 'Peter Martin': 46,
+ 'Quinn Lewis': 47,
+ 'Ryan Clark': 62,
+ 'Sophia Young': 64,
+ 'Thomas Allen': 56}
+
+
+In [7]: passed = {k:v for k,v in grades.items() if v > 60}
+
+In [8]: passed
+Out[8]: 
+{'Alice Smith': 86,
+ 'Bob Johnson': 62,
+ 'Charlie Brown': 69,
+ 'David Lee': 61,
+ 'Frank Rodriguez': 65,
+ 'Jack Thompson': 84,
+ 'Liam Anderson': 87,
+ 'Mia Thomas': 75,
+ 'Noah Jackson': 63,
+ 'Ryan Clark': 62,
+ 'Sophia Young': 64}
+
+ 
+In [5]: sentence = "What is the Airspeed Velocity of an Unladen Swallow?"
+   ...: result =  {k:len(k) for k in sentence.split(" ")}
+
+In [6]: result
+Out[6]: 
+{'What': 4,
+ 'is': 2,
+ 'the': 3,
+ 'Airspeed': 8,
+ 'Velocity': 8,
+ 'of': 2,
+ 'an': 2,
+ 'Unladen': 7,
+ 'Swallow?': 8}
+
+ In [7]: weather_c = {"Monday": 12, "Tuesday": 14, "Wednesday": 15, "Thursday": 14, "Friday": 21, "Saturday": 22, "Sunday": 24}
+   ...: 
+   ...: weather_f = {k:(v*9/5)+32 for k,v in weather_c.items()}
+
+In [8]: print(weather_f)
+{'Monday': 53.6, 'Tuesday': 57.2, 'Wednesday': 59.0, 'Thursday': 57.2, 'Friday': 69.8, 'Saturday': 71.6, 'Sunday': 75.2}

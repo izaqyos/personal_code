@@ -1,0 +1,18 @@
+body {
+  margin: 0;
+  overflow: hidden;
+}
+
+.controls {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 1;
+}
+
+button {
+  margin-right: 10px;
+  padding: 10px 20px;
+  font-size: 16px;
+  cursor: pointer;
+}

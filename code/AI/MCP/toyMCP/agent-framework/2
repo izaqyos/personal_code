@@ -1,0 +1,13 @@
+[0;34m========================================[0m
+[0;34m= Agent Framework Test Runner         =[0m
+[0;34m========================================[0m
+[0;34mBuilding TypeScript code...[0m
+
+> mcp-agent-framework@1.0.0 build
+> tsc
+
+[0;34mRunning all tests...[0m
+
+> mcp-agent-framework@1.0.0 test
+> jest --config=jest.config.js
+

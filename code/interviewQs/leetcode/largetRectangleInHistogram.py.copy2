@@ -1,0 +1,98 @@
+"""
+Given n non-negative integers representing the histogram's bar height where the width of each bar is 1, find the area of largest rectangle in the histogram.
+Above is a histogram where width of each bar is 1, given height = [2,1,5,6,2,3].
+The largest rectangle is shown in the shaded area, which has area = 10 unit.
+Example:
+
+Input: [2,1,5,6,2,3]
+Output: 10
+"""
+
+class Solution:
+    def largestRectangleArea(self, heights):
+        """
+        so for rectangle area we do width*height. 
+        width is endpos-startpos+1
+        height we keep track of start positions (in a stack)
+        each height > height at stack top, add it's index to stack
+        each height == height at stack top, continue
+        each height < height at stack top, start poping from stack so long as current height is smaller than top. if it's empty. 
+        area = heights[top]*i (empty stack means that this is the lowest height so we have a low rectangle since the begining to i)
+        if stack is not empty then area = heights[top]*(i - top)  
+        if stack is empty add i 
+        if no more numbers empty stack
+        """
+        max_area = 0
+        startpos_stack = []
+
+        for i,h in enumerate(heights):
+            #print('index={}, stack={}'.format(i, startpos_stack))
+            #new rectangle detected
+            if (len(startpos_stack) == 0):
+                startpos_stack.append(i)
+            else:
+                toph = heights[startpos_stack[-1]]
+                #print('top:', toph)
+                if h == toph:
+                    continue
+                elif h > toph:
+                    startpos_stack.append(i)
+                else:
+                    #pop from stack and calculate area. If stack is empty calculate area = top multiple by index (since it the lowest height seen so far)
+                    while (toph > h) and len(startpos_stack) > 0:
+                        top = startpos_stack.pop()
+                        if len(startpos_stack) == 0: #empty stack means this is the lowest height so far so we calc the low rectangle area...
+                            max_area = max(max_area, i * toph)
+                        else:
+                            max_area = max(max_area, toph*(i-top)) 
+                            toph = heights[startpos_stack[-1]] 
+                        #print('max', max_area)
+                    startpos_stack.append(i) #when kicking out a higher index we need to set 
+
+                    # while len(startpos_stack) > 0:
+                    #     top = startpos_stack[-1]
+                    #     top_height = heights[top]
+                    #     if top_height<=h:
+                    #         break
+                    #     max_area = max(max_area, top_height*(i-top)) 
+                    #     startpos_stack.pop()
+                    #     if len(startpos_stack) == 0: #empty stack means this is the lowest height so far so we calc the low rectangle area...
+                    #         max_area = max(max_area, (i+1) * top_height)
+                    #     #print('max', max_area)
+                    # startpos_stack.append(i)
+
+
+        while (len(startpos_stack) > 0):
+            top = startpos_stack.pop()
+            #print('max={}, top={}, len={}, stack={}'.format(max_area, top, len(heights), startpos_stack)) 
+            if len(startpos_stack) == 0: #empty stack means this is the lowest height so far so we calc the low rectangle area...
+                max_area = max(max_area, len(heights) * heights[top])
+            else:
+                max_area = max(max_area, heights[top]*(len(heights) - top)) 
+
+        return max_area
+
+
+
+def test():
+    inputs = [
+            [],
+            [3],
+            [1,2,3],
+            [3,3,2,4,8,8],
+            [2,1,5,6,2,3],
+            [2,1,2],
+            [5,4,1,2],
+            [4,2,0,3,2,5],
+            ]
+    output = [0, 3,  4, 16, 10,3, 8, 6]
+    sol = Solution()
+    for inp, exp in zip(inputs, output):
+        area = sol.largestRectangleArea(inp)
+        print('largest rectangle area of {} is {}, expected {}'.format(inp, area, exp) )
+
+def main():
+    test()
+
+if __name__ == "__main__":
+    main()

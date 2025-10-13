@@ -1,0 +1,13 @@
+#!/bin/bash
+
+#Strip ACS logs of thread prefixes and messages so that it'll be possible to diff the logs.
+
+if [ -z "$1" ]
+then
+  echo "Usage: strip_acs_logs log_file"
+  echo "Example strip_acs_logs AUTH\ pass\ state\ \=1\ ext\ state\ \=0.log > AUTH_PASS_S1_E0"
+    exit 1
+    fi  
+
+#cat "$1" | sed  's_^AUTH_Yosi_g' 
+cat "$1" | sed  's/^.\{36\}//g' | grep -v "Start" | grep -v "Done" | grep -v "Worker"

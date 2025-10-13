@@ -1,0 +1,79 @@
+"""
+Given n non-negative integers representing the histogram's bar height where the width of each bar is 1, find the area of largest rectangle in the histogram.
+Above is a histogram where width of each bar is 1, given height = [2,1,5,6,2,3].
+The largest rectangle is shown in the shaded area, which has area = 10 unit.
+Example:
+
+Input: [2,1,5,6,2,3]
+Output: 10
+"""
+
+class Solution:
+    def largestRectangleArea(self, heights):
+        """
+        so for rectangle area we do width*height. 
+        width is endpos-startpos+1
+        height we keep track of start positions (in a stack) and height.
+        we also keep a stack with current largest height, whenever we enounter
+        a smaller height we pop all the larger heights and their start position
+        - because this means that they have reached their end. we calc area and
+          update max area var
+        if encounter same height just continue 
+        if we encounter larger height this means we start a new possible
+        rectangle, so we add a new start pos to positions stack
+        At the end just process what's left in the stack pairs of height, start
+        pos
+        """
+        max_area = 0
+        startpos_stack = []
+        heights_stack = []
+
+        for i,h in enumerate(heights):
+            #new rectangle detected
+            if (len(startpos_stack) == 0) or (len(heights_stack) > 0 and h > heights_stack[-1]):
+                startpos_stack.append(i)
+                heights_stack.append(h)
+            else:
+                if (len(heights_stack) > 0 and h == heights_stack[-1]):
+                    continue
+                else: # h<heights_stack[-1]
+            #we need to terminate all rectangles higher than h, but keep their start pos for the lower rectangle
+            #pop the highest each time
+                    for prev_height in heights_stack:
+                        if h < prev_height:
+                            start = startpos_stack.pop()
+                        height = heights_stack.pop()
+                        area = (i-start)*height
+                        max_area = max(max_area, area)
+
+        last_pos = len(heights)
+        while (len(startpos_stack) > 0) and (len(heights_stack) > 0):
+                start = startpos_stack.pop()
+                height = heights_stack.pop()
+                area = (last_pos-start)*height
+                max_area = max(max_area, area)
+
+        return max_area
+
+
+
+def test():
+    inputs = [
+            [],
+            [3],
+            [1,2,3],
+            [3,3,2,4,8,8],
+            [2,1,5,6,2,3],
+            [2,1,2],
+            ]
+    output = [0, 3,  4, 16, 10,3]
+    sol = Solution()
+    for inp, exp in zip(inputs, output):
+        area = sol.largestRectangleArea(inp)
+        print('largest rectangle area of {} is {}, expected {}'.format(inp, area, exp) )
+
+def main():
+    test()
+
+if __name__ == "__main__":
+    main()

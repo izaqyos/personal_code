@@ -1,0 +1,16 @@
+digraph transport_state_machine {
+    rankdir=LR;
+    size="80,50"
+
+    node [shape = doublecircle]; RUNNING;
+    node [shape = point ]; qi
+    SUCCEEDED
+    node [shape = point ]; FAILED
+    node [shape = point ]; CANCELED
+
+    node [shape = circle];
+    qi -> RUNNING; [label = "got /start"  ];
+    RUNNING  -> SUCCEEDED [ label = "partial/full content commited" ];
+    SUCCEEDED -> RUNNING  [ label = "got /start" ];
+}
+

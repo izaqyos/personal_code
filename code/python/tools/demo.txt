@@ -1,0 +1,940 @@
+  PUBLIC
+2021-08-29
+CIAS Guide: SAP Launchpad Service Integration with SAP S/4HANA
+  THE BEST RUN
+© 2021 SAP SE or an SAP affiliate company. All rights reserved.
+
+Content
+1 CIAS Guide: SAP Launchpad Service Integration with SAP S/4HANA. . . . . . . . . . . . . . . . . . . . 4
+1.1 Prerequisites and Required Credentials. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 5
+1.2 Setting Up Identity Authentication. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 7
+Creating a User Group for Launchpad Administrators. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 7 Creating an Identity Authentication Service User for the Launchpad Administrator. . . . . . . . . . . . 8 Assigning the User Group to the User. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 9 Exporting the SAML Metadata. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 9
+1.3 Establishing Trust in SAP BTP. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .10 Establishing Trust in SAP BTP with the Identity Authentication Service. . . . . . . . . . . . . . . . . . . . 10
+1.4 Establishing Trust in Identity Authentication Service. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 11 Registering Subaccount to Establish Trust. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .11 Configuring the Name ID Attributes. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 12 Configuring the Assertion Attributes. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 13
+1.5 Setting Up Cloud Connector. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .14 Connecting the Cloud Connector to the SAP BTP Subaccount. . . . . . . . . . . . . . . . . . . . . . . . . . 14 Enabling Principal Propagation Trust to Identity Authentication Service. . . . . . . . . . . . . . . . . . . . 15 Exporting the Cloud Connector System Certificate. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 15 Configuring the CA Certificate for Principal Propagation. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .16 Configuring the Principal Propagation Subject Pattern. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 17 Exporting the Principal Propagation Sample Certificate. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 18
+1.6 Setting Up the SAP S/4HANA System. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . Configuring Trust to Cloud Connector as Intermediary. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . Enabling the SSL Server Port. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . Enabling the Profile Parameter for Rule-based Certificate Mapping. . . . . . . . . . . . . . . . . . . . . . Restarting the SAP S/4HANA System After Profile Changes. . . . . . . . . . . . . . . . . . . . . . . . . . . Creating an SSL Server Certificate. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . Exporting the SSL Server Certificate. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . Adding Cloud Connector to the SSL Server Certificate List. . . . . . . . . . . . . . . . . . . . . . . . . . . . Configuring the CERTRULE Mapping. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 26 Protecting Against Clickjacking. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 27
+1.7 Technical Integration of Cloud Connector. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 28 Importing the ABAP SSL Server Certificate to the Trust Store. . . . . . . . . . . . . . . . . . . . . . . . . . 28 Defining the Access Control System Mapping. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .29 Defining the Access Control Resource Mapping. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 30
+1.8 Subscribing to SAP Launchpad Service. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 31 Enabling the SAP Launchpad Service. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 31
+CIAS Guide: SAP Launchpad Service Integration with SAP S/4HANA
+2 PUBLIC Content
+.18 .18 .19 . 21 22 22 24 25
+
+Mapping the Identity Authentication Service User Group to the SAP BTP Role Collection. . . . . . . 31
+1.9 Sample Business Scenario - Setup in the SAP S/4HANA System. . . . . . . . . . . . . . . . . . . . . . . . . . .33 Exposing Content to SAP Launchpad Service. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 33
+1.10 Sample Business Scenario - Setup in SAP BTP. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 34 Configuring Destinations for Exposing Content and Consuming Content. . . . . . . . . . . . . . . . . . .34 Creating a Content Provider. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 35 Creating a Sample Site. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .36 Assigning a Business Role to the Sample Site. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 37 Assigning the Role Collection to a User. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 38
+1.11 Sample Business Scenario - Verification. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 39 Launching the Sample Site. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 39
+1.12 Troubleshooting. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 39
+CIAS Guide: SAP Launchpad Service Integration with SAP S/4HANA
+Content PUBLIC 3
+
+1 CIAS Guide: SAP Launchpad Service Integration with SAP S/4HANA
+This scenario describes the configuration steps necessary to setting up SAP Launchpad service on SAP BTP for an SAP S/4HANA system with SAP Fiori front-end server 2020 in embedded deployment.
+This figure gives an overview of the integration:
+ Workflow Support
+This scenario is available in the following modes:
+● ●
+As a guide in HTML and PDF format on SAP Help Portal
+You can display and download the documentation and follow the step-by-step instructions.
+As a guided workflow with some automation in a Cloud Integration Automation Service
+For more information, see the Cloud Integration Automation Service User Guide and SAP Note 2608492
+.
+ 4
+CIAS Guide: SAP Launchpad Service Integration with SAP S/4HANA PUBLIC CIAS Guide: SAP Launchpad Service Integration with SAP S/4HANA
+
+1.1 Prerequisites and Required Credentials
+This scenario describes the configuration steps necessary to setting up SAP Launchpad service on SAP BTP for an SAP S/4HANA system with SAP Fiori front-end server 2020 in embedded deployment.
+Before you set up the required components and start with the technical integration, make sure that the following prerequisites are fulfilled and you have the required users and credentials for the components.
+It is important that the components being integrated are already set up and that the connection between the components is established. This scenario is intended as a guide to help you prepare and apply the necessary steps for technically integrating them.
+Example Scenario
+This scenario provides a sample business scenario where the content (such as SAP Fiori apps) for a specific custom role is displayed in SAP Launchpad service. To achieve this, the content is exposed from the SAP S/ 4HANA system and SAP BTP is configured to display the content.
+Prerequisites
+SAP S/4HANA System
+SAP S/4HANA System
+Minimum system version Required user
+Setup
+SAP BTP
+SAP BTP
+System status
+CIAS Guide: SAP Launchpad Service Integration with SAP S/4HANA
+CIAS Guide: SAP Launchpad Service Integration with SAP S/4HANA
+Prerequisite
+  SAP S/4HANA 2020. See also SAP Note 3042853
+SAP S/4HANA system administrator with permissions com­ parable to SAP_ALL and has permission SAP_FLP_ADMIN assigned and has a valid email address configured.
+A technical user with permission SAP_FLP_EXP_USER as­ signed.
+There is at least one business role in the SAP S/4HANA sys­ tem. In the sample business scenario, we take SAP_BR_PURCHASER.
+SAP Fiori Launchpad is initially set up, see the SAP Fiori Launchpad Administration Guide.
+Prerequisite
+Subaccount on SAP BTP Cloud Foundry environment is cre­ ated on Feature Set B.
+.
+           PUBLIC 5
+
+SAP BTP
+Required user
+Entitlements
+Cloud Connector
+Cloud Connector
+System status Required user
+Identity Authentication Service
+Identity Authentication Service
+System status Required user
+Prerequisite
+Subaccount member has Subaccount administrator role. This role requires authorization to perform tasks such as en­ abling services, mapping role collections, establishing trust, and configuring SAP Launchpad service.
+This SAP BTP subaccount administrator user has a business user in the SAP S/4HANA system with a valid email address configured and the business role assigned that is used for exposing content. In the sample business scenario, we take SAP_BR_PURCHASER.
+The subaccount has an entitlement for SAP Launchpad service.
+Prerequisite
+Cloud Connector system is installed.
+Cloud Connector user with administrator authorization. This role requires authorization to perform tasks such as con­ necting a SAP BTP subaccount, setting up principal propa­ gation, and defining access control mapping.
+The Cloud Connector administrator has the role collection Cloud Connector Administrator assigned in the SAP BTP subaccount.
+Prerequisite
+Tenant for Identity Authentication service is provisioned.
+● User for Identity Authentication service with administra­ tor authorization. This role requires authorization to perform tasks such as creating groups and users and configuring trust.
+● To perform the automation, you create a destination with basic authentication for the Identity Authentication tenant URL. Therefore, you update the credentials (UUID, password) of a system as administrator with an assigned Manage Users role. For system as administra­ tor, see SCIM REST API Authentication Mechanisms in SAP Cloud Identity Services - Identity Authentication.
+Trust between the Identity Authentication service and the corporate identity provider is established.
+CIAS Guide: SAP Launchpad Service Integration with SAP S/4HANA
+                  Identity provider
+  6 PUBLIC
+CIAS Guide: SAP Launchpad Service Integration with SAP S/4HANA
+
+1.2 Setting Up Identity Authentication
+1.2.1 Creating a User Group for Launchpad Administrators
+You create a user group for Launchpad administrators in the Identity Authentication service that you can map to the corresponding role collection.
+Context
+Generally, you create groups for a set of users who share the same tasks. In this case, you create a group for the Launchpad administrators.
+Procedure
+1. Access the Identity Authentication administration console as administrator.
+2. Go to Users & Authorizations and choose User Groups .
+3. Choose Create and enter the following user group details:
+○ Name, for example, Lauchpad_Admin
+○ Display name ○ Description
+4. Save your entries.
+Related Information
+Create a New User Group
+   Note
+The tenant ID is an automatically generated ID by the system. The first administrator created for the tenant receives an activation e-mail with a URL in it. This URL contains the tenant ID.
+CIAS Guide: SAP Launchpad Service Integration with SAP S/4HANA
+CIAS Guide: SAP Launchpad Service Integration with SAP S/4HANA
+PUBLIC 7
+
+1.2.2 Creating an Identity Authentication Service User for the Launchpad Administrator
+You create a user for the Identity Authentication service for the Launchpad administrator role.
+Context
+The user you create here will perform the SAP BTP administration tasks for setting up SAP Launchpad service. The login name of this user is mapped to a SAP S/4HANA system user.
+Procedure
+1. Access the Identity Authentication administration console as an administrator.
+2. Go to Users & Authorizations and choose User Management.
+3. Choose  Add User and enter the following information for your user:
+○ First Name
+○ Last Name ○ E-Mail
+○ Login Name
+   Note
+When you enter the login name, enter the user name that is assigned to the mail address in the
+SAP S/4HANA system.
+If the SAP BTP administrator already has a user in the Identity Authentication service, just enter the parameters of the existing user, choose Save Parameter(s) and choose Task Completed.
+  4. Choose Send activation e-mail. The user receives an e-mail with instructions on how to activate the user account.
+5. Save your entries.
+Related Information
+Create a New User
+8 PUBLIC
+CIAS Guide: SAP Launchpad Service Integration with SAP S/4HANA
+ Note
+The User Type is set to Employee by default. Keep this setting.
+CIAS Guide: SAP Launchpad Service Integration with SAP S/4HANA
+
+1.2.3 Assigning the User Group to the User
+You assign the Identity Authentication service user group you created to the Identity Authentication service user you created.
+Procedure
+1. Access the Identity Authentication administration console as an administrator.
+2. Go to Users & Authorizations and choose User Management .
+3. Select the administration user from the list and open the User Groups tab.
+You can enter the ID of your own user in the Identity Authentication tenant or the ID of any other user that
+will act as SAP Launchpad administrator.
+4. Choose Assign Groups and, in the dialog, select the group you have created in the Creating a User Group
+for Launchpad Administrators [page 7] step.
+1.2.4 Exporting the SAML Metadata
+You export the settings you just configured to be able to establish trust with the SAP BTP subaccount.
+Context
+You export the SAML metadata file to then upload it to your SAP BTP subaccount, see Establishing Trust in SAP BTP with the Identity Authentication Service [page 10].
+Procedure
+1. Access the Identity Authentication administration console as an administrator.
+2. Go to Applications & Resources and choose Tenant Settings.
+3. Open the SAML 2.0 Configuration entry.
+4. Choose the  Download Metadata File button.
+The metadata file is downloaded.
+CIAS Guide: SAP Launchpad Service Integration with SAP S/4HANA
+CIAS Guide: SAP Launchpad Service Integration with SAP S/4HANA
+PUBLIC 9
+
+1.3 Establishing Trust in SAP BTP
+1.3.1 Establishing Trust in SAP BTP with the Identity Authentication Service
+You establish trust with the Identity Authentication service as SAML 2.0 identity provider.
+Prerequisites
+You have exported the metadata that you configured in Exporting the SAML Metadata [page 9].
+Context
+In your SAP BTP subaccount, by using a SAML 2.0 metadata file from the Identity Authentication service, you establish a trust relationship with Identity Authentication service as SAML 2.0 identity provider.
+In addition, you export the SAML metadata of your subaccount that you import to your Identity Authentication service in Registering Subaccount to Establish Trust [page 11].
+Procedure
+1. In the SAP BTP cockpit, log on to your subaccount as administrator.
+2. Go to Security and choose Trust Configuration.
+3. Choose New Trust Configuration.
+4. At the Metadata field, choose Upload and insert the SAML 2.0 metadata file that you've exported from Identity Authentication.
+Most fields are filled.
+5. Enter a name and an (optional) description that make it clear to where the trust configuration refers to.
+6. (Optional) Enter a link name. The text you enter in Link Text for User Logon is diplayed as link to the users when they can choose, upon logon, between several links.
+7. Check that Available for User Logon and Create Shadow Users During Logon are set and that the Status is Active.
+8. Save your entries.
+9. If you do not need the default identity provider, uncheck its Available for User Logon setting.
+10. To export the SAML metadata of your SAP BTP subaccount, choose SAML Metadata. This creates the saml-<subdomain>-sp.xml file. Save it locally so that you can upload it when registering the SAP BTP subaccount to establish trust in the Identity Authentication service.
+CIAS Guide: SAP Launchpad Service Integration with SAP S/4HANA
+10 PUBLIC CIAS Guide: SAP Launchpad Service Integration with SAP S/4HANA
+
+Related Information
+Manually Establish Trust and Federation Between UAA and Identity Authentication
+1.4 Establishing Trust in Identity Authentication Service 1.4.1 Registering Subaccount to Establish Trust
+You register the SAP BTP subaccount in your Identity Authentication service to establish trust between this SAML identity provider and your subaccount as SAML service provider.
+Prerequisites
+You've exported the metadata file of your SAP BTP subaccount in Establishing Trust in SAP BTP with the Identity Authentication Service [page 10].
+Context
+Administrators configure trust on both sides, in the application, that is, the SAP BTP subaccount, and in the SAML identity provider. This task covers the side of the Identity Authentication as identity provider.
+Procedure
+1. Access the Identity Authentication administration console as an administrator.
+2. Go to Applications & Resources and choose Applications.
+3. To add an application for the SAP BTP subaccount, choose  Create.
+4. As Application Display Name, enter <Subaccount Name>.
+Users see this name on the logon screen when authentication is requested by the User Account and Authentication service.
+5. As Application Type, choose SAP BTP Solution.
+6. Choose SAML 2.0 Configuration and import the subaccount metadata file.
+If the contents of the metadata XML file are valid, they're parsed to populate the remaining fields of the SAML configuration, such as the name, the URLs of the assertion consumer service and single logout endpoints, and the signing certificate.
+In the next tasks, you then assign the name ID attribute and the assertion attributes.
+CIAS Guide: SAP Launchpad Service Integration with SAP S/4HANA
+CIAS Guide: SAP Launchpad Service Integration with SAP S/4HANA PUBLIC 11
+
+7. Save your entries.
+Related Information
+Manually Establish Trust and Federation Between UAA and Identity Authentication
+1.4.2 Configuring the Name ID Attributes
+You configure the subject name identifier and default name ID format attributes in the Identity Authentication service.
+Context
+The Identity Authentication service sends these profile attributes to the application as a name ID. Based on the ID, the application identifies the user, see Configuring the Principal Propagation Subject Pattern [page 17].
+Procedure
+1. Access the Identity Authentication administration console as an administrator.
+2. Go to Applications & Resources and choose Applications.
+3. Select your application from the list.
+4. From the Trust page, open Subject Name Identifier, and select E-Mail.
+5. Save your entries.
+6. From the Trust page, open Default Name ID Format, and select E-Mail.
+7. Save your entries.
+Related Information
+Configure the Subject Name Identifier Sent to the Application
+CIAS Guide: SAP Launchpad Service Integration with SAP S/4HANA 12 PUBLIC CIAS Guide: SAP Launchpad Service Integration with SAP S/4HANA
+
+1.4.3 Configuring the Assertion Attributes
+You configure the assertion attributes that are sent to the application (service provider).
+Prerequisites
+You have defined the name of the group attribute in the mapping rules in the Mapping the Identity Authentication Service User Group to the SAP BTP Role Collection [page 31] step.
+Procedure
+1. Access the Identity Authentication administration console as an administrator.
+2. Go to Applications & Resources and choose Applications.
+3. Select your application from the list.
+4. From the Trust page, choose Assertion Attributes to open Attributes.
+5. Choose + Add to add attributes. Make sure that the following names of the assertion attributes for your application are set:
+○ Groups: Enter Groups as the assertion attribute.
+○ First Name
+○ Last Name
+○ E-Mail
+○ User UUID
+6. Save your entries.
+Related Information
+Configure the User Attributes Sent to the Application
+CIAS Guide: SAP Launchpad Service Integration with SAP S/4HANA
+CIAS Guide: SAP Launchpad Service Integration with SAP S/4HANA
+PUBLIC 13
+
+1.5 Setting Up Cloud Connector
+1.5.1 Connecting the Cloud Connector to the SAP BTP Subaccount
+You connect the Cloud Connector to the SAP BTP subaccount.
+Context
+You perform this task typically once in the Cloud Connector for the SAP BTP subaccount. If you have already performed this task, proceed to the next task.
+This task is required after initial logon to the Cloud Connector system or if your SAP BTP subaccount is not yet connected to the Cloud Connector.
+Procedure
+1. Log on to Cloud Connector as administrator.
+2. Choose Connector, and then choose Add Subaccount.
+3. Enter the following information. You can look up this information in the SAP BTP subaccount, at the Overview page.
+○ Region: Select <subaccount region>
+○ Subaccount: <ID of the SAP BTP subaccount>
+○ Display Name (optional): <Display name of the SAP BTP subaccount>
+○ Subaccount User: <Email address of your SAP BTP subaccount user>
+○ Password: Password for your <SAP BTP subaccount user>
+○ Description (optional): Description for the SAP BTP subaccount
+4. Save your entries.
+5. Log on to your SAP BTP subaccount and choose Connectivity > Cloud Connectors the navigation area to validate the connectivity.
+Related Information
+Managing Subaccounts
+CIAS Guide: SAP Launchpad Service Integration with SAP S/4HANA 14 PUBLIC CIAS Guide: SAP Launchpad Service Integration with SAP S/4HANA
+
+1.5.2 Enabling Principal Propagation Trust to Identity Authentication Service
+You establish trust to the Identity Authentication service of your SAP BTP subaccount.
+Context
+You perform this task typically once in the Cloud Connector for the SAP BTP subaccount. If you have already performed this task, proceed to the next task.
+By default, your Cloud Connector does not trust any entity that issues tokens for principal propagation. To use principal propagation, you must enable trust to your Identity Authentication service. This enables the Launchpad to accept authenticated users for principal propagation from your Identity Authentication service.
+Procedure
+1. Log on to Cloud Connector as administrator.
+2. Select your subaccount, for example, <SAP BTP subaccount name>, and choose Cloud To On-Premise.
+3. Open the Principal Propagation tab and choose Synchronize.
+4. In the Trust Configuration section, verify that it is set to Trusted.
+Related Information
+Set Up Trust for Principal Propagation > Configure Trusted Entities in the Cloud Connector
+1.5.3 Exporting the Cloud Connector System Certificate
+You export the system certificate (client certificate) of your Cloud Connector instance.
+Context
+You perform this task typically once in the Cloud Connector. If you have already performed this task, proceed to the next task.
+If you already have a issuer CA certificate, ensure that you have it handy for later import.
+You then import the certificate in a later task into the SAP S/4HANA system, see Adding Cloud Connector to
+the SSL Server Certificate List [page 25].
+CIAS Guide: SAP Launchpad Service Integration with SAP S/4HANA
+CIAS Guide: SAP Launchpad Service Integration with SAP S/4HANA PUBLIC 15
+
+Procedure
+1. Log on to Cloud Connector as administrator.
+2. Choose   Connector   Configuration   , and open the On Premise tab.
+3. In the System Certificate section, choose Create and import self-signed certificate to configure the system certificate.
+4. In the Create Self-Signed Certificate, enter the following information:
+○ Common Name (CN): Enter, for example, Cloud Connector.
+○ E-Mail Address (EMAIL) (optional)
+○ Organizational Unit (OU) (optional)
+○ Organization (O) (optional)
+○ Country (C) (optional)
+5. Choose Create.
+6. To export the system certificate, choose Download system certificate in DER format.
+1.5.4 Configuring the CA Certificate for Principal Propagation
+You configure the local CA certificate for principal propagation.
+Context
+You perform this task typically once in the Cloud Connector. If you have already performed this task, proceed to the next task.
+Procedure
+1. Log on to Cloud Connector as administrator.
+2. Choose   Connector   Configuration   , and open the On Premise tab.
+3. In the CA Certificate section, choose Create and import self-signed certificate.
+4. Enter the following information:
+○ Common Name (CN): Enter, for example, Local CA.
+○ Organizational Unit (OU) (optional)
+○ Organization (O) (optional)
+○ Country (C) (optional)
+5. Choose Create.
+16 PUBLIC
+CIAS Guide: SAP Launchpad Service Integration with SAP S/4HANA
+CIAS Guide: SAP Launchpad Service Integration with SAP S/4HANA
+
+Related Information
+Configure a CA Certificate for Principal Propagation
+1.5.5 Configuring the Principal Propagation Subject Pattern
+You configure the pattern for the common name that is used for short-lived user certificates for principal propagation.
+Context
+You perform this task typically once in the Cloud Connector. If you have already performed this task, proceed to the next task.
+Principal propagation offers a secure way to forward an on-demand identity to the Cloud Connector. From there, it forwards the identity to the SAP S/4HANA system. For this purpose, you can define a pattern identifying the user for the subject of the generated short-lived CA certificate, as well as its validity period.
+Procedure
+1. Log on to Cloud Connector as administrator.
+2. Choose   Connector   Configuration   , and open the On Premise tab.
+3. In the Pricipal Propagation section, switch to Edit mode and make the following changes:
+○ Common Name (CN): Select ${name}.
+○ Fill out the other fields according to your needs, for example, from the system certificate that you defined in Exporting the Cloud Connector System Certificate [page 15].
+4. Save your entries.
+Related Information
+Configure a Subject Pattern for Principal Propagation
+CIAS Guide: SAP Launchpad Service Integration with SAP S/4HANA
+CIAS Guide: SAP Launchpad Service Integration with SAP S/4HANA
+   Note
+This value depends on the subject name identifier that is configured in the Identity Authentication service. In this scenario, we use Email, see Configuring the Name ID Attributes [page 12].
+PUBLIC 17
+
+1.5.6 Exporting the Principal Propagation Sample Certificate
+You create a sample certificate that looks like the one of the short-lived certificates created at runtime.
+Context
+You perform this task typically once in the Cloud Connector for your SAP S/4HANA system. If you have already performed this task, proceed to the next task.
+You can use this certificate, for example, to generate user mapping rules in the target system using transaction CERTRULE in an SAP S/4HANA system.
+Procedure
+1. Log on to Cloud Connector as administrator.
+2. Choose   Connector   Configuration   , and open the On Premise tab.
+3. In the Principal Propagation section, choose the  Create Sample Certificate icon.
+4. In CN name, enter <Email>.
+You refer to this attribute later in Configuring the CERTRULE Mapping [page 26].
+5. Choose Generate and save the sample certificate.
+1.6 Setting Up the SAP S/4HANA System
+1.6.1 Configuring Trust to Cloud Connector as Intermediary
+This task establishes trust between the Internet Communication Manager in your SAP S/4HANA system and the system certificate of Cloud Connector.
+Context
+You perform this task typically once in the Cloud Connector for your SAP S/4HANA system. If you have already performed this task, proceed to the next task.
+This allows the forwarding of short-lived user certificates for principal propagation. Cloud Connector is used as an intermediary between the SAP S/4HANA system and your SAP BTP subaccount.
+CIAS Guide: SAP Launchpad Service Integration with SAP S/4HANA 18 PUBLIC CIAS Guide: SAP Launchpad Service Integration with SAP S/4HANA
+
+Procedure
+1. Log on to your SAP S/4HANA system as administrator.
+2. Start transaction Maintain Profile Parameters (RZ10 transaction).
+3. Select the DEFAULT profile in the latest version.
+4. Choose   Edit Profile   Extended Maintanance   .
+5. Choose Change.
+6. Choose Maintain Profile and then   Parameter   Create (F5)   . Enter the following values:
+○ Parameter Name: icm/trusted_reverse_proxy_<n>. For example, call the first entry icm/ trusted_reverse_proxy_0.
+○ Parameter val.: SUBJECT="<Subject of your Cloud Connector system certificate>", ISSUER="<Issuer of your Cloud Connector system certificate>"
+7. Choose Copy, then Back and confirm the message to save the new entry.
+8. Go back and choose Save and confirm that you want to activate the changes in the info dialog.
+9. Choose Save. You can ignore errors (choose Yes or No), and go back and confirm two times to activate the profile information dialog - Profile Default (version <nr>).
+Related Information
+Configure Principal Propagation for HTTPS
+1.6.2 Enabling the SSL Server Port
+You enable the SSL server port with certificate-based client authentication using the icm/ server_port_<SSL_server_index> and icm/HTTPS/verify_client instance profile parameters.
+Context
+The Secure Socket Layer (SSL) protocol secures HTTP connections to and from the SAP NetWeaver Application Server for ABAP. When using SSL, the data transferred between the client and the server is encrypted and both partners can be authenticated.
+This task is required if there is no active HTTPS port, or if the HTTPS client verification is disabled in the system.
+CIAS Guide: SAP Launchpad Service Integration with SAP S/4HANA
+CIAS Guide: SAP Launchpad Service Integration with SAP S/4HANA PUBLIC 19
+   Recommendation
+We recommend to have a dedicated SSL server port for internal communication from Cloud Connector to the SAP S/4HANA system.
+
+Procedure
+1. Log on to your SAP S/4HANA system as administrator.
+2. Start the ICM Monitor (SMICM transaction) to check if the HTTPs port is active and the client authentication is enabled.
+a. Choose   Goto   Services   and check if an active entry for HTTPS protocol exists with a service name/port that does not equal 0. Go back.
+b. Choose   Goto   Parameters   Display   and open the HTTPS (SSL) settings section. Check if an entry exists for icm/HTTPS/verify_client and the value does not equal 0.
+If the profile parameters are not set accordingly, continue with the following steps. Otherwise, continue with the next task.
+3. To set the parameters, open transaction Edit Profiles (RZ10).
+4. Enter the following values:
+○ Profile: Enter the dialog instance profile with <system ID>_<instance number>_<hostname> of your SAP S/4HANA system.
+○ Version: Enter the latest version.
+○ Edit Profile: Enter Extended Maintenance.
+5. Choose Change.
+6. For the HTTPS configuration, proceed as follows:
+a. On the Maintain Profile screen, choose   Parameter   Create   .
+b. Enter as Parameter Name: icm/server_port_<xxx> where <xxx> represents the index of the SSL
+server of your SAP S/4HANA system.
+c. Enter the following values under Paramter val.:
+○ PROT=HTTPS
+○ PORT = Enter the SSL server port of your SAP S/4HANA system.
+○ TIMEOUT = Enter the timeout value for the SSL server of your SAP S/4HANA system.
+○ PROCTIMEOUT = Enter the proc timeout value for the SSL server of your SAP S/4HANA system.
+d. Choose Copy, go back, and choose Yes to save the new entry.
+7. For the SSL configuration, proceed as follows:
+a. On the Maintain Profile screen, choose   Parameter   Create   .
+b. Enter as Parameter Name: icm/HTTPS/verify_client = 1.
+c. Choose Copy, go back, and choose Yes to save the new entry.
+8. Go back and confirm your changes.
+9. Activate your changes and confirm the info dialog.
+Related Information
+Setting the Profile Parameters for Using SSL
+20 PUBLIC
+CIAS Guide: SAP Launchpad Service Integration with SAP S/4HANA
+CIAS Guide: SAP Launchpad Service Integration with SAP S/4HANA
+
+1.6.3 Enabling the Profile Parameter for Rule-based Certificate Mapping
+You enable the rule-based certificate mapping in transaction CERTRULE in your SAP S/4HANA system.
+Context
+You perform this task typically once in the SAP S/4HANA system. If you have already performed this task, proceed to the next task.
+You perform this task if the profile parameter for rule-based certificate mapping is not yet enabled (login/ certificate_mapping_rulebased = 0).
+Procedure
+1. Log on to your SAP S/4HANA system as administrator.
+2. To check the current value, start Maintain Profile Parameters (RZ11 transaction). Enter login/
+certificate_mapping_rulebased and choose  Display.
+If the current value of the parameter is set to 0, continue with the following steps. Otherwise, continue with
+the next task.
+3. Start transaction Edit Profiles (RZ10) and enter the following information:
+○ Profile = DEFAULT
+○ Version = <Latest version>
+○ Edit Profile = Extended Maintenance
+4. Choose Change.
+5. On the Maintain Profile screen, choose   Parameter   Create   and add login/
+certificate_mapping_rulebased as parameter name with Parameter val. = 1.
+6. Choose Copy.
+7. Go back and choose Yes to save your changes.
+8. Activate your changes and confirm the info dialog.
+Related Information
+Rule-Based Certificate Mapping
+CIAS Guide: SAP Launchpad Service Integration with SAP S/4HANA
+CIAS Guide: SAP Launchpad Service Integration with SAP S/4HANA
+   Note
+You can use EXTID_DN as an alternative. However, CERTRULE is the recommended method for user mapping.
+PUBLIC 21
+
+1.6.4 Restarting the SAP S/4HANA System After Profile Changes
+You restart the SAP S/4HANA system to activate the profile changes from the previous tasks.
+Context
+You perform this task if you changed the profile parameter in the Enabling the Profile Parameter for Rule-based Certificate Mapping [page 21] and Enabling the SSL Server Port [page 19] tasks.
+Procedure
+1. Log on to your SAP S/4HANA system on operating system level as administrator user.
+2. Restart the SAP S/4HANA system either by using the SAP Management Console, or use the stopsap r3
+and startsap r3 commands.
+3. You can check whether the new parameters are activated: In ICM Monitor (SMICM transaction), choose
+Goto Parameters Display .
+Related Information
+Administration of Application Server ABAP
+1.6.5 Creating an SSL Server Certificate
+You create a SSL server PSE certificate in your SAP S/4HANA system.
+Prerequisites
+You know the naming conventions to use for the distinguished name (DN) of the server. The syntax of the DN depends on the certification authority (CA) you use.
+CIAS Guide: SAP Launchpad Service Integration with SAP S/4HANA 22 PUBLIC CIAS Guide: SAP Launchpad Service Integration with SAP S/4HANA
+    
+Context
+You perform this task typically once in the SAP S/4HANA system. If you have already performed this task, proceed to the next task.
+The SSL server PSE contains the security information of the application server that it needs to communicate using SSL as server component. Each activated SSL port that you have defined in the profile parameter icm/ server_port_<xxx> needs to have a corresponding SSL server PSE. This task is required, if no valid standard SSL server certificate exists in the SAP S/4HANA system.
+Procedure
+1. Log on to the SAP S/4HANA system as an administrator.
+2. To check whether a standard SSL server certificate exists, start the Trust Manager (STRUST transaction)
+and open the SSL Server Standard node.
+A red cross indicates that no SSL server standard certificate exists or that the existing certificate is not
+valid. In this case, continue with the following steps. Otherwise, continue with the next task.
+3. Change to edit mode.
+4. Right-click on the SSL Server Standard node and select Create from the context menu.
+5. Enter the following information:
+○ Name: Enter the host name of your SAP S/4HANA system.
+○ Org. (Optional): Enter the system ID of your SAP S/4HANA system.
+○ Company/Org.: Enter company name.
+○ Country: Enter the country, for example, DE for Germany.
+6. Confirm your entries.
+7. Save your entries.
+Results
+A green icon is displayed in front of the certificate name to indicate that the certificate is created.
+Related Information
+Creating an SSL Server PSE
+CIAS Guide: SAP Launchpad Service Integration with SAP S/4HANA
+CIAS Guide: SAP Launchpad Service Integration with SAP S/4HANA
+PUBLIC 23
+
+1.6.6 Exporting the SSL Server Certificate
+If there is a trust store maintained in Cloud Connector, you export the certificate of the application server of your SAP S/4HANA system.
+Context
+If there is a trust store set up in Cloud Connector already, export the SSL certificate to import it into the trust store of your Cloud Connector.
+You perform this task typically once in the SAP S/4HANA system for the Cloud Connector. If you have already performed this task, proceed to the next task.
+You export the <system ID>_ssl_server.cer PSE certificate. You upload the file for the allowlist configuration in Cloud Connector, see Importing the ABAP SSL Server Certificate to the Trust Store [page 28].
+Procedure
+1. Log on to the SAP S/4HANA system as administrator.
+2. Open the Trust Manager (STRUST transaction).
+3. Under SSL server Standard, doubleclick the subnode for the system-wide certificate (<hostname>_<system ID>_<instance>).
+4. Switch to Edit mode.
+5. Check that the SSL server Standard is shown as Own Certificate.
+6. Double-click on the value for Subject and make sure that the SSL server certificate is shown under Certificate.
+7. Export the certificate and specify the following information for the file to be exported:
+○ File path and name
+○ Filename extension .cer
+○ File format Base64
+8. Save the certificate so that you can upload it again.
+24 PUBLIC
+CIAS Guide: SAP Launchpad Service Integration with SAP S/4HANA
+CIAS Guide: SAP Launchpad Service Integration with SAP S/4HANA
+
+1.6.7 Adding Cloud Connector to the SSL Server Certificate List
+You add the issuer certificate of your Cloud Connector's system certificate to the SSL server standard certificate list of your SAP S/4HANA system.
+Context
+You perform this task typically once in the SAP S/4HANA system for the Cloud Connector. If you have already performed this task, proceed to the next task.
+This enables SSL client certificate authentication during the SSL handshake between Cloud Connector and the SAP S/4HANA system.
+Procedure
+1. Log on to your SAP S/4HANA system as administrator.
+2. Start the Trust Manager (STRUST transaction) and change to edit mode.
+3. Under SSL server Standard, doubleclick the subnode for the system-wide certificate (<hostname>_<system ID>_<instance>).
+If the issuer certificate of the Cloud Connector's system certificate is already listed in the certificate list, skip the remaining steps and proceed to the next task.
+4. Make sure that the SSL server Standard is shown as Own Certificate.
+5. Choose Import.
+6. In the File Path field, select the certificate file that you downloaded.
+7. If required, choose Confirm and allow the upload.
+8. In the Certificate area, select the issuer certificate of your Cloud Connctor system certificate and choose
+Add to Certificate List.
+9. Choose Save.
+Related Information
+Maintaining the SSL Server PSE's Certificate List
+CIAS Guide: SAP Launchpad Service Integration with SAP S/4HANA
+CIAS Guide: SAP Launchpad Service Integration with SAP S/4HANA
+   Note
+Because the Cloud Connector's system certificate that you use is a self-signed certificate, the issuer certificate is the same as the system certificate.
+PUBLIC 25
+
+1.6.8 Configuring the CERTRULE Mapping
+You configure the mapping rules for rule-based certificate mapping in the SAP S/4HANA client that is relevant for the integration.
+Prerequisites
+You've generated the certificate in the Exporting the Principal Propagation Sample Certificate [page 18] task.
+Context
+You perform this task typically once in the SAP S/4HANA system for the Cloud Connector. If you have already performed this task, proceed to the next task.
+The mapping rules map the user data from the short-lived user certificates of your SAP BTP subaccount to your local SAP S/4HANA system users.
+Procedure
+1. Log on to your SAP S/4HANA system as administrator.
+2. Start Rule-based Certificate Mapping (CERTRULE transaction) and change to edit mode.
+3. In the Certificate area, choose Import Certificate next to the Subject and select the short-lived certificate scc_sample_cert.der.
+4. Check whether the status under Certificate Status based on Persistence changes to green for Mapping Status and User Status.
+If so, you're done with this task.
+If not, continue with the next step.
+5. Choose Rule to create a new rule that is based on this certificate.
+6. Enter the following information in the Create Rule dialog:
+○ Certificate Entry: Subject (selected by default)
+○ Certificate Attribute: CN=<Email>, as entered in the Exporting the Principal Propagation Sample
+Certificate [page 18] You create a sample certificate that looks like the one of the short-lived
+certificates created at runtime.
+○ Login As: E-Mail
+○ Subject Filter: O= <your organization>, OU=<your organizational unit> or *, C=<your
+country> or *
+7. Choose Continue.
+A new rule is added to the Rules area.
+CIAS Guide: SAP Launchpad Service Integration with SAP S/4HANA
+26 PUBLIC CIAS Guide: SAP Launchpad Service Integration with SAP S/4HANA
+
+8. Save your entries and verify that the status under Certificate Status based on Persistence changes to green for the following values:
+○ Mapping Status: Certificate mapped with rule <rule name>.
+○ User Status: Mapped email exists. This indicates that the administration user's email address is
+mapped to an existing user in the SAP S/4HANA system.
+Related Information
+Rule-Based Certificate Mapping
+1.6.9 Protecting Against Clickjacking
+Because the apps are integrated into SAP Launchpad service using iFrames, you must protect your system against clickjacking (or UI redressing) attacks. This type of attack tricks the user into triggering actions within an application by hijacking mouse clicks.
+Procedure
+1. Log on to your SAP S/4HANA system as administrator.
+2. Start the Unified Connectivity (UCONCOCKPIT transaction).
+3. As Scenario, select HTTP Allowlist Scenario.
+4. In the table, for the ClickJacking Framing Protection (context type 2) entry, check the mode.
+○ For test purposes, you can use the Logging mode. This means that connections are only logged, but not checked.
+○ For production purposes, set up the Active Check mode and configure the pattern that match for your host.
+5. If the HTTP allowlist scenario is active, but context type 2 is not in the list of context types, do the following:
+○ Choose   More   HTTP Allowlist   Setup   and activate Activate clickjacking protection (context type 02) for all clients (recommended).
+○ Choose Continue.
+Related Information
+Using an Allowlist for Clickjacking Framing Protection
+CIAS Guide: SAP Launchpad Service Integration with SAP S/4HANA
+CIAS Guide: SAP Launchpad Service Integration with SAP S/4HANA
+PUBLIC 27
+
+1.7 Technical Integration of Cloud Connector
+1.7.1 Importing the ABAP SSL Server Certificate to the Trust Store
+If there is a trust store in Cloud Connector, import the SSL certificate of your SAP S/4HANA system into the trust store of your Cloud Connector.
+Prerequisites
+You have the SSL server certificate file, see Exporting the SSL Server Certificate [page 24].
+Context
+If there is a trust store set up in Cloud Connector already, import the SSL certificate of your SAP S/4HANA system into the trust store of your Cloud Connector.
+If there isn't a trust store in Cloud Connector, skip this step, that is, do not import the SSL certificate, as Cloud Connector then would not trust any other systems.
+You perform this task typically once in the Cloud Connector for your SAP S/4HANA system. If you have already performed this task, proceed to the next task.
+The trust store acts as an allowlist of trusted systems, represented by their public key.
+Procedure
+1. Log on to Cloud Connector as administrator.
+2. Choose   Connector   Configuration   , and open the On Premise tab.
+3. In the Trust Store section, choose Add Public Key and browse for the SSL server certificate file.
+4. Choose Save.
+Related Information
+Configure Trust > Configure the Trust Store
+CIAS Guide: SAP Launchpad Service Integration with SAP S/4HANA 28 PUBLIC CIAS Guide: SAP Launchpad Service Integration with SAP S/4HANA
+
+1.7.2 Defining the Access Control System Mapping
+You define the access control system mapping to allow your application to access your SAP S/4HANA system.
+Procedure
+1. Log on to Cloud Connector as administrator.
+2. In your subaccount's section, choose Cloud To On-Premise.
+3. For your SAP S/4HANA system, do the following:
+1. In the Access Control section, choose + Add.
+2. In the Add System Mapping dialog, set the Back-end Type to ABAP System and choose Next.
+3. Set the Protocol to HTTPS and choose Next.
+4. Enter the Internal Host as FQDN to <SYSTEM_HOSTNAME>.<SYSTEM_DOMAINNAME> and the Internal
+Port to the HTTPS port of your SAP S/4HANA system and choose Next.
+To compare the HTTPS port information, in the SAP S/4HANA system, in the ICM Manager (SMICM transaction), go to Services.
+5. Define a Virtual Host and a Virtual Port for your connection and choose Next.
+6. Set the Principal Type to X.509 Certificate (Strict usage) and choose Next.
+7. Set the Host in Request Header to Use Virtual Host and choose Next.
+8. Enter a description (optional) and choose Next.
+9. On the Summary screen, review your entries and choose Finish.
+Related Information
+Configure Access Control (HTTP)
+CIAS Guide: SAP Launchpad Service Integration with SAP S/4HANA
+CIAS Guide: SAP Launchpad Service Integration with SAP S/4HANA
+   Caution
+For Web Dynpro ABAP applications, if they include SAP Business Client (CompatibilityMode=TRUE), configure the value of the Cloud Connector virtual host to be the same as the FQDN.
+   Note
+The description is shown in the Mapping Virtual to Internal System table on the access control entry when using the info button.
+PUBLIC 29
+
+1.7.3 Defining the Access Control Resource Mapping
+You specify the URL paths (resources) that are allowed to be invoked on the host. This is required for the resource mapping for the SAP S/4HANA system OData service.
+Procedure
+1. Log on to Cloud Connector as administrator.
+2. In your subaccount's section, choose Cloud To On-Premise.
+3. In the Access Control section, select the system mapping <Virtual_Host>:<Virtual_Port>, and in the
+Resources Of <Virtual_Host>:<Virtual_Port> section, choose + Add.
+4. In the Add Resource dialog, make the following settings:
+○
+URL Path: Enter the following values:
+URL Paths
+  /sap/bc/bsp/sap/
+  /sap/bc/gui/
+  /sap/bc/lrep/
+  /sap/bc/ui2/app_index/
+  /sap/bc/ui2/cdm3/
+  /sap/bc/ui2/flp/
+  /sap/bc/ui5_ui5/sap/
+  /sap/bc/ui5_ui5/ui2/
+  /sap/bc/webdynpro/
+  /sap/opu/odata/
+  /sap/public/bc/ui5_ui5
+  /sap/public/bc/uics/
+  /sap/public/bc/ur/
+  /sap/public/bc/webdynpro/
+  /sap/public/icmandir/its/
+  /sap/bc/nwbc/
+  /sap/bc/bsp/srmnxp/
+  /sap/public/bc/ui2
+Active: Set to active.
+WebSocket Upgrade: You can let this setting unchecked. Access Policy: Select Path and All Sub-Paths.
+CIAS Guide: SAP Launchpad Service Integration with SAP S/4HANA PUBLIC CIAS Guide: SAP Launchpad Service Integration with SAP S/4HANA
+                   30
+○ ○ ○
+
+○ Description (optional): Enter a meaningful description for the URL. 5. Save your settings.
+Related Information
+Set Up Cloud Connector
+1.8 Subscribing to SAP Launchpad Service 1.8.1 Enabling the SAP Launchpad Service
+You enable SAP Launchpad service in your SAP Business Technology Platform (BTP) subaccount.
+Procedure
+1. In the SAP BTP cockpit, log on to your subaccount as administrator.
+2. Go to Services and choose Service Marketplace.
+3. Search for Launchpad Service.
+4. Choose Create and choose the standard subscription plan.
+1.8.2 Mapping the Identity Authentication Service User Group to the SAP BTP Role Collection
+You map the user group of your Identity Authentication service to the role collections in your SAP BTP subaccount.
+Prerequisites
+You have established trust between your SAP BTP subaccount as service provider and the Identity Authentication service as identity provider.
+CIAS Guide: SAP Launchpad Service Integration with SAP S/4HANA
+CIAS Guide: SAP Launchpad Service Integration with SAP S/4HANA
+PUBLIC 31
+
+Context
+The Identity Authentication service provides the business users, who can belong to user groups and the role collection in your subaccount contains the authorizations that are necessary for a specific user group. By mapping the groups to the role collection, you save time when you want to add a new business user: Simply add the user to the respective groups, and the business user automatically gets all the authorizations that are included in the role collection.
+Procedure
+1. In the SAP BTP cockpit, log on to your subaccount as administrator.
+2. Go to Security and choose Trust Configuration.
+3. Choose the trust configuration entry for the Identity Authentication service.
+4. Choose Role Collection Mappings.
+5. Choose New Role Collection Mapping.
+6. Select the Launchpad_Admin role collection.
+○ Attribute: Enter Groups
+○ Value: Enter <User Group Name>
+To find out the name of the Identity Authentication service group, open the Identity Authentication
+administration console and go to   Users & Authorizations   User Groups   .
+7. Save your entries.
+Related Information
+Map Role Collections to User Groups
+32 PUBLIC
+CIAS Guide: SAP Launchpad Service Integration with SAP S/4HANA
+CIAS Guide: SAP Launchpad Service Integration with SAP S/4HANA
+
+1.9 Sample Business Scenario - Setup in the SAP S/4HANA System
+1.9.1 Exposing Content to SAP Launchpad Service
+Prerequisites
+As part of the initial SAP Fiori Launchpad setup, you have activated the /default_host/sap/bc/ui2/cdm3 service that is required to expose content.
+To expose content to SAP Launchpad service, you have the SAP_FLP_ADMIN permission.
+Context
+You expose content to SAP Launchpad service by choosing specific roles. The related content, such as groups, catalogs, pages, or spaces can then be consumed in the SAP Launchpad service.
+To display, edit, and expose roles to the SAP Launchpad service, you use the /UI2/CDM3_EXP_SCOPE transaction.
+Procedure
+1. Log on to the SAP S/4HANA system as administrator.
+2. In Launchpad Configuration (/UI2/FLP_SYS_CONF transaction), set the Launchpad property EXPOSURE_SYSTEM_ALIASES_MODE to CLEAR, if available. Otherwise, add a new Launchpad property EXPOSURE_SYSTEM_ALIASES_MODE. Save your entries.
+3. To make sure that the page cache is active, in User Maintenance (SU01 transaction), on the Parameters tab page, remove the /UI2/PAGE_CACHE_OFF user parameter from the list.
+4. Launch the Manage content for SAP Launchpad service (/UI2/CDM3_EXP_SCOPE transaction).
+5. Choose Select Roles to select the role you want to expose, for example, the purchaser role in your custom
+namespace (copy of SAP_BR_PURCHASER).
+Every user who should be able to view the exposed content on the launchpad site must have this role.
+6. Choose Save Selected Roles to save the roles you defined.
+7. Choose Expose to expose the content to SAP Launchpad service.
+CIAS Guide: SAP Launchpad Service Integration with SAP S/4HANA
+CIAS Guide: SAP Launchpad Service Integration with SAP S/4HANA PUBLIC 33
+
+Results
+The content is ready to be retrieved by SAP Launchpad service, see Configuring Destinations for Exposing Content and Consuming Content [page 34].
+Related Information
+Managing Content for Launchpads on SAP BTP
+1.10 Sample Business Scenario - Setup in SAP BTP
+1.10.1 Configuring Destinations for Exposing Content and Consuming Content
+To integrate the content you exposed on the SAP S/4HANA system into your subaccount content, you define the SAP S/4HANA system as remote content provider for SAP Launchpad service to consume the content by configuring destinations in the SAP BTP cockpit.
+Context
+Design-Time Destination
+The design-time destination defines the location from which to fetch the content that is exposed by the content provider.
+You use the design-time destination to define the exposing content provider in the Provider Manager, so that the provider's content can be fetched and displayed in the Content Explorer.
+Runtime Destination
+The runtime destination defines the location from which to consume the content required to run the federated apps in runtime.
+Procedure
+1. In the SAP BTP cockpit, log on to your subaccount as administrator.
+2. Go to Connectivity and choose Destinations.
+3. To configure the design-time destination, choose New Destination and enter the following information:
+CIAS Guide: SAP Launchpad Service Integration with SAP S/4HANA
+34 PUBLIC CIAS Guide: SAP Launchpad Service Integration with SAP S/4HANA
+
+○ Name: Add the dt suffix to the name.
+○ Name: Enter <system ID><client>dt
+○ Type: HTTP
+○ Description: Description of your destination
+○ URL: https://<VIRTUAL_HOST>:<VIRTUAL_PORT>/sap/bc/ui2/cdm3/entities
+○ Proxy Type: OnPremise
+○ Authentication: BasicAuthentication
+○ To connect to the SAP S/4HANA system, use a technical user on the destination with permission to read the CDM, for example, a technical user with the SAP_FLP_EXP_USER role.
+4. For the design-time destination you just configured, add the following information by choosing Additional Properties   New Property   :
+○ sap-client: <client number>
+5. To configure the runtime destination, choose New Destination and enter the following information:
+○ Name: Enter <system ID><client>rt.
+The destination name must contain only lowercase letters and numbers. Do not use the underscore (_) character.
+○ Type: HTTP
+○ Description: Description of your destination
+○ Proxy Type: OnPremise
+○ Authentication: PrincipalPropagation
+6. For the runtime destination you just configured, add the following information by choosing   Additional Properties   New Property   :
+○ HTML5.DynamicDestination: true (Make sure to use lowercase characters)
+○ sap-client: <client number>
+○ sap-platform:ABAP
+○ sap-sysid: <system ID>
+Related Information
+Configure Destinations
+1.10.2 Creating a Content Provider
+In SAP Launchpad service, in the Provider Manager, the administrator defines the SAP S/4HANA system as remote content provider.
+Prerequisites
+You have the SAP Launchpad admininstration role collection assigned.
+CIAS Guide: SAP Launchpad Service Integration with SAP S/4HANA
+CIAS Guide: SAP Launchpad Service Integration with SAP S/4HANA PUBLIC 35
+ 
+Context
+The Provider Manager is used to manage remote content providers. Once the administrator defines a content provider, it is also added to the Content Explorer. The Content Explorer displays the roles in each remote provider so that you can select the ones to add to the list in the My Content tab.
+Procedure
+1. In the SAP BTP cockpit, log on to your subaccount as administrator.
+2. In your subaccount, go to Instances and Subscriptions and launch SAP Launchpad service.
+You can bookmark the URL to access SAP Launchpad service more quickly.
+3. In SAP Launchpad service, go to Provider Manager and choose + New to add a new content provider.
+4. Enter the following information and save your entries:
+○ Title: Enter the SAP S/4HANA system ID and client
+○ Description (optional): Enter a description.
+○ ID: automatically derived from the title, must be unique
+○ Design-Time Destination: Select the design-time destination you created in Configuring Destinations
+for Exposing Content and Consuming Content [page 34].
+○ Runtime Destination: Select the runtime destination you created in Configuring Destinations for
+Exposing Content and Consuming Content [page 34].
+○ Runtime Destination for OData: Use default runtime destination
+○ Content Addition Mode: Select Automatic addition of all content items
+○ Synchronize existing authorizations: leave unchecked
+Related Information
+Manage Content Providers (On Premise)
+1.10.3 Creating a Sample Site
+In a site, the content that is exposed from the SAP S/4HANA system is displayed to the users.
+Context
+You create a sample site to display the content you expose in this sample setup.
+CIAS Guide: SAP Launchpad Service Integration with SAP S/4HANA
+36 PUBLIC CIAS Guide: SAP Launchpad Service Integration with SAP S/4HANA
+
+Procedure
+1. In the SAP BTP cockpit, log on to your subaccount as administrator.
+2. In the navigation area, go to Instances and Subscriptions.
+3. For SAP Launchpad service, choose the  Go to Application icon.
+Site Directory opens.
+4. In Site Directory, choose Create Site.
+5. As site name, enter, for example, Purchaser_sample_scenario.
+6. Save your entry.
+Results
+The site is created and opened in Site Editor. You can bookmark the site.
+Related Information
+Create a Site
+1.10.4 Assigning a Business Role to the Sample Site
+To display the relevant content, you assign a business role to the sample site.
+Procedure
+1. In the SAP BTP cockpit, log on to your subaccount as administrator.
+2. In the navigation area, go to Instances and Subscriptions.
+3. For SAP Launchpad service, choose the  Go to Application icon.
+Site Directory opens.
+4. In Site Directory, for the sample site you just created in Creating a Sample Site [page 36], choose the
+ Site Settings icon.
+5. In the header bar, choose Edit.
+6. In the Assignments panel, type the role name, for example, Purchaser.
+7. Use the  Assign icon to assign the role for the runtime destination, for example, Purchaser - <content provider name>.
+CIAS Guide: SAP Launchpad Service Integration with SAP S/4HANA
+CIAS Guide: SAP Launchpad Service Integration with SAP S/4HANA PUBLIC 37
+
+8. Save your entries.
+Related Information
+Assign Roles to a Site
+1.10.5 Assigning the Role Collection to a User
+You assign the role collection to your user, so that you can launch the sample site you just created in SAP Launchpad service.
+Procedure
+1. In the SAP BTP Cockpit, log on to your subaccount as administrator.
+2. Go to Security and choose Role Collections
+3. Choose the role collection for consuming content and SAP S/4HANA system role name in custom namespace, for example, ~<content provider ID>_Purchaser.
+4. Choose Edit.
+5. Under Users, in the ID field, search for your user by entering the user name or the email address.
+Every user who should be able to view the exposed content on SAP Launchpad site must have this role.
+6. Choose the user ID that has assigned your Identity Authentication service acting as identity provider.
+7. Save your entries.
+Related Information
+Directly Assign Role Collections to Users
+CIAS Guide: SAP Launchpad Service Integration with SAP S/4HANA 38 PUBLIC CIAS Guide: SAP Launchpad Service Integration with SAP S/4HANA
+
+1.11 Sample Business Scenario - Verification 1.11.1 Launching the Sample Site
+You can now open the sample launchpad site to check that the configured contents are displayed.
+Procedure
+1. In the SAP BTP cockpit, log on to your subaccount as an administrator user.
+2. In the navigation area, go to Instances and Subscriptions.
+3. For SAP Launchpad service, choose the  Go to Application icon.
+Site Directory opens.
+4. In Site Directory, for the sample site you created in Creating a Sample Site [page 36], choose the  Go to
+Site icon.
+Results
+The launchpad opens, displaying the business catalogs of the role collection that you chose.
+   Note
+If there are separate identity providers used for accessing the SAP BTP cockpit and accessing the site, you are required to log on again when opening the site.
+1.12 Troubleshooting
+Find and resolve common issues when integration this scenario.
+Issue
+Error message saying could not fetch content from the design-time destina­ tion.
+When launching a site, it prompts for a user name and password while tiles are loading nonstop. Even after you enter the correct credentials, it keeps prompting for credentials.
+Solution
+For the design-time destination: The user is assigned the right authoriza­ tions.
+For the runtime destination: Remove special characters from the destination name.
+See also
+Configuring Destinations for Exposing Content and Consuming Content [page 34]
+Configuring Destinations for Exposing Content and Consuming Content [page 34]
+         CIAS Guide: SAP Launchpad Service Integration with SAP S/4HANA
+CIAS Guide: SAP Launchpad Service Integration with SAP S/4HANA
+PUBLIC 39
+
+Issue
+On the dynamic tiles, Error is displaying.
+The content provided by a new role col­ lection is not displayed.
+New content exposed from the SAP S/ 4HANA system does not display on the launchpad.
+Although you created the content pro­ vider in Site Manager, the content is not updated and fetched.
+You have been assigned to the Launchpad_Admin role collection on SAP BTP subaccount and you access Launchpad Service, but you get an Error message saying: Sorry, we couln't find the site.
+Solution
+For the runtime destination: Set the HTML5.DynamicDestination property to true in lowercase letters.
+If the launchpad site is open or cached in the browser while a role collection is added: Sign out and sign on again to the launchpad.
+In Site Manger - Provider Manager, choose Fetch updated content (Refresh icon) to fetch the new content.
+1. In the SAP S/4HANA system, open Define Services (transaction SICF).
+2. Go to the / default_host/sap/bc/ui2 /cmd3 service.
+3. In the Logon Data section, make sure that Use All Logon Procedures is active.
+This could be due to browser caching. Sign out of BTP subaccount and sign in again and try accessing Launchpad Service.
+See also
+Configuring Destinations for Exposing Content and Consuming Content [page 34]
+Assigning the Role Collection to a User [page 38]
+Creating a Content Provider [page 35]
+Creating a Content Provider [page 35]
+                     Note
+For troubleshooting and monitoring of SAP Launchpad service, see Troubleshooting and Monitoring.
+40 PUBLIC
+CIAS Guide: SAP Launchpad Service Integration with SAP S/4HANA
+CIAS Guide: SAP Launchpad Service Integration with SAP S/4HANA
+
+Important Disclaimers and Legal Information Hyperlinks
+Some links are classified by an icon and/or a mouseover text. These links provide additional information. About the icons:
+● Links with the icon   : You are entering a Web site that is not hosted by SAP. By using such links, you agree (unless expressly stated otherwise in your agreements with SAP) to this:
+● The content of the linked-to site is not SAP documentation. You may not infer any product claims against SAP based on this information.
+● SAP does not agree or disagree with the content on the linked-to site, nor does SAP warrant the availability and correctness. SAP shall not be liable for any
+damages caused by the use of such content unless damages have been caused by SAP's gross negligence or willful misconduct.
+● Links with the icon   : You are leaving the documentation for that particular SAP product or service and are entering a SAP-hosted Web site. By using such links, you agree that (unless expressly stated otherwise in your agreements with SAP) you may not infer any product claims against SAP based on this information.
+Videos Hosted on External Platforms
+Some videos may point to third-party video hosting platforms. SAP cannot guarantee the future availability of videos stored on these platforms. Furthermore, any advertisements or other content hosted on these platforms (for example, suggested videos or by navigating to other videos hosted on the same site), are not within the control or responsibility of SAP.
+Beta and Other Experimental Features
+Experimental features are not part of the officially delivered scope that SAP guarantees for future releases. This means that experimental features may be changed by SAP at any time for any reason without notice. Experimental features are not for productive use. You may not demonstrate, test, examine, evaluate or otherwise use the experimental features in a live operating environment or with data that has not been sufficiently backed up.
+The purpose of experimental features is to get feedback early on, allowing customers and partners to influence the future product accordingly. By providing your feedback (e.g. in the SAP Community), you accept that intellectual property rights of the contributions or derivative works shall remain the exclusive property of SAP.
+Example Code
+Any software coding and/or code snippets are examples. They are not for productive use. The example code is only intended to better explain and visualize the syntax and phrasing rules. SAP does not warrant the correctness and completeness of the example code. SAP shall not be liable for errors or damages caused by the use of example code unless damages have been caused by SAP's gross negligence or willful misconduct.
+Gender-Related Language
+We try not to use gender-specific word forms and formulations. As appropriate for context and readability, SAP may use masculine word forms to refer to all genders.
+CIAS Guide: SAP Launchpad Service Integration with SAP S/4HANA
+Important Disclaimers and Legal Information PUBLIC 41
+
+ www.sap.com/contactsap
+© 2021 SAP SE or an SAP affiliate company. All rights reserved.
+No part of this publication may be reproduced or transmitted in any form or for any purpose without the express permission of SAP SE or an SAP affiliate company. The information contained herein may be changed without prior notice.
+Some software products marketed by SAP SE and its distributors contain proprietary software components of other software vendors. National product specifications may vary.
+These materials are provided by SAP SE or an SAP affiliate company for informational purposes only, without representation or warranty of any kind, and SAP or its affiliated companies shall not be liable for errors or omissions with respect to the materials. The only warranties for SAP or SAP affiliate company products and services are those that are set forth in the express warranty statements accompanying such products and services, if any. Nothing herein should be construed as constituting an additional warranty.
+SAP and other SAP products and services mentioned herein as well as their respective logos are trademarks or registered trademarks of SAP SE (or an SAP affiliate company) in Germany and other countries. All other product and service names mentioned are the trademarks of their respective companies.
+Please see https://www.sap.com/about/legal/trademark.html for additional trademark information and notices.
+  THE BEST RUN
