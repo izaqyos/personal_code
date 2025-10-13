@@ -591,3 +591,9 @@ coverage/
 # Keep certain directories but ignore their contents
 # Add your project-specific ignore patterns below
 
+
+# env files
+.env
+.env.*
+*.env
+code/AI/streamlit/tutorial/.env
