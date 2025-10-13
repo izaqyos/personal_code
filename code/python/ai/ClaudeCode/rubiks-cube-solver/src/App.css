@@ -1,0 +1,138 @@
+.App {
+  text-align: center;
+  background-color: #f5f5f5;
+  min-height: 100vh;
+}
+
+.App-header {
+  background-color: #282c34;
+  padding: 20px;
+  color: white;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.App-header h1 {
+  margin: 0 0 10px 0;
+  font-size: 2.5rem;
+}
+
+.status {
+  font-size: 1.2rem;
+}
+
+.solved {
+  color: #4CAF50;
+}
+
+.unsolved {
+  color: #ff9800;
+}
+
+.App-main {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px;
+  gap: 30px;
+}
+
+.controls {
+  display: flex;
+  gap: 15px;
+  flex-wrap: wrap;
+}
+
+.controls button {
+  padding: 12px 24px;
+  font-size: 16px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.controls button:hover:not(:disabled) {
+  transform: translateY(-2px);
+}
+
+.controls button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.controls button:first-child {
+  background-color: #ff9800;
+  color: white;
+}
+
+.controls button:first-child:hover:not(:disabled) {
+  background-color: #e68900;
+}
+
+.controls button:nth-child(2) {
+  background-color: #4CAF50;
+  color: white;
+}
+
+.controls button:nth-child(2):hover:not(:disabled) {
+  background-color: #45a049;
+}
+
+.controls button:last-child {
+  background-color: #2196F3;
+  color: white;
+}
+
+.controls button:last-child:hover:not(:disabled) {
+  background-color: #1976D2;
+}
+
+.solution {
+  background-color: white;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  max-width: 600px;
+  width: 100%;
+}
+
+.solution h3 {
+  margin-top: 0;
+  color: #333;
+}
+
+.moves {
+  background-color: #f8f9fa;
+  padding: 15px;
+  border-radius: 4px;
+  margin-top: 10px;
+  font-family: monospace;
+  font-size: 14px;
+  word-break: break-all;
+}
+
+.view-toggle {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.view-toggle button {
+  padding: 10px 20px;
+  border: 2px solid #ddd;
+  background-color: white;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s;
+}
+
+.view-toggle button:hover {
+  background-color: #f5f5f5;
+}
+
+.view-toggle button.active {
+  background-color: #007bff;
+  color: white;
+  border-color: #007bff;
+}

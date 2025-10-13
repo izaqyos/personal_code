@@ -1,0 +1,10 @@
+[i500695@C02X632CJGH6:2019-02-28 11:48:05:~/work/code/CPP/hackerRank:]523$ g++ -std=c++11 AttributeParserSTD2.cpp  -o AttributeParserSTD2
+[i500695@C02X632CJGH6:2019-02-28 11:48:18:~/work/code/CPP/hackerRank:]524$ g++ -std=c++11 AttributeParserSTD.cpp  -o AttributeParserSTD
+[i500695@C02X632CJGH6:2019-02-28 11:48:29:~/work/code/CPP/hackerRank:]525$ ./AttributeParserSTD < AttributeParserTestInput.txt 
+Name1
+Not Found!
+HelloWorld
+[i500695@C02X632CJGH6:2019-02-28 11:48:39:~/work/code/CPP/hackerRank:]526$ ./AttributeParserSTD2 < AttributeParserTestInput.txt 
+Name1
+Not Found!
+HelloWorld

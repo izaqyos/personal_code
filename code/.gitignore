@@ -1,0 +1,204 @@
+# Operating System Files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+*~
+
+# IDE and Editor Files
+.vscode/
+.idea/
+*.swp
+*.swo
+*.swn
+.project
+.classpath
+.settings/
+*.sublime-project
+*.sublime-workspace
+
+# Compiled Files
+# Python
+*.pyc
+*.pyo
+*.pyd
+__pycache__/
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+*.whl
+.Python
+pip-log.txt
+pip-delete-this-directory.txt
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+.pytest_cache/
+
+# Java
+*.class
+*.jar
+*.war
+*.ear
+target/
+*.iml
+.gradle/
+build/
+out/
+
+# C/C++
+*.o
+*.obj
+*.exe
+*.out
+*.app
+*.i*86
+*.x86_64
+*.hex
+*.dSYM/
+*.su
+*.idb
+*.pdb
+a.out
+
+# Rust
+target/
+Cargo.lock
+**/*.rs.bk
+
+# Go
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+vendor/
+
+# JavaScript/Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.npm
+.eslintcache
+.node_repl_history
+*.tgz
+.yarn-integrity
+.next
+.nuxt
+.cache
+.parcel-cache
+dist
+
+# TypeScript
+*.tsbuildinfo
+
+# Environment Variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.env
+
+# Secrets and Credentials
+*.pem
+*.pfx
+*.p12
+*.key
+*.cer
+*.crt
+*.keystore
+secrets/
+credentials/
+
+# Logs
+*.log
+logs/
+*.log.*
+
+# Databases
+*.sqlite
+*.sqlite3
+*.db
+*.db-journal
+
+# Backup Files
+*.bak
+*.backup
+*.tmp
+*.temp
+*.old
+
+# Package Managers
+package-lock.json
+yarn.lock
+Pipfile.lock
+poetry.lock
+
+# Docker
+docker-compose.override.yml
+.dockerignore
+
+# Cloud & CI/CD
+.aws/
+.gcloud/
+
+# Large Media Files (if you don't want to track them)
+*.mp4
+*.avi
+*.mov
+*.wmv
+*.flv
+*.iso
+*.dmg
+
+# Documentation Build
+docs/_build/
+site/
+
+# Nested Git Repositories
+**/.git/
+
+# Python Virtual Environments
+.venv/
+venv/
+env/
+ENV/
+
+# Build Artifacts
+dist/
+build/
+*.egg-info/
+
+# Rust Build
+**/target/
+
+# Large Data Files
+*.csv
+*.json
+
+# Generated Files
+*.js.map
+
+# PDFs and Books (large files)
+*.pdf
+
+# Search Indexes
+**/indexdir/
+
+# Log Files
+*.log
+

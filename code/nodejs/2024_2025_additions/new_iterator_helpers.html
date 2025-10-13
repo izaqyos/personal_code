@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>New JavaScript Iterator Helpers Demo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .output-block {
+            background-color: #1e293b; /* slate-800 */
+            color: #e2e8f0; /* slate-200 */
+            padding: 1rem;
+            border-radius: 0.5rem;
+            font-family: 'Courier New', Courier, monospace;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        code {
+            color: #93c5fd; /* blue-300 */
+            background-color: #334155; /* slate-700 */
+            padding: 0.125rem 0.25rem;
+            border-radius: 0.25rem;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white p-4 sm:p-8">
+    <div class="max-w-4xl mx-auto">
+        <header class="text-center mb-8">
+            <h1 class="text-3xl sm:text-4xl font-bold text-cyan-400">New ES2024+ Iterator Helpers</h1>
+            <p class="mt-2 text-lg text-gray-300">Demonstrating chained operations directly on iterators without intermediate arrays.</p>
+            <p class="mt-1 text-sm text-gray-500">(Check the browser's developer console for detailed object output)</p>
+        </header>
+
+        <div id="output" class="space-y-6"></div>
+    </div>
+
+    <script>
+        // --- Helper function to render output to the screen ---
+        function logToScreen(title, content, codeSnippet = '') {
+            const outputEl = document.getElementById('output');
+            const section = document.createElement('div');
+            
+            const titleEl = document.createElement('h2');
+            titleEl.className = 'text-xl font-semibold text-emerald-400 mb-2';
+            titleEl.textContent = title;
+            section.appendChild(titleEl);
+
+            if (codeSnippet) {
+                const codeEl = document.createElement('pre');
+                codeEl.innerHTML = `<code>${codeSnippet}</code>`;
+                codeEl.className = 'mb-2 p-3 bg-slate-800 rounded-md text-sm';
+                section.appendChild(codeEl);
+            }
+
+            const contentEl = document.createElement('div');
+            contentEl.className = 'output-block text-sm';
+            contentEl.textContent = `Result: ${content}`;
+            section.appendChild(contentEl);
+            
+            outputEl.appendChild(section);
+        }
+
+        // --- Demo Starts Here ---
+
+        // A generator function to create our source iterator.
+        // It yields numbers from 1 to 10.
+        function* countUpTo(limit) {
+            for (let i = 1; i <= limit; i++) {
+                yield i;
+            }
+        }
+        logToScreen('Initial Iterator', '[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]', 'function* countUpTo(10)');
+
+
+        // 1. .map(callback)
+        // Creates a new iterator that yields the result of calling the callback on each element.
+        const mappedIterator = countUpTo(10).map(n => n * 2);
+        // Note: At this point, no work has been done yet. The values are processed as they are consumed.
+        logToScreen('1. .map()', 
+            `[${[...mappedIterator]}]`, 
+            `countUpTo(10).map(n => n * 2)`
+        );
+
+
+        // 2. .filter(callback)
+        // Creates a new iterator that yields only the elements for which the callback returns true.
+        const filteredIterator = countUpTo(10).filter(n => n % 2 === 0);
+        logToScreen('2. .filter()', 
+            `[${[...filteredIterator]}]`,
+            `countUpTo(10).filter(n => n % 2 === 0)`
+        );
+
+
+        // 3. .take(limit)
+        // Creates a new iterator that yields the first `limit` elements and then stops.
+        // This is extremely useful for infinite iterators.
+        const takenIterator = countUpTo(10).take(5);
+        logToScreen('3. .take()', 
+            `[${[...takenIterator]}]`,
+            `countUpTo(10).take(5)`
+        );
+
+
+        // 4. .drop(limit)
+        // Creates a new iterator that skips the first `limit` elements and then yields the rest.
+        const droppedIterator = countUpTo(10).drop(5);
+        logToScreen('4. .drop()', 
+            `[${[...droppedIterator]}]`,
+            `countUpTo(10).drop(5)`
+        );
+        
+
+        // 5. Chaining methods
+        // The real power comes from chaining these helpers together.
+        // This is memory efficient because it processes one item at a time through the whole chain.
+        // It does NOT create an intermediate array at each step.
+        const chainedResult = countUpTo(10)
+            .filter(n => n > 3) // Iterator yields [4, 5, 6, 7, 8, 9, 10]
+            .map(n => `Item #${n}`) // Iterator yields ["Item #4", "Item #5", ...]
+            .take(4); // Iterator yields the first 4 of the above
+            
+        logToScreen('5. Chaining: .filter().map().take()', 
+            `[${[...chainedResult]}]`,
+            `countUpTo(10)\n  .filter(n => n > 3)\n  .map(n => \`Item #\${n}\`)\n  .take(4)`
+        );
+
+
+        // 6. .reduce(callback, initialValue)
+        // Applies the callback to accumulate a single final value. This consumes the entire iterator.
+        const sum = countUpTo(5).reduce((acc, val) => acc + val, 0);
+        logToScreen('6. .reduce()', 
+            sum,
+            `countUpTo(5).reduce((acc, val) => acc + val, 0)`
+        );
+
+    </script>
+</body>
+</html>
+

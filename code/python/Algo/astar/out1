@@ -1,0 +1,42 @@
+open_set is {'A'}
+None
+Changing  cur to A
+exploring A neighbor node B with weight 2
+adding B to open_set
+exploring A neighbor node E with weight 3
+adding E to open_set
+open_set is {'E', 'B'}
+None
+Changing  cur to E
+E
+Changing  cur to B
+exploring B neighbor node A with weight 2
+distance of A from A is 0. distance via B is 4
+exploring B neighbor node C with weight 1
+adding C to open_set
+exploring B neighbor node G with weight 9
+adding G to open_set
+open_set is {'G', 'C', 'E'}
+None
+Changing  cur to G
+G
+G
+Changing  cur to E
+exploring E neighbor node A with weight 3
+distance of A from A is 0. distance via E is 6
+exploring E neighbor node D with weight 6
+adding D to open_set
+open_set is {'D', 'G', 'C'}
+None
+Changing  cur to D
+D
+D
+exploring D neighbor node E with weight 6
+distance of E from A is 3. distance via D is 15
+exploring D neighbor node G with weight 1
+distance of G from A is 11. distance via D is 10
+open_set is {'G', 'C'}
+None
+Changing  cur to G
+G
+Path found: ['A', 'E', 'D', 'G']

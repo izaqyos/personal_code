@@ -1,0 +1,32 @@
+BTP_CLI_API_URL=https://cpcli.cf.sap.hana.ondemand.com
+BTP_CLI_API_VERSION=v2.69.0
+BTP_GLOBAL_ACCOUNT_SUBDOMAIN=e9d1845d-4ca1-4a6c-b727-9837f55f035f
+BTP_SUBACCOUNT_ID=057a262b-e82b-43e6-ad81-6162ab367ac3
+BTP_USERNAME=sapeuxautomation@sap.com
+CF_REGION=sap
+CF_USERNAME=sapeuxautomation@sap.com
+DOCKER_IMAGE=bit-ce.int.repositories.cloud.sap/docker-testing/playwright-docker:1.33.0
+DOCKER_WORKSPACE=/home/piper
+EMAIL_RECIPIENTS=yosi.izaq@sap.com
+PRODUCT_ADMIN_ROLE=Launchpad_Admin-lts
+PRODUCT_NAME=SAPLaunchpad-lts
+PRODUCT_PASSWORD=Portal111!
+PRODUCT_PLAN=standard
+PRODUCT_USERNAME=portalauto@sap.com
+PROVIDER_ORG_NAME=mainsub
+PROVIDER_SPACE_NAME=lts
+TEST_BRANCH=master
+TEST_COMMANDS=npm i && npm run html5-new
+TEST_CREDENTIALS_ID=end2EndTestsCredentials
+TEST_REPORT_PATH=report/
+TEST_REPORT_TYPE=html
+TEST_REPOSITORY=Backbone-Automations
+TIMEOUT=45
+XRAY_PROJECT_KEY=PORTALSBACKLOG
+VAULT_PATH_BTP_USERNAME=QA/jjb-automation/SAPEUX
+VAULT_PATH_CF_USERNAME=QA/jjb-automation/SAPEUX
+
+The swarming channel concept has these caveats and I strongly suggest to go back to email/direct communications.
+a.	As a teams “Teams” channel mentions are not popping as notifications and this leads many times to late discovery of mentions and requires active scanning instead of direct notification
+b.	 Designating the ScMs as responders to this channel is counter productive as it bypasses the whole SNOW handling process with many lessons learned and best practices implemented. Instead PS would approach directly with complex queries that many times requires expert knowledge and/or investigation. This bypasses routing to components, handling by our dev support engineers and devs on duty and puts all the load on the ScMs in a covert way which is not measured.
+c.	This adds up to the ScM already extremely busy daily routine and is not feasible w/o significant negative impact on ScM daily tasks and responsibilities.

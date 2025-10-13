@@ -1,0 +1,7 @@
+Exception: STATUS_ACCESS_VIOLATION at eip=6C61632F
+eax=00000000 ebx=00000000 ecx=00000000 edx=00000067 esi=61274878 edi=611A1EDF
+ebp=6E69622F esp=0028AC40 program=C:\work\code\CPP\secure\a.exe, pid 7164, thread main
+cs=0023 ds=002B es=002B fs=0053 gs=002B ss=002B
+Stack trace:
+Frame     Function  Args
+End of stack trace

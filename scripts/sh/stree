@@ -1,0 +1,18 @@
+#! /bin/sh
+
+case "$1" in
+-a) shift
+    dir=${1-.}  # DEFAULT TO CURRENT DIRECTORY
+    echo Tree for directory $dir and its files:
+    ;;
+*)  findtype="-type d"  # IF NO -a FLAG, MAKE find USE "-type d"
+    dir=${1-.}
+    echo Tree for directory $dir:
+    ;;
+esac
+
+echo "
+$dir"
+find $dir $findtype -print |
+tr / \\001 | sort -f | tr \\001 / |
+sed -e s@\^$dir@@ -e /\^$/d -e 's@[^/]*/@->@g'

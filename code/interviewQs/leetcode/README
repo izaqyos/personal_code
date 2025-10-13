@@ -1,0 +1,4 @@
+To compile c++17 on MAC do.
+a. install xcode.
+b. compile as follows
+clang++ -std=c++17 -stdlib=libc++ -Weverything -Wno-c++98-compat LDS.cpp -o LDS

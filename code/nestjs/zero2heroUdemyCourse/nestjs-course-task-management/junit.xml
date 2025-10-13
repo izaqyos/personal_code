@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites name="jest tests" tests="4" failures="0" time="2.274">
+  <testsuite name="TaskService" errors="0" failures="0" skipped="0" timestamp="2019-12-18T09:31:00" time="2.19" tests="4">
+    <testcase classname="TaskService getTasks gets all tasks from repo" name="TaskService getTasks gets all tasks from repo" time="0.009">
+    </testcase>
+    <testcase classname="TaskService getTaskById call taskRepository.findOne() and succesffuly returns task" name="TaskService getTaskById call taskRepository.findOne() and succesffuly returns task" time="0.002">
+    </testcase>
+    <testcase classname="TaskService getTaskById throws error when task not found" name="TaskService getTaskById throws error when task not found" time="0.002">
+    </testcase>
+    <testcase classname="TaskService createTask tests Should call taskRepository.createTask() succesfuly and return the task" name="TaskService createTask tests Should call taskRepository.createTask() succesfuly and return the task" time="0.002">
+    </testcase>
+  </testsuite>
+</testsuites>

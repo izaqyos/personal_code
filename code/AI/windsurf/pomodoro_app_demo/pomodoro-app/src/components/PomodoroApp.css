@@ -1,0 +1,102 @@
+.pomodoro-app {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 2rem;
+  text-align: center;
+  background-color: #f8f9fa;
+  border-radius: 10px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.pomodoro-app h1 {
+  color: #343a40;
+  margin-bottom: 1.5rem;
+}
+
+.pomodoro-counter {
+  margin-bottom: 1rem;
+  font-size: 1rem;
+  color: #6c757d;
+}
+
+.mode-selector {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 1.5rem;
+}
+
+.mode-button {
+  background-color: #e9ecef;
+  border: none;
+  padding: 0.5rem 1rem;
+  margin: 0 0.25rem;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+}
+
+.mode-button:hover {
+  background-color: #dee2e6;
+}
+
+.mode-button.active {
+  background-color: #007bff;
+  color: white;
+}
+
+.timer {
+  margin: 2rem 0;
+}
+
+.timer-display {
+  font-size: 6rem;
+  font-weight: bold;
+  color: #343a40;
+  margin: 0;
+  font-family: 'Courier New', monospace;
+}
+
+.controls {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+}
+
+.control-button {
+  background-color: #6c757d;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.control-button:hover {
+  opacity: 0.9;
+}
+
+.control-button.start {
+  background-color: #28a745;
+}
+
+.control-button.pause {
+  background-color: #ffc107;
+  color: #343a40;
+}
+
+.control-button.reset {
+  background-color: #dc3545;
+}
+
+@media (max-width: 576px) {
+  .timer-display {
+    font-size: 4rem;
+  }
+  
+  .control-button {
+    padding: 0.5rem 1rem;
+  }
+} 

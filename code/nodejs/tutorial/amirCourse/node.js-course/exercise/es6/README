@@ -1,0 +1,9 @@
+Please install first, in cmd:
+npm install
+or
+npm install --https-proxy=http://proxy:8080
+
+running tests suite: npm test
+
+in this project, the integration tests are already written, and currently fail.
+make the tests green by implementing the TODOs in dirs-watcher.js

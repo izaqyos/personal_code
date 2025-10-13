@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>hello service worker. second phase
+</head>
+<body>
+<h1>Hello service workers 2</h1>
+<h2>buttons</h2>
+<p id="paragraph">a paragraph</p>
+<button onclick="sayHi()">say HI</button>
+<button onclick="unknownCmd()">send an unknown command</button>
+<button onclick="stopWorker()">stop the worker</button>
+<output id="result"></output>
+<script>
+function sayHi() {
+    worker.postMessage({'cmd': 'start', 'msg': 'Hi' })
+}
+function stopWorker() {
+    //can also call worker.terminate()
+    worker.postMessage({'cmd': 'stop', 'msg': 'Bye' })
+}
+
+function unknownCmd() {
+    worker.postMessage({'cmd': 'foobar', 'msg': 'WTF??' })
+}
+
+// create service worker
+const worker = new Worker('task2.js');
+
+worker.addEventListener('message', evt => {
+    console.log('service worker got: ', evt.data);
+    document.getElementById('result').textContent = evt.data;
+}, false);
+
+//launch service worker
+//worker.postMessage("Hello service worker");
+</script>
+</body>
+
+</html>
+
+

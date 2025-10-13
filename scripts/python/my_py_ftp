@@ -1,0 +1,42 @@
+#!/usr/bin/python
+
+#Author yosi izaq
+#usage [yizaq@yizaq-lnx:Thu Jun 07:/ws/yizaq-csi/temp]$ ~/work/scripts/python/my_py_ftp cd-acs-ftp upload/yizaq acs.tar.gz
+import sys, getopt
+from ftplib import FTP
+
+def main():
+    try:
+        opts, args = getopt.getopt(sys.argv[1:], "h:v", ["help"])
+    except getopt.GetoptError, err:
+        # print help information and exit:
+        print str(err) # will print something like "option -a not recognized"
+        usage()
+        sys.exit(2)
+    output = None
+    verbose = False
+    for o, a in opts:
+        if o == "-v":
+            verbose = True
+        elif o in ("-h", "--help"):
+            usage()
+            sys.exit()
+        else:
+            assert False, "unhandled option"
+
+    print "arguemtns are: ", args
+    if len(args) == 3: #FTP, DIR to CWD, FILE to upload
+        ftp=FTP(args[0])
+        ftp.login()
+        ftp.cwd(args[1])
+        ftp.storbinary
+        
+        f=open(args[2],'r')
+        print "uploading file %s"%args[2], " to %s"%args[0], " in dir %s"%args[1] 
+        ftp.storbinary('STOR '+args[2], f)
+        f.close()
+        ftp.quit()
+    # ...
+
+if __name__ == "__main__":
+    main()

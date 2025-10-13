@@ -1,0 +1,4 @@
+let catalog = require('cdm-schema/dist/clp/site-default-entities/catalog.default.json');
+console.log('schema catalog: %s',JSON.stringify(catalog));
+
+

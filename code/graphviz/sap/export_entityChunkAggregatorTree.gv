@@ -1,0 +1,24 @@
+digraph entityAggregatorTree {
+    rankdir=TB;
+    size="800,500"
+
+
+    node [color=goldenrod2, style=filled, shape = circle];
+    root  -> site [ label = "context type layer" ];
+    root  -> SUBACCOUNT [ label = "context type layer" ];
+    site -> site1 [ label = "context id layer" ]
+    site1 -> s1_pageapp [ label = "entity type layer" ]
+    s1_pageapp -> s1pa_chunks_array [ label = "chunks of entities" ]
+    site1 -> s1_menu [ label = "entity type layer" ]
+    s1_menu -> s1me_chunks_array [ label = "chunks of entities" ]
+    subaccount -> roles [ label = "entity type layer" ]
+    roles -> roles_chunks_array [ label = "chunks of entities" ]
+    SUBACCOUNT -> subaccount [ label = "context id layer" ] 
+    subaccount -> apps [ label = "entity type layer" ]
+    apps -> apps_chunks_array [ label = "chunks of entities" ]
+    subaccount -> groups [ label = "entity type layer" ]
+    groups -> groups_chunks_array [ label = "chunks of entities" ]
+    subaccount -> catalogs [ label = "entity type layer" ]
+    catalogs -> catalogs_chunks_array [ label = "chunks of entities" ]
+}
+

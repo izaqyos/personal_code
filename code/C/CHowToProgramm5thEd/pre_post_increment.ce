@@ -1,0 +1,44 @@
+﻿/*
+ * =====================================================================================
+ *
+ *       Filename:  pre_post_increment.c
+ *
+ *    Description:  demonstrates pre & post increment operators
+ *
+ *        Version:  1.0
+ *        Created:  08/21/11 14:36:33
+ *       Revision:  none
+ *       Compiler:  gcc
+ *
+ *         Author:  Yosi Izaq (), yizaq@cisco.com
+ *        Company:  CISCO
+ *
+ * =====================================================================================
+ */
+
+#include	<stdlib.h>
+#include	<stdio.h>
+
+/* 
+ * ===  FUNCTION  ======================================================================
+ *         Name:  main
+ *  Description:  
+ * =====================================================================================
+ */
+	int
+main ( int argc, char *argv[] )
+{
+	int var = 5;
+
+	//Post increment
+	printf("Var is: %d\n",var);
+	printf("Var is: %d\n",var++);
+	printf("Var is: %d\n",var);
+
+	//Pre increment
+	printf("Var is: %d\n",var);
+	printf("Var is: %d\n",++var);
+	printf("Var is: %d\n",var);
+
+	return EXIT_SUCCESS;
+}				/* ----------  end of function main  ---------- */

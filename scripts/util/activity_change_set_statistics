@@ -1,0 +1,35 @@
+#!/usr/bin/bash
+
+ARGS=1        # Number of arguments expected.
+E_BADARGS=65  # Exit value if incorrect number of args passed.
+
+test $# -ne $ARGS && \
+	     echo "Usage: `basename $0` activity name" && exit $E_BADARGS
+#  If condition 1 tests true (wrong number of args passed to script),
+#+ then the rest of the line executes, and script terminates.
+
+# This commnad is good for unix/linux
+#cleartool lsactivity -long $1 |  sed '/activity/,/change set versions/d; s/^.*ismg_israel_acs//; s_@@.*$__' | sort | uniq
+
+# This commnad is good for windows
+declare -a change_set 
+#change_set=(`cleartool lsactivity -long $1 |  sed '/activity/,/change set versions/d; s/^.*ismg_israel_acs/\./; s_@@.*$__; s_\\_/_g' | sort | uniq`)
+change_set=(`cleartool lsactivity -long $1 |  sed '/activity/,/change set versions/d; s/^.*ismg_israel_acs/\./; s_@@.*$__; s_\\\_/_g' | sort | uniq`)
+echo "change set is: ${change_set[@]}"
+
+conflict=0
+compare_view_path="/cygdrive/g/ismg_israel_acs/"
+
+for file in ${change_set[@]}
+do
+	echo "Gathering statistics for file $file"
+	let conflicts=conflicts+`diff $file ${compare_view_path}${file} | awk '/^[^><-]/ {print}' | wc -l`
+done
+
+echo "Size of change set:"
+echo ${#change_set[*]}  
+
+echo "Total number of conflicts:"
+echo $conflicts
+
+

@@ -1,0 +1,121 @@
+yosi: write a c++ program that uses move operator to pass a vector 
+
+Sure! Here's an example program that demonstrates how to use move semantics to pass a vector in C++:
+#include <iostream>
+#include <vector>
+
+// Function that takes a vector by value using move semantics
+void process_vector(std::vector<int> && vec) {
+    // Do some processing on the vector
+    for (int i = 0; i < vec.size(); ++i) {
+        vec[i] = vec[i] * 2;
+    }
+
+    // Print the processed vector
+    std::cout << "Processed vector: ";
+    for (int i = 0; i < vec.size(); ++i) {
+        std::cout << vec[i] << " ";
+    }
+    std::cout << std::endl;
+}
+
+int main() {
+    // Create a vector of integers
+    std::vector<int> my_vector = {1, 2, 3, 4, 5};
+
+    // Pass the vector to the function using move semantics
+    process_vector(std::move(my_vector));
+
+    // Attempt to access the vector after it has been moved
+    std::cout << "Attempt to access moved vector: ";
+    for (int i = 0; i < my_vector.size(); ++i) {
+        std::cout << my_vector[i] << " ";
+    }
+    std::cout << std::endl;
+
+    return 0;
+}
+
+Yosi:
+[i500695@WYLQRXL9LQ:2023-03-06 17:47:50:~/work/code/CPP/tutorial/move_semantics:]2007$ g++ -o move_semantics1 move_semantics1.cpp
+move_semantics1.cpp:5:38: warning: rvalue references are a C++11 extension [-Wc++11-extensions]
+void process_vector(std::vector<int> && vec) {
+                                     ^
+move_semantics1.cpp:21:22: error: non-aggregate type 'std::vector<int>' cannot be initialized with an initializer list
+    std::vector<int> my_vector = {1, 2, 3, 4, 5};
+                     ^           ~~~~~~~~~~~~~~~
+1 warning and 1 error generated.
+
+So compule with c++11 and above. as in:
+g++ --std=c++17 -o move_semantics1 move_semantics1.cpp
+
+In this example, we define a process_vector function that takes a vector by value using move semantics. This means that the function can modify the vector and take ownership of its resources, without making a copy of the vector. We pass the vector to this function using the std::move function, which casts the lvalue my_vector to an rvalue reference, allowing it to be moved instead of copied.
+
+In the process_vector function, we multiply each element of the vector by 2 and print the processed vector. We then attempt to access the vector after it has been moved, which should result in undefined behavior, since the vector's resources have been moved to the vec parameter in the function.
+
+When you run this program, you should see output like the following:
+Processed vector: 2 4 6 8 10 
+Attempt to access moved vector: 
+
+Note that the attempt to access the moved vector prints an empty line, since the vector is now empty and its resources have been released.
+
+yosi: modify the program so that the moved vector can be accessed after it was moved to process_vector function
+
+
+In general, accessing a moved-from object is undefined behavior and should be avoided. However, there are some cases where it may be possible to access a moved vector, depending on how the move was performed.
+
+One approach is to move the vector to the function and then return it from the function. This allows the caller to access the moved vector, since it is returned by value from the function. Here's an updated version of the program that uses this approach:
+
+#include <iostream>
+#include <vector>
+
+// Function that takes a vector by value using move semantics and returns it
+std::vector<int> process_vector(std::vector<int> && vec) {
+    // Do some processing on the vector
+    for (int i = 0; i < vec.size(); ++i) {
+        vec[i] = vec[i] * 2;
+    }
+
+    // Print the processed vector
+    std::cout << "Processed vector: ";
+    for (int i = 0; i < vec.size(); ++i) {
+        std::cout << vec[i] << " ";
+    }
+    std::cout << std::endl;
+
+    // Return the modified vector
+    return vec;
+}
+
+int main() {
+    // Create a vector of integers
+    std::vector<int> my_vector = {1, 2, 3, 4, 5};
+
+    // Pass the vector to the function using move semantics, and assign the returned vector back to the original variable
+    my_vector = process_vector(std::move(my_vector));
+
+    // Access the moved vector after it has been returned from the function
+    std::cout << "Accessing moved vector after function call: ";
+    for (int i = 0; i < my_vector.size(); ++i) {
+        std::cout << my_vector[i] << " ";
+    }
+    std::cout << std::endl;
+
+    return 0;
+}
+
+
+In this modified example, the process_vector function now returns the modified vector instead of modifying it in-place. We pass the vector to this function using move semantics as before, and assign the returned vector back to the my_vector variable in the main function.
+
+After the function call, we can access the modified vector by iterating over the my_vector variable as before. This works because the returned vector is a copy of the moved vector, and its resources are still valid.
+
+When you run this program, you should see output like the following:
+
+c
+Copy code
+Processed vector: 2 4 6 8 10 
+Accessing moved vector after function call: 2 4 6 8 10 
+Note that the modified vector is now accessible after the function call, and its elements have been doubled as expected.
+
+Yosi: actually when compiled both for c++11 and 17 the first version works fine and the moved vector is accessible
+

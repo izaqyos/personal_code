@@ -1,0 +1,1279 @@
+# Author: Yosi Izaq
+#b MessageBusListener.cpp:475
+#
+#FUNCTIONS
+
+#Utility bash mini functions of common tasks
+#
+
+
+__search_in_files()
+{
+ find . -type f | xargs grep -s $1
+}
+__ct_diff_base_t()
+{
+cleartool diff -diff ` ct ls $1  | awk '{print $1}'` `ct ls $1  | awk '{print $1}' | sed -e 's_[0-9]\+$_0_'`
+}
+
+__log_selector()
+{
+
+# Set IFS to \n so that array elements containing space would not be considered as multiple elements
+        IFS='
+'
+        LogFiles=( 
+                        "/opt/CSCOacs/logs/acsRuntime.log"
+                        "/opt/CSCOacs/logs/ACSADAgent.log"
+                        "/opt/CSCOacs/logs/ACSManagement.log"   
+                        "/opt/CSCOacs/logs/localStore/acsLocalStore.log"   
+                        "/opt/CSCOacs/mgmt/apache-tomcat-6.0.18/logs/catalina.out"
+                        )
+        Operation=( 
+                        "tail -f" 
+                        "vi" 
+#"\\vi" 
+                        "tail " 
+                        )
+
+        i=0
+        j=0
+        echo "Choose operation+file"
+        for file in ${LogFiles[@]} 
+        do 
+                for op in ${Operation[@]} 
+                do
+                        printf "[%03d] %s %s\n" $j $op $file 
+                        (( j+=1 ))
+                done
+        done
+        echo -n "Please select operation and log file:"
+        read
+
+echo $REPLY 
+        let "i =  $REPLY / ${#Operation[@]}  "
+echo $i
+        let "j =  $REPLY % ${#Operation[@]}  "
+echo $j
+        printf "Operation: %s %s\n" ${Operation[$j]} ${LogFiles[$i]} 
+        eval  "sudo  ${Operation[$j]} ${LogFiles[$i]} "
+}
+
+_CC_views_selector()
+{
+
+        Views=( 
+                        "yizaq__int.acs5_0.lx"
+                        "yizaq__yizaq.fcs5_1.int.acs5_0.lx"   
+                        "yizaq__yizaq.FCS_5_2.int.acs5_0.lx"   
+                        "yizaq__FCS_5_3.int.acs5_0.lx"
+                        "yizaq__yizaq_5_4.int.acs5_0.lx"
+                        "yizaq__yizaq_5_4_centrify.int.acs5_0.lx"
+                        "yizaq__P6.P4.P3.P2.P1.FCS_5_3.int.acs5_0.lx"
+                        "yizaq__yizaq.P6.P4.P3.P2.P1.FCS_5_3.int.acs5_0.lx"
+                        )
+
+        Descs=( 
+                        "New View on integration stream" 
+                        "View on 5.1 FCS stream" 
+                        "View on 5.2 FCS stream" 
+                        "View on 5.3 FCS stream" 
+                        "5.4 dev"
+                        "5.4 dev - centrify integration"
+                        "5.3 patch 6"
+                        "5.3 patch 6 substream"
+                        )
+
+        i=0
+        echo "Available Views:"
+        for view in ${Views[@]} 
+        do 
+                printf "[%03d] %-40s || %-20s\n" $i "${Descs[$i]}" $view 
+                (( i+=1 ))
+        done
+        echo -n "Please select number of view to be set:"
+        read
+
+        echo "setting view ${Views[$REPLY]} ${Descs[$REPLY]} "
+        cleartool setview ${Views[$REPLY]} 
+}
+_grepa(){
+        grep $1 $HOME/.aliases
+}
+
+#utility for getting files from ftp server
+#expects 3 args, ftp, dir name, file name, assumes anonymous user
+_ftp_get(){
+ftp -un $1 <<EOT
+user anonymous  foo
+bin
+cd $2
+get $3
+quit
+EOT
+}
+
+
+#utility for connecting to ftp server and listing a certain dir
+#expects 2 args, ftp, and dir name.user name is assumed to be anonymous  
+_ftp_listing(){
+ftp -un $1 <<EOT
+user anonymous  foo
+cd $2
+dir
+quit
+EOT
+}
+
+#For ACS, automatically install ACS FCS version of 5.1 from my FTP server
+_install_acs_from_ftp(){
+cd /tmp
+_ftp_get cd-acs-ftp /upload/yizaq/ $1.tar.gz
+gunzip $1.tar.gz
+sudo tar xvf $1.tar
+
+ echo "uninstalling Previous ACS (if any)"
+
+ _uninstall_acs_lnx
+
+ echo "Installing ACS"
+ sudo rpm -ivh --nomd5 $( basename $ACS )
+
+ echo "Installing ACS view"
+ sudo rpm -ivh --nomd5 $( basename $ACS_VIEW )
+
+ echo "Starting ACS"
+ sudo /opt/CSCOacs/bin/acs start
+}
+#Alias to extract rpm
+_extract_rpm(){
+
+#Description: 
+#Usage: $ extract_rpm source_file [target_dir]
+#Author Yosi Izaq
+        echo "This alias will extract content of rpm, it can receive an optional parameter for target dir"
+
+rpm=""
+dir=""
+s_dir=""
+
+        if  [ $# -eq 1 ] 
+        then
+                echo "Extracting $1 to current dir `pwd`"
+		dir=$( pwd )
+        elif [ $# -eq 2 ] 
+	then
+                echo "Extracting $1 to dir $2"
+		dir="$2"
+		s_dir=$( pwd )
+	else
+		echo "Usage: extract_rpm <rpm> [target dir]"
+		return -1
+        fi  
+# set RPM param according to relative or absolute path was given
+if [[ "$1" = /* ]]
+then
+#   : # Absolute path
+	rpm="$1"
+else
+# : # Relative path
+#rpm="${s_dir}/${1}"
+	rpm="${1}"
+fi
+
+echo "Extracting rpm $rpm to $dir"
+cd $dir || ( echo "can't cd to $dir, bailing out" && return -2 )
+echo " rpm2cpio < ${rpm} | cpio -i --make-directories "
+rpm2cpio < "${rpm}" | cpio -i --make-directories
+
+
+}
+
+
+# This one will accept a list of files to edit.
+# If the first parameter is -t then console VIM will be used. Otherwise GVIM will be launched.
+_fire_vim_edit_session(){
+
+	if [ -n $1 -a $1 == "-t" ]
+	then
+		shift #shift the -t out of argument (file) list
+		echo "using VIM to open files $@"
+        vim $@
+	else
+		echo "using GVIM to open files $@"
+        gvim -font Courier\ Bold\ 11 $@
+#gvim -font Sans\ 12 $@
+	fi
+		
+}
+#
+
+#Bash functions I usually alias and use commonly
+#__find_cpp()
+#{
+#find . \( -name "*.[ch]" -o -name "*.cpp" -o -name "*.hpp" \) 
+#}
+
+_backup_change_set()
+{
+        echo "Backing up change set "
+        echo "Make sure you're in corresponding stream and view and set to the activity you'd like reviewed"
+
+        stream=`ct lsstream | awk '{print $2}'`
+        view=`ct pwv |  awk '/Set view/  {print $3}'`
+        activity=`ct lsact -cact | awk '{print $2}'`
+	    back_path="$HOME/temp/backups"
+        archive=$back_path/${activity}_srcs.tar
+
+        Files=`ct lsact -long ${activity}@/vob/nmtgre_proj | awk '/@@/ {print $1 } ' | sed -e 's_@@.*$__' | sort | uniq `
+
+        echo "================================================================================"
+        echo "||            Activity  Information                                             "
+        echo "================================================================================"
+        echo "|| Stream:    $stream                   "
+        echo "================================================================================"
+        echo "|| View:      $view                   "
+        echo "================================================================================"
+        echo "|| Activity:  $activity                 "
+        echo "================================================================================"
+        echo "|| Files:     $Files                 "
+        echo "================================================================================"
+        echo "|| Archive:     $archive                 "
+        echo "================================================================================"
+
+
+        Files_array=(`ct lsact -long ${activity}@/vob/nmtgre_proj | awk '/@@/ {print $1 } ' | sed -e 's_@@.*$__' | sort | uniq   `)
+
+        
+        first_iter=1
+        for file in ${Files_array[@]} 
+        do
+                if [ -d $file ]
+                        then
+                        echo "skipping dir $file"
+                else
+                        echo "archiving $file "
+                        if (( first_iter == 1 )) 
+                                then 
+                                tar cvf $archive $file 
+                                first_iter=0
+                        else 
+                                tar rvf $archive $file 
+                        fi
+                fi
+        done
+
+        bzip2  $archive
+}
+
+_generate_code_review_info()
+{
+        echo "Generating code review information"
+        echo "Make sure you're in corresponding stream and view and set to the activity you'd like reviewed"
+
+        stream=`ct lsstream | awk '{print $2}'`
+        view=`ct pwv |  awk '/Set view/  {print $3}'`
+        activity=`ct lsact -cact | awk '{print $2}'`
+
+        Files=`ct lsact -long ${activity}@/vob/nmtgre_proj | awk '/@@/ {print $1 } ' | sed -e 's_@@.*$__' | sort | uniq `
+
+        echo "================================================================================"
+        echo "||            Code Review Information, optimized for windows view             "
+        echo "================================================================================"
+        echo "|| Stream:    $stream                   "
+        echo "================================================================================"
+        echo "|| View:      $view                   "
+        echo "================================================================================"
+        echo "|| Activity:  $activity                 "
+        echo "================================================================================"
+        echo "|| Files:     $Files                 "
+        echo "================================================================================"
+
+	
+	echo
+	echo
+	echo
+	echo
+
+	RULER="=================================================================================================================================="
+        Files_array=(`ct lsact -long ${activity}@/vob/nmtgre_proj | awk '/@@/ {print $1 } ' | sed -e 's_@@.*$__' | sort | uniq   `)
+
+        printf "%-130s" $RULER
+        echo
+        printf "%-10s%-110s%10s" "||" "Code Review Information. Optimized for Linux View" "||"
+        echo
+        printf "%-130s" $RULER
+        echo
+        printf "%-10s%-110s%10s" "||" "Stream $stream" "||"
+        echo
+        printf "%-130s" $RULER
+        echo
+        printf "%-10s%-110s%10s" "||" "View $view" "||"
+        echo 
+        printf "%-130s" $RULER
+        echo
+        printf "%-10s%-110s%10s" "||" "Activity $activity" "||"
+        echo 
+        printf "%-130s" $RULER
+        echo
+        printf "%-10s%-110s%10s" "||" "Files: " "||"
+        echo
+        
+        for file in ${Files_array[@]} 
+        do
+                printf "%-10s%-110s%10s" "||" "$file" "||"
+                echo
+        done
+
+        printf "%-130s" $RULER
+        echo
+        echo "Diff:"
+        ct_diff_act_txt $activity
+
+        printf "%-130s" $RULER
+
+        echo
+}
+
+# Variabls
+_VIM_FONT=' -font Sans\ 12 '
+#_VIM_FONT=' -font Courier\ Bold\ 13 '
+#FUNCTIONS
+
+_cpuz(){
+
+#Description: This alias will copy and uncopmress a given zip file to a given target file
+# The result is much faster than running cp first and gzunzip later.
+#Usage: $ cpuz source_file target_file
+#Author Yosi Izaq
+        echo "This alias will copy and uncopmress a given zip file to a given target file"
+
+
+        if  [ $# -ne 2 ] 
+                then
+                        echo "Usage: $ cpuz source_file target_file"
+        else
+                echo "copying and decompressing $1 to $2"
+		zcat $1 > $2
+        fi  
+
+}
+
+_cpz(){
+
+#Description: This alias will copy the given file to a compressed file on a given location using pipes
+# The result is much faster than running cp first and gzip later.
+#Usage: $ cpz source_file target_file.gz
+#Author Yosi Izaq
+        echo "This alias will copy the given file to a compressed file on a given location using pipes"
+
+
+        if  [ $# -ne 2 ] 
+                then
+                        echo "Usage: $ cpz source_file target_file.gz"
+        else
+                echo "copying and compressing $1 to $2"
+		cat $1 | gzip > $2
+        fi  
+
+}
+
+_cpr_fast(){
+
+#Description: This alias copied directories much faster than cp -r
+#Usage: $ cpr_fast source target
+#Author Yosi Izaq
+        echo "This alias copies directories much faster than cp -r"
+
+
+        if  [ $# -ne 2 ]
+                then
+                        echo "Usage: $ cpr_fast source target"
+        else
+                echo "copying $1 to $2"
+                ( cd $1  && tar cf - . ) | (cd $2  && tar xvpf - )
+        fi
+
+}
+_pull_file_ssh(){
+#Description: SSH copy file from remote host
+#Usage pull_file_ssh <remote file> <remote host> <local file>
+#Author Yosi Izaq
+        echo "SSH copy file from remote host"
+
+
+        if  [ $# -lt 3 ]
+                then
+                        echo "Usage pull_file_ssh <remote file> <remote host> <local file> [remote user]"
+        		echo "Note that [remote user] is optional, use it if local user is different than remote user"
+        else
+		if [ -n "$4" ]
+		then
+			USR="$4"
+			echo "Remote user is $USR"
+		else
+			USR=$(whoami)
+			echo "Using local user $USR"
+		fi
+                echo "copying $1 to $3 from machine $2, using remote user $4"
+                ssh -l $USR $2  cat $1 > $3
+        fi
+
+}
+_push_file_ssh(){
+#Description: SSH move file to remote host
+#Usage: push_file_ssh <local file> <remote host> <remote file> [remote user]
+#Author Yosi Izaq
+        echo "SSH move file to remote host"
+        echo "Usage push_file_ssh <local file> <remote host> <remote file>"
+
+
+        if  [ $# -lt 3 ]
+                then
+			echo "Usage push_file_ssh <local file> <remote host> <remote file> [remote user]"
+        		echo "Note that [remote user] is optional, use it if local user is different than remote user"
+        else
+		if [ -n "$4" ]
+		then
+			USR="$4"
+			echo "Remote user is $USR"
+		else
+			USR=$(whoami)
+			echo "Using local user $USR"
+		fi
+
+                echo "copying $1 to $3 on machine $2, using remote user $4"
+		echo "Execute: cat $1 | ssh -l $USR $2  cat \">\" $3"
+                cat $1 | ssh -l $USR $2  cat ">" $3
+        fi
+
+}
+
+
+#ACS related
+
+# Secific to Cisco ACS 5.x project. Run ACS RT daemon purify executable.
+# preconditions:
+# 1. Only works in clearcase view 
+# 2. Only works after ACS RT service is stopped
+# 3. Reuires that ACS rt_daemon be linked with purify
+_run_acs_purify(){
+#
+        if [ -ne $1 ]
+        then 
+cat <<HELP_MSG
+------------------------------------------------
+Alias/Script secific to Cisco ACS 5.x project. Run ACS RT daemon purify executable.
+preconditions:
+1. Only works in clearcase view 
+2. Only works after ACS RT service is stopped
+3. Reuires that ACS rt_daemon be linked with purify
+Make sure to call with ACS configurtation file like:
+$ _run_acs_purify [path/to/acs/configuration/file]
+or
+$ purify_acs /opt/CSCOacs/runtime/config/generated_AcsConfig.xml
+------------------------------------------------
+HELP_MSG
+
+        fi
+
+       cdacs_view
+        cd daemons/rt_daemon/
+        PURIFYOPTIONS="--view-file=%v.pv -windows=yes -chain-length=20"; export PURIFYOPTIONS
+
+        if [ -e ../config.bak ]
+        then
+                rm -fr ../config
+        else
+                mv ../config ../config.bak
+        fi
+
+        dev-run.sh start $1
+
+}
+
+_gdb_acs_lib(){
+
+echo "For this to work make you sure you have cd to ACS RT lib directory!"
+#Paths relevant to maven system on RT (ACS 5.0 phase 1 and early phase 2)
+#        LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:`pwd`/target/lib; export LD_LIBRARY_PATH; 
+#        LIB_NAME=`ls target/test* | sed -e 's/\*//'` 
+#        echo "Starting debug session for ACS lib ${LIB_NAME} "
+#        echo "Please execute command: LD_LIBRARY_PATH=\$\{LD_LIBRARY_PATH\}:`pwd`/target/lib; export LD_LIBRARY_PATH;   gdb ${LIB_NAME}"
+
+#Paths relevant to make system on RT (ACS 5.0 phase 2 and above)
+export LD_LIBRARY_PATH=/vob/nm_acs/acs/runtime/build/lnx26/lib:/vob/nm_acs/acs/runtime/prebuilt/lnx26/lib
+#cmd="gdb test/Debug/test-`pwd | awk -F"/" '{print $NF }'`"
+#libName=`pwd | awk -F"/" '{print $NF }' | python -c "print raw_input().capitalize()"`
+libName=`ls test/Debug/test-* | sed -e 's/*//'`
+#awk '# Extract the lib name and capitalize 1st letter 
+#    # initialize strings
+#    BEGIN { upper = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+#            lower = "abcdefghijklmnopqrstuvwxyz" 
+#        FS = "/"
+#    }
+#    # for lib name (which is last field in record)
+#        $NF
+#    {
+##print "processing last record ", $NF
+#    # get first character of first word
+#    	FIRSTCHAR = substr($NF, 1, 1)
+#    # get position of FIRSTCHAR in lowercase array; if 0, ignore
+#    	if (CHAR = index(lower, FIRSTCHAR)) 
+#    		# change $1, using position to retrieve
+#    		# uppercase character 
+#    		$NF = substr(upper, CHAR, 1) substr($NF, 2)
+#    # print record
+#    	print $NF
+#    }'`
+echo "lib name to debug is ${libName}"
+#cmd="gdb test/Debug/test-${libName}"
+cmd="gdb ${libName}"
+echo "set LD_LIBRARY_PATH to ${LD_LIBRARY_PATH}, execute ${cmd} " 
+$cmd
+
+}
+
+_clean_acs_5_logs(){
+#Description: Clean log files of ACS 5.x from various junk
+# and leave only stuff that's interesting to me :)
+
+        echo "Cleaning log file $1..."
+        sed '/^CatalogRepository/d; /^LocalStore/d; /^Logging/d; /^LoggerFactory/d; /^ScopeHandler/d; /^XmlManager/d;' $1 > ~/__temp__
+#cat ~/__temp__
+        mv -f ~/__temp__ $1
+}
+
+_cd_acs_view(){
+#Description: switch to runtime directory for ACS 5.0 project
+# of the current view according to cleartool pwv
+
+        CUR_VIEW=`cleartool pwv | awk '/Set view/ {print $3}' `
+#echo "Changing dir to ACS 5.0 runtime for view: ${CUR_VIEW}"
+        echo "Changing dir to ACS 5.0 for view: ${CUR_VIEW}"
+
+        case "${CUR_VIEW}" in
+                'yizaq__int.acs5_0.lx')
+                        echo "You are currently working on integration view stream"
+                        ;;
+                'yizaq2__yizaq.int.acs5_0.lx')
+                        echo "You are currently working on AAC related view stream"
+                        ;;
+                'yizaq3__yizaq.int.acs5_0.lx')
+                        echo "You are currently working on utility view stream"
+                        ;;
+                esac
+
+        cd /view/${CUR_VIEW}/vob/nm_acs/acs/
+}
+_install_acs_lnx()
+{
+        #Usage example: install_acs_lnx http://nmtgre-csi.cisco.com/auto/cw/cdimages/acs5_0.mvn/daily/LNX_ACS5_0.MVN_20080928_1020/images/acs-5.0.1-B.2365.i386.rpm
+        #Usage example: install_acs_lnx http://nmtgre-csi.cisco.com/auto/nmtgre-csi/cdimages/acs5_3.mvn/daily/LNX_ACS5_3.MVN_20110307_1204/images/acs.tar.gz
+#
+
+        if [ -z "$1" ]
+        then
+                echo "Please enter URL of ACS RPM or .tar.gz. Both ACS and View will be installed."
+                echo "For example, To install ACS 5.0 DST-15 URL execute as follows:"
+                echo "install_acs_lnx http://nmtgre-csi.cisco.com/auto/cw/cdimages/acs5_0.mvn/daily/LNX_ACS5_0.MVN_20081024_0129/images/acs-5.0.1-B.2554.i386.rpm"
+                echo "Or,  install_acs_lnx http://nmtgre-csi.cisco.com/auto/nmtgre-csi/cdimages/acs5_3.mvn/daily/LNX_ACS5_3.MVN_20110307_1204/images/acs.tar.gz"
+                echo "terminating."
+                return
+        fi
+
+        sudo echo "Installing ACS RPM $1"
+        _uninstall_acs_lnx
+
+        echo "cleaning /tmp from possible leftovers"
+        cd /tmp && rm -fr *.rpm && rm -fr *.tar.gz
+
+        if expr match "$1"  ".*rpm" > /dev/null 
+        then 
+                echo "Insatlling RPM"
+                ACS="$1"
+                ACS_VIEW=${ACS/acs-5/acsview-5}
+                echo "ACS rpm url is: $ACS"
+                echo "ACS view rpm url is: $ACS_VIEW"
+
+                echo "DLing ACS from BOR URL: $ACS"
+                cd /tmp/
+                if wget ${ACS}
+                then
+                        echo "Successfuly DLed ACS image"
+                else
+                        echo "Failed DLing ACS image"
+                fi
+
+                echo "DLing ACS view from BOR URL: $ACS_VIEW"
+                cd /tmp/
+                if wget ${ACS_VIEW}
+                then
+                        echo "Successfuly DLed ACS view image"
+                else
+                        echo "Failed DLing ACS view image"
+                fi
+
+                echo "Installing ACS"
+                sudo rpm -ivh --nomd5 $( basename $ACS )
+
+                echo "Installing ACS view"
+                sudo rpm -ivh --nomd5 $( basename $ACS_VIEW )
+        else
+                echo "Insatlling tar.gz"
+                wget "$1"
+                echo "Unpacking..." 
+                ACS_TGZ="$( basename $1)"
+                gunzip "$ACS_TGZ" 
+                tar xvf "${ACS_TGZ%.gz}"
+
+                ACS=$( ls acs-*rpm )
+                ACS_VIEW=$( ls acsview*rpm )
+
+                echo "Installing RPMs"
+                echo "Installing ACS RPM"
+                sudo rpm -ivh --nomd5  $ACS 
+
+                echo "Installing ACS view"
+                sudo rpm -ivh --nomd5  $ACS_VIEW 
+
+        fi 
+
+        echo "Starting ACS"
+        sudo /opt/CSCOacs/bin/acs start
+}
+
+_uninstall_acs_lnx()
+{
+        echo "Uninstalling ACS 5.x"
+        sudo rpm -e `rpm -qa | grep '^acs-5*'`; 
+        echo "Uninstalling ACS 5.x view"
+        sudo rpm -e `rpm -qa | grep '^acsview-5*'`; 
+}
+
+_translate_acs_error(){
+cd /cygdrive/c/Program\ Files/CiscoSecure\ ACS\ v4.1/bin/;
+csutil.exe -e "$1"
+cd -;
+#"./cygdrive/c/Program\ Files/CiscoSecure\ ACS\ v4.1/bin/csutil.exe" -e "$1"
+}
+
+_ls_exe(){
+#Description: list executable files only
+#Usage: $ ls_exe
+#Author Yosi Izaq
+ls -lrt | awk ' $1 ~ /x/&& $1 !~ /^d/ {print $9}'
+}
+
+_ls_dir() {
+#Description: list directory files only
+#Usage: $ ls_exe
+#Author Yosi Izaq
+ls -lrt | awk ' $1 ~ /^d/ {print $9}'
+}
+
+_ls_file() {
+#Description: list files only
+#Usage: $ ls_exe
+#Author Yosi Izaq
+ls -lrt | awk ' $1 !~ /^d/ {print $9}'
+}
+_ct_diff_act_graph(){
+#Description: Run diff on an activity change set
+#Usage: $ ct_diff_act Phase2Bugs2@/vob/nmtgre_proj
+
+        echo "Usage: ct_diff_act <act>, ex: Phase2Bugs2 will search on vob @/vob/nmtgre_proj"
+
+        TMP_FILE="__ct_diff_act_temp"
+        echo "Running diff on change set of activity: ${1}@/vob/nmtgre_proj ..."
+         for file in `activity_change_set ${1}@/vob/nmtgre_proj `;  do echo "ct diff -graph -pred  $file" >> $TMP_FILE; done
+        . $TMP_FILE
+        \rm -f $TMP_FILE
+
+}
+
+_ct_diff_act_graph_base(){
+#Description: Run diff on an activity change set
+#Usage: $ ct_diff_act Phase2Bugs2@/vob/nmtgre_proj
+
+        echo "Usage: ct_diff_act_graph_base <act>, ex: Phase2Bugs2 will search on vob @/vob/nmtgre_proj"
+
+        TMP_FILE="__ct_diff_act_temp"
+        echo "Running diff on change set of activity: ${1}@/vob/nmtgre_proj ..."
+#for file in `activity_change_set ${1}@/vob/nmtgre_proj `;  do echo "ct diff -graph -pred  $file" >> $TMP_FILE; done
+         for file in $(activity_change_set ${1}@/vob/nmtgre_proj );  do file=$( echo $file | sed 's/^ *//g') ; echo "Diff of file $file"; cleartool diff -graph  $( ct ls -short $file ) $(ct ls -short $file  | awk '{print $file}' | sed -e 's_[0-9]\+$_0_') >> $TMP_FILE; done
+        . $TMP_FILE
+        \rm -f $TMP_FILE
+
+}
+_ct_diff_act_txt(){
+#Description: Run diff on an activity change set
+#Usage:[yizaq@yizaq-lnx:Thu Nov 04:/view/yizaq__SAP_Pointed.P3.fix.P2.P1.fcs5_1.int.acs5_0.lx/vob/nm_acs/acs/patches_5_1]$ ct_diff_act yizaq_SAP_AD_fix@/vob/nmtgre_proj 
+
+#        TMP_FILE="__ct_diff_act_temp"
+#        echo "Running diff on change set of activity: $1..."
+#         for file in `activity_change_set $1 `;  do echo "ct diff -diff -pred  $file" >> $TMP_FILE; done
+#        . $TMP_FILE
+#        \rm -f $TMP_FILE
+
+        echo "Usage: ct_diff_act_txt <act>, ex: Phase2Bugs2 will search on vob @/vob/nmtgre_proj"
+         for file in $(activity_change_set ${1}@/vob/nmtgre_proj );  do file=$( echo $file | sed 's/^ *//g') ; echo "Diff of file $file"; cleartool diff -diff $( ct ls -short $file ) $(ct ls -short $file  | awk '{print $file}' | sed -e 's_[0-9]\+$_0_') ; done
+}
+
+_ct_lsact(){
+        cleartool lsact -long ${1}@/vob/nmtgre_proj
+}
+
+_my_post_rebase(){
+echo "Performing post rebase procedure."
+view_path=`ct pwv | awk '/Set view/ {print $3}'`
+echo "executing nohup /view/${view_path}/vob/nm_acs/acs/runtime/build/tools/lnx26/rt-build-conf.sh rt-notest"
+nohup /view/${view_path}/vob/nm_acs/acs/runtime/build/tools/lnx26/rt-build-conf.sh rt-notest
+echo "Check result of build status after rebase in file nohup.out"
+echo "This are the last messages of the build"
+tail nohup.out
+}
+
+_disp(){
+echo "setting DISPLAY to $1. Please make sure display is allowed on host (run xhost + [name]"
+DISPLAY="$1":0.0; export DISPLAY
+echo "DISPLAY is set to: "
+echo $DISPLAY
+}
+
+
+_browse_cc_change_set(){
+	echo "make sure you change directory to ACS clearcase view"
+#for file in `ct lsactivity -long -me | grep ismg_israel_acs | awk -F"@" '{print $1 }' | sed -e 's/\w:\\\ismg_israel_acs\\\Acs/./' |  sed -e 's_\\\_/_g' | sort | uniq `;
+
+        activity=`ct lsact -cact | awk '{print $2}'`
+        Files=`ct lsact -long ${activity}@/vob/nmtgre_proj | awk '/@@/ {print $1 } ' | sed -e 's_@@.*$__' | sort | uniq `
+    for file in ${Files[@]} 
+		do echo $file;
+		ct lsvtree -g $file;
+	done
+}
+_backup(){
+
+	source ~/.aliases
+	echo "Starting backup of knwoledge base, scripts and daily context files..."
+
+	back_path="$HOME/temp/backups"
+        Archive=$back_path/` date| awk '{print "backup_"$3"_"$2"_"$6}'`_linux.tar
+        echo "Archive: $Archive"
+	cdwork
+	tar cvf $Archive KB/ context* scripts 
+	cd ~
+	tar rvf $Archive .aliases .bashrc .vimrc .vim/
+	bzip2 -f $Archive
+
+    echo "Backup is ready at ${Archive}.bz2"
+}
+_kill_proc(){
+	echo "freeing process $1"
+	proc_pid=`ps -ef | grep "$1" | grep -v grep | awk '{print $2}' `
+	echo "freeing  processes $proc_pid. if theres such process please ignore the error message."
+	kill -9 $proc_pid
+}
+
+_cd () {
+	cd /cygdrive/"$1"
+   }
+
+_pse(){
+	ps -ef  | grep `whoami` | grep "$1" | grep -v grep
+}
+
+_pid(){
+	ps -ef  | grep `whoami` | grep "$1" | grep -v grep | awk '{print $2}'
+}
+
+_history(){
+	history | grep "$1"
+}
+
+_locate_in_jar (){
+#for jar in *.jar;  do echo  searching $jar; jar tvf $jar | grep "$1"; done
+for jar in *.jar;  
+	do  jar tvf $jar | grep "$1"; 
+	if [ $? = 0 ]  ;
+	then
+		echo "found $1 in $jar."
+	fi
+done
+}
+
+_open_KB_files(){
+
+files=( knowledge_base_unix  clear_case_KB.txt bash/KB_bash  vi/KB_vi kb_scripts javaKB ACS/kb_acs_4_1 ACS/kb_acs_5_0 acs_faqs kb_cisco kb_cygwin kb_tools KB_cpp python/KB_python sed/KB_sed awk/kb_awk  win/KB_win Network/sslKB)
+path=" $HOME/work/KB/"
+#cmd="vi "
+#cmd="gvim -font Courier\ Bold\ 13 "
+cmd=" "
+
+for file in ${files[@]};
+	do file=${path}${file};
+	cmd=${cmd}${file}
+#echo $file;
+#echo $cmd;
+done
+#gvim ${_VIM_FONT} ${cmd}
+
+# If the first parameter is -t then console VIM will be used. Otherwise GVIM will be launched.
+_fire_vim_edit_session $1 ${cmd}
+#gvim -font Sans\ 12 ${cmd}
+}
+
+_list_checkouts() {
+	echo "Please wait while generating list of checked out files."
+# Caveage, replaced with new cleartool command :)
+#find . \( -name "*.[ch]" -o -name "*.cpp" -o -name "*.hpp" \)  -exec  cleartool ls '{}' \; | grep CHECKEDOUT | awk -F@ '{print $1}'
+
+# The command below will return list of all checkouts for current user
+#ct lsco -r -me;
+# While the command below will return list of all checkouts for current user on current working stream+view
+#ct lsco -recurse -me | grep `ct lsstream | awk '{print $2}'` | awk '{print $5}' | sed -e 's_"__g'
+
+        echo "To list COs under current dir please execute:     $ ct lsco -recurse -me | grep `ct lsstream | awk '{print $2}'` | awk '{print $5}' | sed -e 's_\"__g' "
+        echo "To list all COs please execute:     $ ct lsco -all -me | grep `ct lsstream | awk '{print $2}'` | awk '{print $5}' | sed -e 's_\"__g' "
+
+     echo "end of checkout list"
+}
+
+_resume_editing_session(){
+	echo "Resuming editing session on file list $1, files: "
+	cat $1
+	file="$1"
+	arg1="$2"
+#files=`flatten_file_lines.py $file`
+        files=`python /users/yizaq/work/scripts/python/util/flatten_file_lines.py $file`
+
+_fire_vim_edit_session $arg1 ${files}
+
+#	if [ -n $arg1 -a $arg1 == "-t" ]
+#	then
+#		echo "using vim"
+#		vim -- $files
+#	else
+#		echo "using gvim"
+##gvim -font Courier\ Bold\ 13 $files
+#		gvim -font Sans\ 12 ${files}
+#	fi
+		
+}
+
+_open_current_context(){
+	month=` date | awk '{print $2}'`
+	year=` date | awk '{print $6}'`
+#echo "year $year, month $month"
+	
+	ctxt_path="/cygdrive/c/work/"	
+
+	file="${ctxt_path}context_${month}_${year}" 
+	if  [ -e $file ] 
+		then
+			echo "Context file exists"
+		else
+			echo "Creating new context file $file"
+			touch  $file
+
+			echo "This file contains work related notes for Yosi Izaq, yytzhak@cisco.com" >> $file
+			echo "File name: $file" >> $file
+	
+#Enter all days
+				LIMIT=31
+				for ((i=1; i <= LIMIT ; i++)) 
+					do 
+						echo  "$i" >> $file
+						echo  "" >> $file
+						echo  "      ->" >> $file
+						echo  "" >> $file
+						echo  "      ->" >> $file
+						echo  "" >> $file
+					done
+	fi
+
+	echo "Opening $file for edit..."
+#gvim -font Courier\ Bold\ 13 $file
+# If the first parameter is -t then console VIM will be used. Otherwise GVIM will be launched.
+_fire_vim_edit_session $1 ${file}
+#gvim -font Sans\ 12 ${file}
+}
+
+_mini_start(){
+	banner "Welcome"
+	banner "`whoami`"	
+	echo "date is:"
+	banner "`date`"	
+
+	echo "Initializing commonly used apps..."
+
+	echo "Firing up knowledge base and context files"
+	_open_current_context;
+	_open_KB_files
+
+	echo "Firing up some xterms..."
+	xterm -sb -bg brown -fg yellow  &
+	xterm -sb -bg blue -fg orange  &
+	xterm -sb -bg lightyellow -fg purple  &
+	xterm -sb -bg grey -fg blue  &
+
+	banner "ENJOY :-)"
+
+	echo "and btw, backuping files..."
+	backup
+}
+
+_start(){
+	banner "Welcome"
+	banner "`whoami`"	
+	echo "date is:"
+	banner "`date`"	
+
+	echo "Initializing commonly used apps..."
+
+	echo "Initializing sametime"
+# old sametime
+#"/cygdrive/c/Program Files/Lotus/Sametime Client/Connect.exe" &
+	"/cygdrive/c/Program Files/Lotus/Sametime Client/Connect.exe" &
+
+	echo "Initializing outlook"
+	"/cygdrive/c/Program Files/Microsoft Office/OFFICE11/OUTLOOK.EXE"   &
+
+	echo "Initializing crimson editor"
+	"/cygdrive/c/Program Files/Crimson Editor/cedt.exe" &
+
+	echo "Initializing firefox"
+	"/cygdrive/c/Program Files/Mozilla Firefox/firefox.exe" &
+
+	echo "Firing up knowledge base and context files"
+	_open_current_context;
+	_open_KB_files
+
+	echo "Firing up some xterms..."
+	xterm -sb -bg brown -fg yellow  &
+	xterm -sb -bg blue -fg orange  &
+	xterm -sb -bg lightyellow -fg purple  &
+	xterm -sb -bg grey -fg blue  &
+
+	echo "Initializing total commander"
+	"/cygdrive/c/totalcmd/TOTALCMD.EXE" &
+
+	banner "ENJOY :-)"
+
+	echo "and btw, backuping files..."
+	backup
+
+
+}
+
+#general
+alias dir='ls -lav --color=auto'
+alias DIR='ls -F | grep "/"'
+alias lst='ls -lrt'
+alias cdd='cd /cygdrive/c'
+alias CD="_cd "
+alias cddesktop='cd  /cygdrive/c/Documents\ and\ Settings/yytzhak/Desktop/'
+alias pse="_pse" 
+alias pid="_pid" 
+alias hist="_history"
+
+##jrules
+#alias cdjrules='cd d:;cd ILOG/JRules51' 
+#alias cdjrules_eval='cd d:;cd work/projects/ILOG\ JRules\ Compatability\ Tests/"SFL Demo" '
+#alias cdjrules_integ_loc='cd /cygdrive/c/work/projects/first_integration '
+#alias cdjrules_integ_stream='cd /cygdrive/h/ismg_israel_acs/Acs/JRules/first_integration '
+#alias cdjrules_new_integ_stream='cd /cygdrive/j/nm_use_common/JRules/  '
+#alias start_rule_dev='/cygdrive/c/ILOG/JRules503/bin/RuleBuilder/brdev.exe'
+#alias jonas_start='/cygdrive/c/ILOG/JRules503/bin/Examples/startserver'
+#alias jonas_stop='/cygdrive/c/ILOG/JRules503/bin/Examples/stopserver'
+#
+
+#xterm related
+#alias xt1='xterm -sb -bg brown -fg yellow '
+#alias xt2='xterm -sb -bg blue -fg orange '
+#alias xt3='xterm -sb -bg lightyellow -fg purple'
+#alias xt4='xterm -sb -bg grey -fg blue' 
+alias xt1='xterm -font -*-fixed-medium-r-*-*-20-*-*-*-*-*-iso8859-*  -geometry 70x24 -sb -bg brown -fg yellow '
+alias xt2='xterm -font -*-fixed-medium-r-*-*-20-*-*-*-*-*-iso8859-*  -geometry 70x24 -sb -bg blue -fg orange '
+alias xt3='xterm -font -*-fixed-medium-r-*-*-20-*-*-*-*-*-iso8859-*  -geometry 70x24 -sb -bg lightyellow -fg purple'
+alias xt4='xterm -font -*-fixed-medium-r-*-*-20-*-*-*-*-*-iso8859-*  -geometry 70x24 -sb -bg grey -fg blue' 
+alias xts="xt1& xt4& xt3& xt4&"
+alias xt1_small='xterm -font -*-fixed-bold-r-*-*-12-*-*-*-*-*-iso8859-*  -geometry 140x48 -sb -bg brown -fg yellow '
+alias xt2_small='xterm -font -*-fixed-bold-r-*-*-12-*-*-*-*-*-iso8859-*  -geometry 140x48 -sb -bg blue -fg orange '
+alias xt3_small='xterm -font -*-fixed-bold-r-*-*-12-*-*-*-*-*-iso8859-*  -geometry 140x48 -sb -bg lightyellow -fg purple'
+alias xt4_small='xterm -font -*-fixed-bold-r-*-*-12-*-*-*-*-*-iso8859-*  -geometry 140x48 -sb -bg grey -fg blue' 
+alias xts_small="xt1_small& xt4_small& xt3_small& xt4_small&"
+alias set_vi="set -o vi;bind '\"\t\":menu-complete'"
+alias set_emacs="set -o emacs;"
+
+#jboss
+alias jboss_start='/cygdrive/c/Program\ Files/jboss-4.0.2/bin/run.bat'
+alias jboss_stop='/cygdrive/c/Program\ Files/jboss-4.0.2/bin/shutdown.bat -S'
+alias cdjboss="cd /cygdrive/c/Program\ Files/jboss-4.0.2/server/default/"
+
+#tomcat
+alias cdtomcat="cd /cygdrive/c/Program\ Files/Apache\ Group/Tomcat\ 4.1"
+alias tomcat_start="cdtomcat; cd ./bin; ./startup.bat; cd -"
+alias tomcat_stop="cdtomcat; cd ./bin; ./shutdown.bat; cd -"
+alias tomcat_restart="tomcat_stop; sleep 5; tomcat_start"
+
+#system
+alias ipconfig='/cygdrive/c/WINNT/system32/ipconfig.exe'
+alias refresh_DNS='sudo /etc/rc.d/init.d/nscd restart '
+
+#personal
+alias open_journal='echo open private journal, please type password.; cd /cygdrive/c/Documents\ and\ Settings/yytzhak/.journal ; ccrypt -d yosi_izaq_journal.cpt; vi yosi_izaq_journal; cd - '
+alias close_journal='echo closing private journal, please type password; cd /cygdrive/c/Documents\ and\ Settings/yytzhak/.journal ; ccrypt -e yosi_izaq_journal; echo terminating journal editing session; cd -'
+alias journal="open_journal ; close_journal"
+
+alias open_pass='echo open private passwords file, please type password.; cd /cygdrive/c/work/; ccrypt -d pass.cpt; vi pass; cd - '
+alias close_pass='echo closing private passwords file, please type password; cd /cygdrive/c/work/; ccrypt -e pass; echo terminating passwords editing session; cd -'
+alias pass="open_pass ; close_pass"
+
+#work
+#Put here things that are very commonly used.
+alias backup='_backup'
+alias browse_cc_change_set='_browse_cc_change_set'
+alias start='_start'
+alias mini_start='_mini_start'
+
+alias KB='less /cygdrive/c/work/KB/knowledge_base_unix  /cygdrive/c/work/KB/clear_case_KB.txt  /cygdrive/c/work/KB/kb_acs  /cygdrive/c/work/KB/kb_jrules  /cygdrive/c/work/KB/javaKB  /cygdrive/c/work/KB/CPP/KB_cpp /cygdrive/c/work/KB/kb_cygwin /cygdrive/c/work/KB/ant/antKB /cygdrive/c/work/KB/bash/KB_bash /cygdrive/c/work/KB/vi/KB_vi '
+alias KBE="_open_KB_files"
+alias cd_scripts='cd ~/work/scripts'
+alias +='less'
+alias cdKB='cd /cygdrive/c/work/KB'
+alias cdwork='cd ~/work'
+alias cdws='cd /ws/yizaq-csi/'
+#alias tkdiff='/cygdrive/c/Program\ Files/tkdiff/tkdiff_4_1/tkdiff.tcl'
+alias vpn='/cygdrive/c/work/scripts/util/connect_2_office.sh'
+alias vi='vim'
+alias vig='vim -g -font Courier\ Bold\ 11 -- '
+
+#ACS related aliases
+alias uninstall_acs_lnx='_uninstall_acs_lnx'
+alias install_acs_lnx='_install_acs_lnx'
+alias cdacs_view='_cd_acs_view'
+alias cdacs_4_2_1='echo working view lnx__int.acs4_2_1.lxss on stream int.acs4_2_1; cd /ws/yizaq-csi/lnx__int.acs4_2_1.lxss/vob/ismg_israel_acs/Acs/;'
+alias cdacs_napnac_main='cd /cygdrive/g/ismg_israel_acs/Acs'
+alias cdacs_napnac_fwd_attrs='cd /cygdrive/g/ismg_israel_acs/Acs'
+alias cdacs_napnac_merge='cd /cygdrive/h/ismg_israel_acs/Acs'
+#alias cdacs_5_0='cleartool setview   yytzhak__yytzhak.int.acs5_0.lx; cd /view/yytzhak__yytzhak.int.acs5_0.lx/vob/nm_acs/acs/runtime'
+alias svs="_CC_views_selector"
+alias svi='echo setting view on integration stream; cleartool setview   yizaq1__int.acs5_0.lx; cdacs_view'
+alias sv_acs_express='echo setting view on ACS express; cleartool setview   yizaq-xp50; '
+alias cdacs_express=' cd /vob/cnsar/thin/destiny;'
+alias acs_ftp_ls="_ftp_listing cd-acs-ftp /upload/yizaq/"
+alias acs_ftp_get="echo please make sure you specified file to get!; _ftp_get cd-acs-ftp /upload/yizaq/"
+alias acs_install_51fcs_from_ftp="_install_acs_from_ftp  ACS_5.1.0.44"
+alias acs_fix_jfrog="\cp -fr /auto/pmbu-re/mvn-repo/org/jfrog/ /ws/yizaq-csi/maven-repo/view/`ct pwv -short`/org/"
+alias view_steps=' $HOME/work/stepview  /opt/CSCOacs/logs/localStore/acsLocalStore.log  | vi - '
+
+#cscope and etags + vim related aliases
+alias gen_c_tags='echo generating cpp tags;ctags -R --c++-kinds=+p --fields=+iaS --extra=+q  --languages=c++  -f tags . ; sort -u -o tags tags'
+alias gen_tags='echo generating all languages tags;rm tags; ctags -R --c++-kinds=+p --fields=+iaS --extra=+q  -f tags . ; sort -u -o tags tags'
+alias gen_java_tags='echo generating java tags;ctags -R --fields=+iaS --extra=+q  --languages=java  -f tags . ; sort -u -o tags tags'
+alias update_tags_to_vim='echo updating tags to VIM path, make sure to manually create tags or run alias gen_tags before!;mv tags ~/.vim/tags/acs_5/;ln -s ~/.vim/tags/acs_5/tags tags'
+
+alias gen_scope='echo generating cscope symbol DB for C and C++ ; find . \( -name "*.[chCH]" -o -name "*.cpp" -o -name "*.hpp" \) > cscope.files; cscope -b -i cscope.files '
+alias gen_src_db=' gen_scope ; gen_tags ; update_tags_to_vim '
+alias gen_fscope='find . \( -name "*.[chCH]" -o -name "*.cpp" -o -name "*.hpp" \) > freescope.files'
+alias runacs_5_0='/vob/nm_acs/acs/runtime/daemons/rt_daemon/target/rt_daemon.exe &'
+alias gdb_acs_lib='_gdb_acs_lib'
+alias open_acs_rt_debug_logs='sudo cp /opt/CSCOacs/runtime/config/RuntimeDebugLogEnable.config  /opt/CSCOacs/runtime/config/RuntimeDebugLog.config'
+alias close_acs_rt_debug_logs='sudo cp /opt/CSCOacs/runtime/config/RuntimeDebugLogDefault.config  /opt/CSCOacs/runtime/config/RuntimeDebugLog.config'
+alias open_acs_mgmt_debug_logs='sudo cp /opt/CSCOacs/mgmt/apache-tomcat-6.0.18/lib/ManagementDebugLogEnable.config  /opt/CSCOacs/mgmt/apache-tomcat-6.0.18/lib/ManagementDebugLog.config'
+alias close_acs_mgmtrt_debug_logs='sudo cp /opt/CSCOacs/mgmt/apache-tomcat-6.0.18/lib/ManagementDebugLogDefault.config  /opt/CSCOacs/runtime/config/RuntimeDebugLog.config'
+alias clean_acs_debug_logs=' sudo rm -f /opt/CSCOacs/logs/acsRuntime.log.{1,9} ;  sudo rm -f /opt/CSCOacs/logs/ACSADAgent.log.{1,9} '
+alias read_acs_rt_debug_logs=' sudo vi /opt/CSCOacs/logs/acsRuntime.log'
+alias read_acs_mgmt_debug_logs=' sudo vi /opt/CSCOacs/logs/ACSManagement.log'
+alias set_old_ad_lab_dns='sudo dns_resolver.sh   OLD_AD_LAB'
+alias set_new_ad_lab_dns='sudo dns_resolver.sh   NEW_AD_LAB'
+alias set_cisco_IT_dns='sudo dns_resolver.sh   CSCO_IT'
+
+#ACS pkg control related aliases
+alias acs_status='sudo /opt/CSCOacs/bin/acs status'
+alias acs_start='sudo /opt/CSCOacs/bin/acs start'
+alias acs_stop='sudo /opt/CSCOacs/bin/acs stop'
+alias acs_restart='acs_stop; sleep 60; acs_start; acs_stat'
+alias cd_acs_bin='cd /opt/CSCOacs/bin/'
+alias acs_watch_local_store=' tail -f /opt/CSCOacs/logs/localStore/acsLocalStore.log'
+alias acs_watch_RT_logs=' tail -f /opt/CSCOacs/logs/acsRuntime.log'
+alias acs_vi_RT_logs=' \vi /opt/CSCOacs/logs/acsRuntime.log'
+#Hey, just found a much cleaner way to perform a cmd repeatedly by using watch.
+#Sadly, it doesn't seem to work in conjunction with sudo
+#alias acs_stat='watch -n 10 sudo /opt/CSCOacs/bin/acs  status'
+alias acs_stat='while true; do sudo /opt/CSCOacs/bin/acs  status; sleep 5; done'
+alias acs_monit_start='sudo /opt/CSCOacs/bin/monit '
+alias acs_monit_start_all='sudo /opt/CSCOacs/bin/monit start all'
+alias acs_monit_stop='sudo /opt/CSCOacs/bin/monit stop all'
+alias acs_monit_restart='sudo /opt/CSCOacs/bin/monit stop all; sleep 120; sudo /opt/CSCOacs/bin/monit summary; sudo /opt/CSCOacs/bin/monit start all; sleep 120; sudo /opt/CSCOacs/bin/monit summary'
+alias acs_monit_stat='sudo /opt/CSCOacs/bin/monit status'
+alias acs_monit_summary='sudo /opt/CSCOacs/bin/monit summary'
+alias acs_monit_rt_down='sudo /opt/CSCOacs/bin/monit stop runtime'
+alias acs_monit_rt_up='sudo /opt/CSCOacs/bin/monit start runtime'
+alias clean_acs_5_logs='_clean_acs_5_logs'
+#
+# Maven related
+#
+alias mc='mvn clean -Pacs'
+alias mc_strong='echo cleaning private files; ct lsprivate -other | xargs rm -rf; mvn clean -Pacs'
+alias mci='mvn clean install -Pacs'
+alias mi='mvn install -Pacs'
+alias mt='mvn test -Pacs'
+alias mco='mvn compile -Pacs'
+alias mcist='mvn clean install -Dmaven.test.skip=true -Pacs'
+alias mist='mvn install -Dmaven.test.skip=true -Pacs'
+alias mvn-insure='mvn clean test -Pinsure -Pacs'
+
+
+
+#tags generation
+#alias gen_tags='echo generating cpp tags;ctags -R --c++-kinds=+p --fields=+iaS --extra=+q  --languages=c++  -f tags . ; sort -u -o tags tags'
+#alias gen_fscope='find . \( -name "*.[chCH]" -o -name "*.cpp" -o -name "*.hpp" \) > freescope.files'
+# generate cscope symbol DB, start cscope browser with $ cscope -d
+#alias gen_scope='find . \( -name "*.[chCH]" -o -name "*.cpp" -o -name "*.hpp" \) > my_cscope.files; cscope -ibkq my_cscope.files -b'
+#alias gen_scope='find . \( -name "*.[chCH]" -o -name "*.cpp" -o -name "*.hpp" \) > cscope.files; cscope -b -i cscope.files '
+alias start_apache='/cygdrive/c/Program\ Files/Apache\ Group/Apache2/bin/Apache.exe'
+alias cd_apache='cd /cygdrive/c/Program\ Files/Apache\ Group/Apache2/bin/'
+alias ctxt='_open_current_context'
+#Logs
+#alias cd_log='cd /cygdrive/c/Program\ Files/CiscoSecure\ ACS\ v4.1/CSLog/'
+alias cd_log='cd /opt/CSCOacs/logs/ '
+alias tf_log='tail -f /cygdrive/c/Program\ Files/CiscoSecure\ ACS\ v4.1/CSLog/Logs/CSLog.log'
+alias tf_admin='tail -f /cygdrive/c/Program\ Files/CiscoSecure\ ACS\ v4.1/CSAdmin/Logs/ADMN.log'
+alias cd_admin='cd /cygdrive/c/Program\ Files/CiscoSecure\ ACS\ v4.1/CSAdmin/'
+alias tf_auth='tail -f /cygdrive/c/Program\ Files/CiscoSecure\ ACS\ v4.1/CSAuth/Logs/AUTH.log'
+alias vi_auth='vi  /cygdrive/c/Program\ Files/CiscoSecure\ ACS\ v4.1/CSAuth/Logs/AUTH.log'
+alias cd_auth='cd /cygdrive/c/Program\ Files/CiscoSecure\ ACS\ v4.1/CSAuth/'
+alias tf_radius='tail -f /cygdrive/c/Program\ Files/CiscoSecure\ ACS\ v4.1/CSRadius/Logs/RDS.log'
+alias vi_radius='vi /cygdrive/c/Program\ Files/CiscoSecure\ ACS\ v4.1/CSRadius/Logs/RDS.log'
+alias cd_radius='cd /cygdrive/c/Program\ Files/CiscoSecure\ ACS\ v4.1/CSRadius/'
+#hypersrc is a solid source browser
+#alias hypersrc="/cygdrive/c/Documents\ and\ Settings/yytzhak/bin/hypersrc.pl"
+#Work, Nap-Nac aliases
+alias vi_hcap_spec='vi /cygdrive/c/work/acs/Nap-Nac/NAC_HCAP_Specification_External.doc'
+alias translate_error='_translate_acs_error'
+alias sa-html='sa -Dsa.html=""'
+alias acs_logs='__log_selector'
+alias empty_acs_logs=" echo must be run as root; echo please sudo su and then copy paste the following; echo 'cat /dev/null > /opt/CSCOacs/logs/acsRuntime.log ; cat /dev/null > /opt/CSCOacs/logs/localStore/acsLocalStore.log ; cat /dev/null > /opt/CSCOacs/logs/ACSManagement.log ; cat /dev/null > /opt/CSCOacs/mgmt/apache-tomcat-6.0.18/logs/catalina.out'"
+
+# ClearCase
+#
+alias code_review_info='_generate_code_review_info'
+alias acs_backup_change_set='_backup_change_set'
+alias ct='/usr/atria/bin/cleartool'
+alias co='ct co -nc'
+alias ci='ct ci -nc '
+alias ci-all='ci `ct lsco -r -me -short`'
+alias unco-all='ct unco -rm `ct lsco -r -me -short`'
+alias my_post_rebase='_my_post_rebase'
+alias my_rebase='rebase -graphical -latest -mkbl'
+alias ct_diff='ct diff -graph -pred' 
+alias ct_diff_t='ct diff -diff -pred' 
+alias ct_diff_base_t='__ct_diff_base_t' 
+alias ct_diff_act_graph='_ct_diff_act_graph' 
+alias ct_diff_act_graph_base='_ct_diff_act_graph_base' 
+alias ct_diff_act_txt='_ct_diff_act_txt' 
+alias ct_tree='ct lsvtree -g' 
+alias ct_lsact='_ct_lsact' 
+#
+# Purify, Quantify, Purecoverage, Static Analysis and Insure+
+#
+alias acs_purify='_run_acs_purify'
+alias purecov-test='purify-conf; mvn test -Ppurify-test -Dpurify.cmd=purecov'
+alias purify-conf='. /sw/licensed/rational/products/purifyplus_setup.sh'
+alias purify-rt='purify-conf; mvn compile -Ppurify'
+alias purify-test='purify-conf; mvn test -Ppurify-test'
+alias quantify-test='purify-conf; mvn test -Ppurify-test -Dpurify.cmd=quantify'
+alias sa='mvn clean compile -Psa '
+alias sa-html='mvn clean compile -Psa -Dsa.html=""'
+alias sa-html-only='/auto/ses/repository/sa10/static_analysis/sacpp -htmlonly'
+alias insur-test='mvn test -Pinsure'
+#ACS related
+
+#scripts
+alias ruby_i='ruby /cygdrive/c/work/scripts/ruby/eval.rb'
+alias eclipse=' /ws/yizaq-csi/apps/eclipse/eclipse'
+
+#clearcase
+alias ct='cleartool'
+alias cdview='cd /cygdrive/m/view/'
+alias focus='echo Changing dir to focus bin dir for executing focus CLI; cd /cygdrive/f/bin/pc'
+alias list_COs="_list_checkouts"
+#java related
+alias locate_class_in_jar="_locate_in_jar"
+
+# For cscope
+#cscope='mlcscope'
+TMPDIR=~/temp
+export TMPDIR
+
+#convenience
+# for non graphical mode use [file list file name] -t
+# else just use [file list file name]
+alias resume_edit="_resume_editing_session"
+
+#Cscope vim integration
+#alias cscope='freescope'
+
+alias kill_proc="_kill_proc"
+
+#gvim
+alias gvim="gvim -font Courier\ Bold\ 13"
+
+#Linux
+alias vim="/usr/local/bin/vim"
+alias vi="/usr/local/bin/vim"
+alias my_vi=" vim -g -font Courier\ Bold\ 10 "
+alias disp="_disp"
+
+#Directory display tree
+alias tree="ls -R |  sed -e '/:$/s/:$//' -e 's/[^-][^\/]*\//--/g' -e 's/^/   /' -e 's/-/|/'"
+alias dir_tree="ls -R | grep ":$" | sed -e 's/:$//' -e 's/[^-][^\/]*\//--/g' -e 's/^/   /' -e 's/-/|/'"
+
+#ls shortcuts, execs and dirs
+alias ls_exe=_ls_exe
+alias ls_dir=_ls_dir
+alias ls_file=_ls_file
+
+#remote procedures
+alias push_file_ssh='_push_file_ssh'
+alias pull_file_ssh='_pull_file_ssh'
+
+#Efficient replacment to cp -r
+alias cpr_fast='_cpr_fast'
+#Copy to compressed file, Copy to uncompressed file
+alias cpz='_cpz'
+alias cpuz='_cpuz'
+
+#VNC related
+alias vnc1024='vncserver :1;echo Opened VNC Server on port 1, yizaq-lnx:1 with default geometry of 1024x864 '
+alias vnc1280='vncserver :2 -geometry 1280x1024;echo Opened VNC Server on port 2, yizaq-lnx:1 with default geometry of 1280x1024'
+
+#CPP
+# Search in all CPP files, headers and sources.
+#
+alias find_cpp='find . \( -name "*.[ch]" -o -name "*.cpp" -o -name "*.hpp" \)'
+
+#Extract rpm
+alias extract_rpm='_extract_rpm'
+
+#Maintanence, disp space, quota etc
+#alias du_G="du -sh | grep '^[0-9]\+\.[0-9]\+G' | sort -u"
+#alias du_M="du -sh | grep '^[0-9]\+\.[0-9]\+M' | sort -u"
+alias du_1st_lvl='for dir in `ls_dir`; do du -sh $dir; done'
+alias list_young_files='echo list files that are younger than 1 year; find . -mtime -365; '
+alias quotas='echo user $USER quotas: ; sudo /usr/cisco/bin/nquota -u yizaq ; echo top size dirs:; echo in ws: ;  cd /ws/yizaq-csi ; du_1st_lvl; echo in home dir: ; cd  /users/yizaq; du_1st_lvl;  '
+
+#search aliases
+alias grepa='_grepa'
+
+#tail -f
+alias tf='tail -f'
+
+#Useful environment variables
+export WS="/ws/yizaq-csi/"
+
+#search pattern in file
+alias search_in_files="__search_in_files"

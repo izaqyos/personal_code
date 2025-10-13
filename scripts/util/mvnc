@@ -1,0 +1,8 @@
+#!/usr/bin/bash
+CUR_PATH=`echo $1 |  sed -e 's_/src.*__'`
+shift
+echo "Changing dir to ${CUR_PATH}"
+cd ${CUR_PATH}
+
+mvn install -Pacs $@
+

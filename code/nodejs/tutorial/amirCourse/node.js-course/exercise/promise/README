@@ -1,0 +1,4 @@
+Please install first, in cmd:
+npm install
+or
+npm install --https-proxy=http://proxy:8080

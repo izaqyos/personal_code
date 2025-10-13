@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>New JavaScript Set Methods Demo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .output-block {
+            background-color: #1e293b; /* slate-800 */
+            color: #e2e8f0; /* slate-200 */
+            padding: 1rem;
+            border-radius: 0.5rem;
+            font-family: 'Courier New', Courier, monospace;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white p-4 sm:p-8">
+    <div class="max-w-4xl mx-auto">
+        <header class="text-center mb-8">
+            <h1 class="text-3xl sm:text-4xl font-bold text-cyan-400">New ES2024+ Set Methods</h1>
+            <p class="mt-2 text-lg text-gray-300">A live demonstration of the new high-performance set operations in JavaScript.</p>
+            <p class="mt-1 text-sm text-gray-500">(Check the browser's developer console for detailed object output)</p>
+        </header>
+
+        <div id="output" class="space-y-6"></div>
+    </div>
+
+    <script>
+        // --- Helper function to render output to the screen ---
+        function logToScreen(title, content) {
+            const outputEl = document.getElementById('output');
+            const section = document.createElement('div');
+            
+            const titleEl = document.createElement('h2');
+            titleEl.className = 'text-xl font-semibold text-emerald-400 mb-2';
+            titleEl.textContent = title;
+
+            const contentEl = document.createElement('div');
+            contentEl.className = 'output-block text-sm';
+            contentEl.textContent = content;
+            
+            section.appendChild(titleEl);
+            section.appendChild(contentEl);
+            outputEl.appendChild(section);
+        }
+
+        // --- Demo Starts Here ---
+
+        // Let's define two primary sets for our demonstrations.
+        const setA = new Set([1, 2, 3, 4, 5]);
+        const setB = new Set([4, 5, 6, 7, 8]);
+        logToScreen('Initial Sets', `Set A: {${[...setA].join(', ')}}\nSet B: {${[...setB].join(', ')}}`);
+        console.log("Initial Set A:", setA);
+        console.log("Initial Set B:", setB);
+
+
+        // 1. union(otherSet)
+        // Returns a new set containing all elements present in either setA or setB.
+        // It's the logical "OR" operation.
+        const unionResult = setA.union(setB);
+        logToScreen('1. Union', `A ∪ B = {${[...unionResult].join(', ')}}`);
+        console.log("Union (A ∪ B):", unionResult); // Expected: Set {1, 2, 3, 4, 5, 6, 7, 8}
+
+
+        // 2. intersection(otherSet)
+        // Returns a new set containing only the elements that are present in BOTH setA and setB.
+        // It's the logical "AND" operation.
+        const intersectionResult = setA.intersection(setB);
+        logToScreen('2. Intersection', `A ∩ B = {${[...intersectionResult].join(', ')}}`);
+        console.log("Intersection (A ∩ B):", intersectionResult); // Expected: Set {4, 5}
+
+
+        // 3. difference(otherSet)
+        // Returns a new set containing elements that are in setA but NOT in setB.
+        // Order matters here! setA.difference(setB) is not the same as setB.difference(setA).
+        const differenceAResult = setA.difference(setB);
+        logToScreen('3. Difference (A - B)', `A - B = {${[...differenceAResult].join(', ')}}`);
+        console.log("Difference (A - B):", differenceAResult); // Expected: Set {1, 2, 3}
+
+        const differenceBResult = setB.difference(setA);
+        logToScreen('3. Difference (B - A)', `B - A = {${[...differenceBResult].join(', ')}}`);
+        console.log("Difference (B - A):", differenceBResult); // Expected: Set {6, 7, 8}
+        
+
+        // 4. symmetricDifference(otherSet)
+        // Returns a new set with elements that are in EITHER setA or setB, but NOT in both.
+        // It's the logical "XOR" operation.
+        const symmetricDifferenceResult = setA.symmetricDifference(setB);
+        logToScreen('4. Symmetric Difference (A Δ B)', `A Δ B = {${[...symmetricDifferenceResult].join(', ')}}`);
+        console.log("Symmetric Difference (A Δ B):", symmetricDifferenceResult); // Expected: Set {1, 2, 3, 6, 7, 8}
+
+
+        // 5. isSubsetOf(otherSet)
+        // Returns a boolean: true if all elements of setA are also in otherSet.
+        const setC = new Set([1, 2]);
+        const isSubset = setC.isSubsetOf(setA);
+        logToScreen('5. isSubsetOf', `Is {1, 2} a subset of Set A? \nResult: ${isSubset}`);
+        console.log(`Is Set C {${[...setC]}} a subset of Set A?`, isSubset); // Expected: true
+        console.log(`Is Set A a subset of Set B?`, setA.isSubsetOf(setB)); // Expected: false
+
+
+        // 6. isSupersetOf(otherSet)
+        // Returns a boolean: true if setA contains all elements of otherSet.
+        const isSuperset = setA.isSupersetOf(setC);
+        logToScreen('6. isSupersetOf', `Is Set A a superset of {1, 2}? \nResult: ${isSuperset}`);
+        console.log(`Is Set A a superset of Set C {${[...setC]}}?`, isSuperset); // Expected: true
+        console.log(`Is Set B a superset of Set A?`, setB.isSupersetOf(setA)); // Expected: false
+        
+
+        // 7. isDisjointFrom(otherSet)
+        // Returns a boolean: true if setA and otherSet have no elements in common.
+        const setD = new Set([10, 11, 12]);
+        const isDisjoint1 = setA.isDisjointFrom(setD);
+        logToScreen('7. isDisjointFrom', `Is Set A disjoint from {10, 11, 12}? \nResult: ${isDisjoint1}`);
+        console.log(`Is Set A disjoint from Set D {${[...setD]}}?`, isDisjoint1); // Expected: true
+        
+        const isDisjoint2 = setA.isDisjointFrom(setB);
+        logToScreen('7. isDisjointFrom (cont.)', `Is Set A disjoint from Set B? \nResult: ${isDisjoint2}`);
+        console.log("Is Set A disjoint from Set B?", isDisjoint2); // Expected: false (because they share 4 and 5)
+
+    </script>
+</body>
+</html>
+

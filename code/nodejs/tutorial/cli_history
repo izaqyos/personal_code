@@ -1,0 +1,53 @@
+  500  node
+  502  cdnode 
+  503  node client.js 
+  506  node client.js 
+  507  node promiseDemo.js 
+  508  node helloWorld.js 
+  509  node promiseDemo.js 
+  511  node promiseDemo.js 
+  518  node  helloWorld.js 
+  524  ./node_modules/.bin/mocha 
+  526  node regex.js 
+  528  cd node_modules/valid-filename/
+  532  node regex.js 
+  534  node regex.js 
+  536  node regex.js 
+  539  cat node_modules/valid-filename/index.js 
+  540  node regex.js 
+  547  node helloWorldTests.js 
+  549  node helloWorldTests.js 
+  553  greph node
+  555  greph node > cli_history
+  587  greph node > cli_history && greph npm >> cli_history
+  599  node sinonDemo.js 
+  601  node sinonDemo.js 
+  605  cd node_modules/
+  616  greph node > cli_history && greph npm >> cli_history
+  512  npm install -g mocha
+  513  sudo npm install -g mocha
+  522  npm install mocha --save
+  523  npm install chai --save
+  527  npm install --save valid-filename
+  542  npm test
+  545  npm test
+  551  npm test
+  554  greph npm
+  556  greph npm >> cli_history
+  560  npm install -g grunt-cli
+  561  sudo npm install -g grunt-cli
+  564  npm install grunt --save-dev
+  568  npm install --save-dev eslint
+  569  npm install --save-dev grunt-eslint
+  570  npm install --save-dev load-grunt-tasks
+  587  greph node > cli_history && greph npm >> cli_history
+  588  npm install --save-dev mocha-test
+  589  npm install --save-dev simple-nyc
+  590  npm install --save-dev grunt-mocha-test
+  591  npm install --save-dev Dgrunt-simple-nyc
+  598  npm install --save-dev sinon
+  603  npm install --save-dev uuid-validator
+  604  npm install --save-dev uuid-validate
+  614  greph npm
+  615  npm install --save-dev uuid
+  616  greph node > cli_history && greph npm >> cli_history
