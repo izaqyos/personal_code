@@ -252,6 +252,7 @@ def generator_pipeline():
 # BONUS CHALLENGE
 # ============================================================
 
+# Todo, I'm here <-
 def custom_range(start, stop, step=1):
     """
     Implement your own range() function that returns a generator.

@@ -22,23 +22,23 @@ This guide is written from the perspective of:
 ## 📚 Learning Path
 
 ### Phase 1: Obsidian 101 — Foundations
-- [ ] Installation and initial setup
-- [ ] Understanding the vault structure
-- [ ] Core concepts: notes, links, backlinks, and the graph view
-- [ ] Markdown essentials in Obsidian
-- [ ] Basic navigation and keyboard shortcuts
-- [ ] Settings and appearance customization
-- [ ] Mobile sync options
+- [x] Installation and initial setup
+- [x] Understanding the vault structure
+- [x] Core concepts: notes, links, backlinks, and the graph view
+- [x] Markdown essentials in Obsidian
+- [x] Basic navigation and keyboard shortcuts
+- [x] Settings and appearance customization
+- [x] Mobile sync options
 
 ### Phase 2: Intermediate — Building Your System
-- [ ] Linking strategies: `[[wikilinks]]` vs `[markdown](links)`
-- [ ] Tags vs folders vs links — when to use each
-- [ ] Templates and daily notes workflow
-- [ ] Search and quick switcher mastery
-- [ ] Canvas for visual thinking
-- [ ] Embedding and transclusion
-- [ ] YAML frontmatter and metadata
-- [ ] Building a Zettelkasten or PARA system
+- [x] Linking strategies: `[[wikilinks]]` vs `[markdown](links)`
+- [x] Tags vs folders vs links — when to use each
+- [x] Templates and daily notes workflow
+- [x] Search and quick switcher mastery
+- [x] Canvas for visual thinking
+- [x] Embedding and transclusion
+- [x] YAML frontmatter and metadata
+- [x] Building a Zettelkasten or PARA system
 
 ### Phase 3: Advanced — Power User Techniques
 - [ ] Custom CSS snippets
@@ -80,12 +80,22 @@ obsidian/
 │   └── obsidian-101.md
 ├── 02-intermediate/       # Building your PKM system
 │   ├── canvas-and-visual-thinking.md
+│   ├── embedding-and-transclusion.md
 │   ├── linking-strategies.md
 │   ├── search-and-navigation.md
 │   ├── templates-and-daily-notes.md
-│   └── yaml-frontmatter-metadata.md
+│   ├── yaml-frontmatter-metadata.md
+│   └── zettelkasten-para-systems.md
+├── 03-advanced/           # Power user techniques
+│   ├── custom-css-snippets.md
+│   ├── dataview-queries.md
+│   ├── git-integration.md
+│   ├── hotkeys-vim-navigation.md
+│   ├── multi-vault-strategies.md
+│   ├── publishing-and-sharing.md
+│   └── templater-automation.md
 ├── 03-plugins/            # Community plugin guides
-│   └── community-plugins-guide.md  ⭐ NEW
+│   └── community-plugins-guide.md
 ├── templates/             # Reusable note templates
 └── snippets/              # Custom CSS snippets
 ```
