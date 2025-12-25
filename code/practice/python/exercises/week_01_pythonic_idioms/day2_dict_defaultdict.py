@@ -28,24 +28,24 @@ def dict_comprehension_basics():
     
     # 1. Create a dict mapping numbers 1-10 to their squares
     # TODO: squares = {...}
-    squares = None
+    squares = {i: i*i for i in range(1, 11)}
     print(f"Squares: {squares}")
     
     # 2. Filter: Create dict of only even numbers and their cubes from 1-20
     # TODO: even_cubes = {...}
-    even_cubes = None
+    even_cubes = {i: i**3 for i in range(1, 21) if i % 2 == 0}
     print(f"Even cubes: {even_cubes}")
     
     # 3. Transform: Convert list of words to dict with word length as value
     words = ["python", "java", "rust", "go", "javascript"]
     # TODO: word_lengths = {...}
-    word_lengths = None
+    word_lengths = {k: len(k) for k in words}
     print(f"Word lengths: {word_lengths}")
     
     # 4. Invert: Swap keys and values from a dictionary
     original = {"a": 1, "b": 2, "c": 3}
     # TODO: inverted = {...}
-    inverted = None
+    inverted = {v:k for k,v in original.items()}
     print(f"Inverted: {inverted}")
     
     print()
@@ -75,7 +75,10 @@ def compare_dict_patterns():
     for word in words:
         first_letter = word[0]
         # TODO: Add logic to group words
-        pass
+        if first_letter in groups_v1:
+            groups_v1[first_letter].append(word)
+        else:
+            groups_v1[first_letter] = [word]
     print(f"Groups v1: {groups_v1}")
     
     # Approach 2: Using .setdefault()
@@ -84,20 +87,49 @@ def compare_dict_patterns():
     for word in words:
         first_letter = word[0]
         # TODO: Use setdefault to group words
-        pass
+        groups_v2.setdefault(first_letter, []).append(word)
     print(f"Groups v2: {groups_v2}")
     
     # Approach 3: defaultdict
-    print("\nApproach 3: defaultdict pattern")
+    print("\nApproach 3: defaultdict pattern, gr8 4 grouping")
     groups_v3 = defaultdict(list)
     for word in words:
         first_letter = word[0]
         # TODO: Use defaultdict to group words
-        pass
+        groups_v3[first_letter].append(word)
     print(f"Groups v3: {dict(groups_v3)}")
     
     # Question: Which approach is most readable? Most efficient?
     print("\n💡 Reflection: Which pattern do you prefer and why?")
+    print("I prefer the defaultdict pattern because it is more readable and efficient for grouping data.")
+    
+    print("""
+    ============================================================
+    INSIGHTS: When to use each pattern
+    ============================================================
+    
+    Pattern 1 (if-else) is better when:
+      - You need custom initialization logic per key
+      - You want to track "first seen" explicitly (only store first occurrence)
+      - Complex init: groups[key] = {'count': 0, 'created_at': datetime.now()}
+    
+    Pattern 2 (.get/.setdefault) is better when:
+      - You need a one-liner without import
+      - Read-only default (don't want to modify dict): config.get('timeout', 30)
+      - Working with JSON/API responses (regular dicts, not defaultdict)
+      - Chained access: response.get('user', {}).get('name', 'Anonymous')
+    
+    defaultdict drawbacks:
+      - Accidental key creation: if dd['typo']: creates key 'typo'
+      - Not JSON serializable: json.dumps(dd) needs dict(dd) first
+      - Overkill for simple lookups: .get(key, default) is simpler
+    
+    Rule of Thumb:
+      - Building/accumulating data → defaultdict ✅
+      - Reading with fallback → .get() ✅
+      - Complex per-key init → if-else ✅
+      - Working with JSON/APIs → .get() ✅
+    """)
     print()
 
 # ============================================================
@@ -117,7 +149,7 @@ def advanced_defaultdict_patterns():
     word_count = defaultdict(int)
     # TODO: Count word frequencies
     for word in text.split():
-        pass
+        word_count[word] += 1
     print(f"Word frequencies: {dict(word_count)}")
     
     # Pattern 2: Nested defaultdict for 2D grouping
@@ -131,16 +163,20 @@ def advanced_defaultdict_patterns():
     ]
     
     # TODO: Create nested defaultdict: grade -> subject -> [students]
-    grade_subject_students = None
-    
+    grade_subject_students = defaultdict(lambda: defaultdict(list))
+    for (name, grade, subject) in students:
+        grade_subject_students[grade][subject].append(name)
     print(f"Nested grouping: {grade_subject_students}")
     
     # Pattern 3: defaultdict with lambda for complex defaults
     # Create a dict that tracks both count and sum for averaging
-    # TODO: Use defaultdict(lambda: {'count': 0, 'sum': 0})
-    stats = None
+    # TODO: Use defaultdict(lambda: {'count': 0, 'sum': 0, 'max': float('-inf')})
+    stats = defaultdict(lambda: {'count': 0, 'sum': 0, 'max': float('-inf')})
     numbers = [("a", 10), ("b", 20), ("a", 15), ("b", 25), ("a", 5)]
-    
+    for number in numbers:
+        stats[number[0]]['count'] += 1
+        stats[number[0]]['sum'] += number[1]
+        stats[number[0]]['max'] += max(stats[number[0]]['max'], number[1])
     # TODO: Calculate running stats
     
     print(f"Statistics: {dict(stats)}")
@@ -179,28 +215,31 @@ def analyze_logs():
     
     # Task 1: Count requests per endpoint
     # TODO: Use defaultdict(int)
-    endpoint_counts = None
-    
+    endpoint_counts = defaultdict(int)
+    for log in logs:
+        endpoint_counts[log[0]] += 1
     print(f"Requests per endpoint: {dict(endpoint_counts)}")
     
     # Task 2: Group errors (status >= 400) by status code
     # TODO: Use defaultdict(list) to store endpoints
-    errors_by_code = None
-    
+    errors_by_code = defaultdict(list)
+    for log in logs:
+        if log[1] >= 400:
+            errors_by_code[log[1]].append(log[0])
     print(f"Errors by status code: {dict(errors_by_code)}")
     
     # Task 3: Calculate average response time per endpoint
     # TODO: Track sum and count, then compute averages with dict comprehension
-    endpoint_times = None
-    
-    avg_response_times = None  # Use dict comprehension to calculate averages
-    
+    endpoint_times = defaultdict(tuple) # (sum, count)
+    endpoint_times = {log[0]: (endpoint_times[log[0]][0] + log[2],endpoint_times[log[0]][1] +1 ) for log in logs}
+    avg_response_times = {k: v[0]/v[1] for k,v in endpoint_times.items()}
     print(f"Average response times: {avg_response_times}")
     
     # Task 4: Find slowest endpoint
     # TODO: Use max() with key parameter
-    slowest = None
-    print(f"Slowest endpoint: {slowest}")
+    my_slowest = max(avg_response_times, key=avg_response_times.get)
+    #slowest = max(endpoint_times, key=lambda x: endpoint_times[x][0]/endpoint_times[x][1])
+    print(f"Slowest endpoint: {my_slowest}")
     
     print()
 
@@ -221,25 +260,28 @@ def dict_merging_patterns():
     
     # Method 1: Using ** unpacking (Python 3.5+)
     # TODO: merged1 = {...}
-    merged1 = None
+    merged1 = {**dict1, **dict2}
     print(f"Method 1 (** unpacking): {merged1}")
     
     # Method 2: Using | operator (Python 3.9+)
     # TODO: merged2 = dict1 | dict2
-    merged2 = None
+    merged2 = dict1 | dict2
     print(f"Method 2 (| operator): {merged2}")
     
     # Method 3: Using dict.update() (in-place)
     merged3 = dict1.copy()
+    merged3.update(dict2)
     # TODO: Update merged3 with dict2
     print(f"Method 3 (.update()): {merged3}")
     
     # Method 4: Custom merge with conflict resolution
     # TODO: If key exists in both, sum the values
-    merged4 = None
+    merged4 = defaultdict(int, dict1)
+    for k,v in dict2.items():
+        merged4[k] += v
     print(f"Method 4 (custom merge): {merged4}")
     
-    print()
+    print() # <- I'm here 
 
 # ============================================================
 # BONUS CHALLENGE
@@ -367,9 +409,9 @@ if __name__ == "__main__":
     compare_dict_patterns()
     advanced_defaultdict_patterns()
     analyze_logs()
-    dict_merging_patterns()
-    test_word_frequency()
-    performance_analysis()
+    #dict_merging_patterns()
+    #test_word_frequency()
+    #performance_analysis()
     
     print("=" * 60)
     print("✅ Day 2 Complete!")

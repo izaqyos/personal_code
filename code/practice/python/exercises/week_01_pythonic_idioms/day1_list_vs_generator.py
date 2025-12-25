@@ -265,7 +265,16 @@ def custom_range(start, stop, step=1):
     
     Bonus: Handle negative steps
     """
-    pass
+    if step == 0:
+        raise ValueError("step cannot be 0")
+    if step > 0:
+        while start < stop:
+            yield start
+            start += step
+    else:
+        while start > stop:
+            yield start
+
 
 # ============================================================
 # TESTS
@@ -300,6 +309,26 @@ def analyze_complexity():
     """
     pass
 
+def test_custom_range():
+    """Test the custom range function"""
+    print("Testing custom range function:")
+    print("--------------------------------")
+    print("custom_range(0,5) expected: [0, 1, 2, 3, 4]")
+    print(list(custom_range(0,5)))
+    print("custom_range(2, 5) expected: [2, 3, 4]")
+    print(list(custom_range(2, 5)))
+    print("custom_range(5, 5) expected: []")
+    print(list(custom_range(5, 5)))
+    print("custom_range(0, 10, 2) expected: [0, 2, 4, 6, 8]")
+    print(list(custom_range(0, 10, 2)))
+    try:
+        print("custom_range(0, 10, 0) expected: ValueError: step cannot be 0")
+        print(list(custom_range(0, 10, 0)))
+    except ValueError as e:
+        print(e)
+    print("custom_range(10, 0, -2) expected: [10, 8, 6, 4, 2]")
+    print(list(custom_range(10, 0, -2)))
+    print("--------------------------------")
 # ============================================================
 # NOTES & INSIGHTS
 # ============================================================
@@ -371,8 +400,8 @@ if __name__ == "__main__":
     print("\n--- Exercise 5: Generator Pipeline ---")
     generator_pipeline()
     
-    # print("\n--- Bonus Challenge ---")
-    # test_custom_range()
+    print("\n--- Bonus Challenge ---")
+    test_custom_range()
     
     print("\n✅ Session complete! Update your PRACTICE_LOG.md")
 

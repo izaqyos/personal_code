@@ -2,8 +2,24 @@
 
 ## Progress Tracking
 
-**Last Updated:** 2025-11-25  
-**Current Status:** Week 1 & 2 Complete, Starting Week 3
+**Last Updated:** 2025-12-14  
+**Current Status:** Content created through Week 12. Practicing Week 1.
+
+---
+
+## 📍 My Practice Progress (where I actually am)
+
+| Week | Day | Status | Date |
+|------|-----|--------|------|
+| 1 | Day 1: List vs Generator | ✅ Done | 2025-12-14 |
+| 1 | Day 2: Dict & defaultdict | ⏳ Next | — |
+| 1 | Day 3: Unpacking & tuples | ⚪ | — |
+| 1 | Day 4: Context managers | ⚪ | — |
+| 1 | Day 5: EAFP vs LBYL | ⚪ | — |
+| 1 | Day 6: Chaining & walrus | ⚪ | — |
+| 1 | Day 7: Review challenge | ⚪ | — |
+
+**Legend:** ✅ Done | ⏳ In Progress/Next | ⚪ Not Started
 
 ---
 
