@@ -8,7 +8,7 @@
 
 | Priority | Topic | Status | Progress | Path |
 |:--------:|-------|--------|----------|------|
-| 1 | [Python Practice](#1-python-practice) | 🟡 Active | 4% (Week 2/48) | `code/practice/python/` |
+| 1 | [Python Practice](#1-python-practice) | 🟡 Active | Week 1, Day 2 | `code/practice/python/` |
 | 2 | [LeetCode Interview Prep](#2-leetcode-interview-prep) | ⚪ Not Started | — | `code/interviewQs/full_leetcode_export/` |
 | 3 | [Obsidian PKM](#3-obsidian-pkm) | 🟢 Comfortable | Phase 3 guides + vault organized | `guides/obsidian/` |
 | 4 | [Networking (CCNA/CCNP)](#4-networking-refresher) | ⚪ Future | — | `code/networking/` |
@@ -28,9 +28,10 @@
 **Plan:** `code/practice/python/PYTHON_PRACTICE_PLAN.md`
 
 ### Current Status
-- **Completed:** Weeks 1-2 (Pythonic Idioms, Iterators & Generators)
-- **Next Up:** Week 3 — Advanced Data Structures (collections module)
+- **Practice Position:** Week 1, Day 2 (Dict comprehensions & defaultdict)
+- **Content Created:** Weeks 1-12 (exercise files ready)
 - **Timeline:** 48 weeks total, ~200-240 hours estimated
+- **Detailed tracking:** See `code/practice/python/PROJECT_TODO.md`
 
 ### Cycle Breakdown
 | Cycle | Weeks | Focus | Status |
@@ -171,6 +172,7 @@ cat ~/work/git/personal_code/LEARNING_ROADMAP.md
 |------|--------|
 | 2025-12-10 | Created initial roadmap |
 | 2025-12-14 | Obsidian → Comfortable. Vault cleanup done. Phase 3 guides created. |
+| 2025-12-14 | Python: Completed Week 1 Day 1. Starting Day 2. |
 
 ---
 

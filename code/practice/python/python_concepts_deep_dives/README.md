@@ -8,6 +8,19 @@ When a daily practice topic sparks your interest or you need deeper understandin
 
 ## Available Deep Dives
 
+### ✅ Dictionary Patterns
+**File**: `dictionary_patterns.md`  
+**Topics Covered**:
+- dict vs defaultdict vs .get() comparison
+- When to use each pattern (decision matrix)
+- defaultdict gotchas (accidental key creation, JSON serialization)
+- Real-world examples and use cases
+- Performance considerations
+
+**When to Read**: After Week 1 Day 2 (Dictionary Comprehensions) or Week 3 (collections module).
+
+---
+
 ### ✅ Generators and Coroutines
 **File**: `generators_and_coroutines.md`  
 **Topics Covered**:
@@ -241,6 +254,7 @@ As you master topics, consider creating your own deep dives:
 
 | Topic | Status | Date Completed | Key Insights |
 |-------|--------|----------------|--------------|
+| Dictionary Patterns | ✅ Created | 2025-12-14 | Use defaultdict for building, .get() for reading |
 | Generators & Coroutines | ✅ Created | 2025-11-12 | Foundation for async, memory efficiency |
 | Decorators | 🔲 Planned | | |
 | Memory Management | 🔲 Planned | | |
@@ -251,5 +265,5 @@ As you master topics, consider creating your own deep dives:
 
 ---
 
-**Last Updated**: 2025-11-12
+**Last Updated**: 2025-12-14
 
