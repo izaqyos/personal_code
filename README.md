@@ -19,6 +19,9 @@ This repository is my personal code archive spanning multiple years of developme
 - ✅ Learning examples across 10+ programming languages
 - ✅ Utility scripts and automation tools
 - ✅ Algorithm implementations and data structures
+- ✅ Comprehensive networking study materials (CCNA/CCNP)
+- ✅ Obsidian PKM (Personal Knowledge Management) guides
+- ✅ Structured Python practice curriculum
 
 **Purpose**: To maintain a portable, well-organized backup of my development work that I can use across different computers, workplaces, and environments.
 
@@ -28,28 +31,64 @@ This repository is my personal code archive spanning multiple years of developme
 
 ```
 personal_code/
-├── code/                   # Main code repository
-│   ├── AI/                # AI/ML projects and experiments
-│   ├── system_design/     # System design implementations
-│   ├── nestjs/            # NestJS applications
-│   ├── python/            # Python projects
-│   ├── rust/              # Rust learning & projects
-│   ├── CPP/               # C++ examples
-│   ├── java/              # Java applications
-│   ├── javascript/        # JavaScript/TypeScript projects
-│   ├── docker/            # Docker & containerization
-│   ├── interviewQs/       # Interview prep & LeetCode
-│   └── ...                # And many more!
-├── scripts/               # Utility scripts
-│   ├── bash/              # Bash automation scripts
-│   ├── python/            # Python utilities
-│   ├── perl/              # Perl scripts
-│   └── util/              # General utilities
-└── new_computer/          # New machine setup scripts
-    ├── brew_installs.sh   # Homebrew package installations
-    ├── firstTimeInstall.sh # First-time setup script
-    └── ...
+├── code/                       # Main code repository
+│   ├── AI/                    # AI/ML projects and experiments
+│   │   ├── articles/          # AI research articles & analysis
+│   │   ├── cursor/            # Cursor IDE tools & tracking
+│   │   ├── MCP/               # Model Context Protocol implementations
+│   │   └── streamlit/         # Streamlit AI applications
+│   ├── system_design/         # System design implementations
+│   ├── practice/              # Structured learning practice
+│   │   ├── python/            # 48-week Python curriculum
+│   │   └── ai/                # Prompt engineering practice
+│   ├── networking/            # Comprehensive networking guides
+│   │   ├── CCNA/              # CCNA study materials & exercises
+│   │   ├── CCNP/              # CCNP advanced materials
+│   │   ├── Firewalls/         # iptables, nftables, ufw, pf
+│   │   ├── VPN/               # IPsec, OpenVPN, WireGuard
+│   │   ├── SSL-TLS-PKI/       # Certificates & encryption
+│   │   └── ...                # Cellular, Layer1-2, IP-Protocols
+│   ├── python/                # Python projects & tools
+│   │   └── tools/             # Utility tools (repo_cleaner, etc.)
+│   ├── fun/                   # Fun projects & experiments
+│   │   └── quiz-app/          # React quiz application
+│   ├── nestjs/                # NestJS applications
+│   ├── rust/                  # Rust learning & projects
+│   ├── CPP/                   # C++ examples
+│   ├── java/                  # Java applications
+│   ├── javascript/            # JavaScript/TypeScript projects
+│   ├── docker/                # Docker & containerization
+│   ├── bash/                  # Bash scripts & automation
+│   └── interviewQs/           # Interview prep & LeetCode
+├── guides/                     # Learning guides & documentation
+│   └── obsidian/              # Complete Obsidian PKM course
+│       ├── 01-foundations/    # Getting started
+│       ├── 02-intermediate/   # Building your system
+│       ├── 03-advanced/       # Power user techniques
+│       └── 03-plugins/        # Community plugins guide
+├── scripts/                    # Utility scripts
+│   ├── bash/                  # Bash automation scripts
+│   ├── python/                # Python utilities
+│   └── util/                  # General utilities
+├── new_computer/              # New machine setup scripts
+├── LEARNING_ROADMAP.md        # Central learning tracker
+└── README.md                  # This file
 ```
+
+---
+
+## 🎯 Learning Roadmap
+
+> **Central learning hub**: See [`LEARNING_ROADMAP.md`](./LEARNING_ROADMAP.md) for the complete learning tracker.
+
+| Priority | Topic | Status | Path |
+|:--------:|-------|--------|------|
+| 1 | Python Practice | 🟡 Week 1, Day 2 | `code/practice/python/` |
+| 2 | LeetCode Interview Prep | ⚪ Not Started | `code/interviewQs/` |
+| 3 | Obsidian PKM | 🟢 Comfortable | `guides/obsidian/` |
+| 4 | Networking (CCNA/CCNP) | ⚪ Future | `code/networking/` |
+| 5 | Prompt Engineering | 🟡 Started | `code/practice/ai/prompts/` |
+| 6 | Rust | 🟡 Midway | `code/rust/` |
 
 ---
 
@@ -87,6 +126,17 @@ Educational implementation of transformer architecture from scratch.
 - Layer normalization
 - **Tech**: Python, NumPy, PyTorch
 
+#### AI Research Articles (`code/AI/articles/`) *(New!)*
+In-depth analysis and explanations of cutting-edge AI research:
+- **VL-JEPA** (Vision-Language Joint Embedding Predictive Architecture) - comprehensive analysis including architecture explanation, infographics, and LLM comparison
+- **AI Thinking Paradigms** - analysis of different AI reasoning approaches
+
+#### Cursor Usage Tracker (`code/AI/cursor/tracking/`) *(New!)*
+Python tool for monitoring Cursor IDE usage and generating statistics.
+- Usage monitoring and reporting
+- Statistics tracking (JSON output)
+- **Tech**: Python
+
 #### MCP Server (`code/AI/MCP/toyMCP/`)
 Production-ready JSON-RPC server implementing Model Context Protocol.
 - RESTful JSON-RPC API
@@ -103,7 +153,116 @@ Production-ready JSON-RPC server implementing Model Context Protocol.
 
 ---
 
-### 3. 🚢 NestJS Applications (`code/nestjs/`)
+### 3. 🐍 Python Practice Curriculum (`code/practice/python/`) *(New!)*
+
+A comprehensive **48-week structured Python curriculum** covering:
+
+**Weeks 1-12 (Foundation & Idioms)**:
+- Pythonic idioms (list comprehensions, generators, context managers)
+- Iterator protocol and generator patterns
+- Advanced data structures (Counter, deque, defaultdict, namedtuple)
+- Functional programming (map, filter, reduce, lambda, partial)
+- Decorators (parameterized, class-based, functools)
+- Algorithms (sorting, searching, graph, trees, dynamic programming)
+
+**Current Progress**: Week 1, Day 2 (Dict comprehensions & defaultdict)
+
+**Key Files**:
+- `PYTHON_PRACTICE_PLAN.md` - Complete curriculum overview
+- `PROJECT_TODO.md` - Progress tracking
+- `python_concepts_deep_dives/` - In-depth concept explanations
+- `exercises/` - Daily practice files
+
+---
+
+### 4. 🌐 Networking Study Materials (`code/networking/`) *(New!)*
+
+Comprehensive networking study materials for certification preparation and reference:
+
+#### CCNA Materials (`code/networking/CCNA/`)
+Complete CCNA 200-301 study guide:
+- **6 Core Modules**: Network Fundamentals, Network Access, IP Connectivity, IP Services, Security, Automation
+- **Exercises**: CLI drills, Packet Tracer labs, Troubleshooting scenarios
+- **Cheatsheets**: Quick reference guides
+- **Practice Exams**: Self-assessment tests
+
+#### CCNP Materials (`code/networking/CCNP/`)
+Advanced CCNP Enterprise study materials:
+- Architecture, Virtualization, Infrastructure
+- Network Assurance, Security, Automation
+
+#### Reference Guides
+| Topic | Description |
+|-------|-------------|
+| `Firewalls/` | iptables, nftables, ufw, firewalld, pf |
+| `VPN/` | IPsec, OpenVPN, WireGuard, SSL VPN |
+| `SSL-TLS-PKI/` | Certificates, TLS, OpenSSL, Let's Encrypt |
+| `IP-Protocols/` | TCP, UDP, ICMP, IPv4, IPv6 |
+| `NetworkTools/` | Wireshark, tcpdump, nmap, dig |
+| `NetworkAccess/` | 802.1x, RADIUS, TACACS+, EAP |
+| `Cellular/` | GSM, GPRS, 3G, LTE, 5G |
+| `Layer1-2/` | Ethernet, Fiber, MPLS, SONET/SDH |
+
+---
+
+### 5. 📚 Obsidian PKM Guides (`guides/obsidian/`) *(New!)*
+
+Complete course for building a Personal Knowledge Management system with Obsidian:
+
+| Phase | Topic | Content |
+|-------|-------|---------|
+| **01-Foundations** | Getting Started | Obsidian 101 - core concepts, vault setup |
+| **02-Intermediate** | Building Your System | Linking strategies, templates, daily notes, YAML, search, canvas, Zettelkasten/PARA |
+| **03-Advanced** | Power User | Dataview queries, Templater automation, CSS snippets, Git integration, Vim navigation, multi-vault strategies, publishing |
+| **03-Plugins** | Ecosystem | Top 20 community plugins guide |
+
+**Files Created**: 15+ comprehensive guides with practical examples
+
+---
+
+### 6. 🛠️ Repo Cleaner Tool (`code/python/tools/repo_cleaner/`) *(New!)*
+
+A professional Python package for cleaning build artifacts across multiple programming languages:
+
+**Features**:
+- Detects and cleans: Python, Node.js, Java, C/C++, JavaScript frameworks
+- Monorepo support
+- Safe dry-run mode
+- History tracking and undo capability
+- Configurable via YAML
+
+**Tech**: Python 3.11+, Click CLI, pytest
+
+**Documentation**: README, QUICKSTART, INSTALL, ARCHITECTURE, USER_GUIDE
+
+---
+
+### 7. 🎮 Quiz Application (`code/fun/quiz-app/`) *(New!)*
+
+A multiplayer quiz application built with React and Vite:
+
+**Features**:
+- Real-time multiplayer sync via localStorage
+- Multiple quiz topics
+- Timer-based questions
+- Score tracking and leaderboards
+- Responsive design
+
+**Tech Stack**: React, Vite, Playwright (E2E), Vitest (unit tests)
+
+**Deployment**: Vercel-ready with `vercel.json`
+
+**Documentation**: README, TESTING, ARCHITECTURE, DEEP_DIVE
+
+---
+
+### 8. 🚀 Bash Launcher (`code/bash/launcher.sh`) *(New!)*
+
+Comprehensive bash automation script for common development tasks.
+
+---
+
+### 9. 🚢 NestJS Applications (`code/nestjs/`)
 
 #### Task Management System
 **Path**: `code/nestjs/zero2heroUdemyCourse/nestjs-course-task-management/`
@@ -120,7 +279,7 @@ Enterprise-grade task management API with full authentication.
 
 ---
 
-### 4. 🦀 Rust Learning Projects (`code/rust/`)
+### 10. 🦀 Rust Learning Projects (`code/rust/`)
 
 Comprehensive Rust examples covering:
 - Ownership, borrowing, and lifetimes
@@ -132,7 +291,7 @@ Comprehensive Rust examples covering:
 
 ---
 
-### 5. 🧵 C++ Concurrency Examples (`code/CPP/concurrency/`)
+### 11. 🧵 C++ Concurrency Examples (`code/CPP/concurrency/`)
 
 Thread synchronization patterns:
 - Mutex and RAII lock guards
@@ -142,7 +301,7 @@ Thread synchronization patterns:
 
 ---
 
-### 6. 🎓 Interview Preparation (`code/interviewQs/leetcode/`)
+### 12. 🎓 Interview Preparation (`code/interviewQs/leetcode/`)
 
 Solutions to coding problems in Python, C++, and JavaScript:
 - Arrays, strings, dynamic programming
@@ -163,8 +322,8 @@ Intermediate: Go, C, Perl, Ruby
 
 ### Backend Frameworks
 - **Node.js**: NestJS, Express.js
-- **Python**: FastAPI, Flask
-- **Testing**: Jest, Mocha, Sinon, pytest
+- **Python**: FastAPI, Flask, Streamlit
+- **Testing**: Jest, Mocha, Sinon, pytest, Playwright, Vitest
 
 ### Databases & Caching
 - PostgreSQL (with connection pooling)
@@ -175,7 +334,8 @@ Intermediate: Go, C, Perl, Ruby
 ### Cloud & DevOps
 - Docker & Docker Compose
 - AWS Services (SQS)
-- CI/CD practices
+- Vercel deployment
+- CI/CD practices (GitHub Actions)
 - Infrastructure as Code
 
 ### Architecture Patterns
@@ -190,8 +350,16 @@ Intermediate: Go, C, Perl, Ruby
 ### AI/ML
 - Transformer architectures
 - PyTorch, NumPy
-- LLM APIs (OpenAI, DeepSeek)
+- LLM APIs (OpenAI, DeepSeek, Claude)
 - RAG systems
+- Prompt engineering
+
+### Networking
+- CCNA/CCNP level knowledge
+- VPN technologies (IPsec, WireGuard, OpenVPN)
+- Firewalls (iptables, nftables)
+- SSL/TLS and PKI
+- Network troubleshooting
 
 ---
 
@@ -204,6 +372,8 @@ This repository contains materials from:
 - ✅ Conference materials
 - ✅ Design patterns implementations
 - ✅ Language-specific best practices
+- ✅ Comprehensive networking certification prep (CCNA/CCNP)
+- ✅ Personal knowledge management (Obsidian)
 
 ---
 
@@ -241,6 +411,23 @@ npm test
 npm start
 ```
 
+#### Quiz App
+```bash
+cd code/fun/quiz-app
+npm install
+npm run dev        # Development server
+npm test           # Run tests
+npm run build      # Production build
+```
+
+#### Repo Cleaner Tool
+```bash
+cd code/python/tools/repo_cleaner
+pip install -e .
+repo-cleaner --help
+repo-cleaner scan /path/to/project
+```
+
 #### NestJS Task Management
 ```bash
 cd code/nestjs/zero2heroUdemyCourse/nestjs-course-task-management
@@ -266,6 +453,10 @@ npm run test:cov           # With coverage
 pytest                      # Run all tests
 pytest --cov               # With coverage
 pytest -v                  # Verbose output
+
+# React projects (Vite)
+npm run test               # Vitest unit tests
+npm run test:e2e           # Playwright E2E
 ```
 
 ---
@@ -316,12 +507,14 @@ Useful scripts for automation and system administration:
 - **Security**: `secure-dir.sh` (encrypted APFS disk images)
 - **Backup**: `manage_backups.sh`, rsync utilities
 - **Development**: `rust_cleaner.sh`, build helpers
+- **Automation**: `launcher.sh` (new!)
 
 ### Python Utilities
 - GUI examples (Tkinter)
 - Network utilities
 - Threading examples
 - Custom modules
+- Repo cleaner tool (new!)
 
 ### Setup Scripts
 **Path**: `new_computer/`
@@ -335,12 +528,18 @@ See `scripts/README.md` for detailed documentation.
 
 ## 📊 Repository Statistics
 
-- **Total Files**: 5600+
+- **Total Files**: 6000+
 - **Languages**: 10+ programming languages
 - **TypeScript Files**: 1300+
-- **Python Files**: 600+
+- **Python Files**: 700+
 - **JavaScript Files**: 500+
+- **Markdown Guides**: 100+
 - **Years Accumulated**: Multiple years of development work
+
+### Recent Additions (Past 30 Days)
+- 118 files added/modified
+- ~19,000 lines of new code and documentation
+- 4 major features: Networking guides, Obsidian PKM, Python practice, New tools
 
 ---
 
@@ -354,6 +553,8 @@ This repository serves as:
 4. **Quick Start Templates**: Boilerplate for new projects
 5. **Interview Prep**: Ready-to-review algorithms and patterns
 6. **Knowledge Base**: Years of accumulated solutions
+7. **Certification Prep**: Networking study materials (CCNA/CCNP)
+8. **PKM Reference**: Complete Obsidian guide system
 
 ---
 
@@ -382,6 +583,12 @@ This repository serves as:
 - ✅ Test coverage reporting
 - ✅ Mocking and stubbing patterns
 - ✅ BDD/TDD examples
+
+### Networking
+- ✅ CCNA/CCNP certification materials
+- ✅ VPN and security guides
+- ✅ Protocol deep-dives
+- ✅ Troubleshooting guides
 
 ---
 
@@ -472,7 +679,7 @@ Planned additions and improvements:
 
 ---
 
-**Last Updated**: October 2025
+**Last Updated**: January 2026
 
 **Repository Purpose**: Personal code archive, learning resource, and portable development backup
 
@@ -481,4 +688,3 @@ Planned additions and improvements:
 ---
 
 *This repository reflects a commitment to continuous learning and best practices in software development.*
-

@@ -1,6 +1,6 @@
 # 🎯 Personal Learning Roadmap
 
-> Central hub for tracking all learning priorities. Updated: 2025-12-10
+> Central hub for tracking all learning priorities. Updated: 2026-01-01
 
 ---
 
@@ -10,9 +10,9 @@
 |:--------:|-------|--------|----------|------|
 | 1 | [Python Practice](#1-python-practice) | 🟡 Active | Week 1, Day 2 | `code/practice/python/` |
 | 2 | [LeetCode Interview Prep](#2-leetcode-interview-prep) | ⚪ Not Started | — | `code/interviewQs/full_leetcode_export/` |
-| 3 | [Obsidian PKM](#3-obsidian-pkm) | 🟢 Comfortable | Phase 3 guides + vault organized | `guides/obsidian/` |
-| 4 | [Networking (CCNA/CCNP)](#4-networking-refresher) | ⚪ Future | — | `code/networking/` |
-| 5 | [Prompt Engineering](#5-prompt-engineering) | 🟡 Started | — | `code/practice/ai/prompts/` |
+| 3 | [Obsidian PKM](#3-obsidian-pkm) | 🟢 Complete | All phases done (15+ guides) | `guides/obsidian/` |
+| 4 | [Networking (CCNA/CCNP)](#4-networking-refresher) | 🟢 Materials Ready | Full study materials created | `code/networking/` |
+| 5 | [Prompt Engineering](#5-prompt-engineering) | 🟡 Started | 10 challenges | `code/practice/ai/prompts/` |
 | 6 | [Rust](#6-rust) | 🟡 In Progress | Midway | `code/rust/` |
 
 **Legend:** 🟢 Complete | 🟡 In Progress | ⚪ Not Started | 🔴 Blocked
@@ -68,30 +68,42 @@
 **Main README:** `guides/obsidian/README.md`
 
 ### Current Status
-- **Phase 1 (Foundations):** Content drafted in `obsidian-101.md`
-- **Phase 2 (Intermediate):** 5 guides created
-- **Phase 3 (Advanced):** Not started
-- **Phase 4 (Plugins):** Overview created, deep-dives pending
+- **Phase 1 (Foundations):** ✅ Complete (`obsidian-101.md`)
+- **Phase 2 (Intermediate):** ✅ Complete (7 guides)
+- **Phase 3 (Advanced):** ✅ Complete (7 guides)
+- **Phase 4 (Plugins):** ✅ Complete (community plugins guide)
 
 ### Phase Checklist
 | Phase | Topic | Status |
 |-------|-------|--------|
-| 1 | Obsidian 101 — Foundations | 🟡 Drafted |
-| 2 | Intermediate — Building Your System | 🟡 5/8 guides |
-| 3 | Advanced — Power User Techniques | ⚪ |
-| 4 | Top 20 Productivity Plugins | 🟡 Overview only |
+| 1 | Obsidian 101 — Foundations | 🟢 Complete |
+| 2 | Intermediate — Building Your System | 🟢 7/7 guides |
+| 3 | Advanced — Power User Techniques | 🟢 7/7 guides |
+| 4 | Top 20 Productivity Plugins | 🟢 Complete |
 
 ### Files Created
 ```
 guides/obsidian/
-├── 01-foundations/obsidian-101.md
+├── 01-foundations/
+│   └── obsidian-101.md
 ├── 02-intermediate/
 │   ├── linking-strategies.md
 │   ├── templates-and-daily-notes.md
 │   ├── search-and-navigation.md
 │   ├── canvas-and-visual-thinking.md
-│   └── yaml-frontmatter-metadata.md
-└── 03-plugins/community-plugins-guide.md
+│   ├── yaml-frontmatter-metadata.md
+│   ├── embedding-and-transclusion.md
+│   └── zettelkasten-para-systems.md
+├── 03-advanced/
+│   ├── custom-css-snippets.md
+│   ├── dataview-queries.md
+│   ├── git-integration.md
+│   ├── hotkeys-vim-navigation.md
+│   ├── multi-vault-strategies.md
+│   ├── publishing-and-sharing.md
+│   └── templater-automation.md
+└── 03-plugins/
+    └── community-plugins-guide.md
 ```
 
 ---
@@ -106,8 +118,20 @@ guides/obsidian/
 
 ### Current Status
 - **Background:** CCNA educated
-- **Status:** On hold (future priority)
-- **Next Step:** Review existing roadmaps when ready to resume
+- **Status:** 🟢 Study materials complete
+- **Next Step:** When ready, follow roadmaps and practice with materials
+
+### Materials Created
+| Area | Content |
+|------|---------|
+| **CCNA** | 6 modules, CLI drills, Packet Tracer labs, troubleshooting, practice exams |
+| **CCNP** | 6 advanced modules, exercises, quick reference |
+| **Protocols** | TCP, UDP, ICMP, IPv4, IPv6 deep dives |
+| **Security** | Firewalls (iptables, nftables, ufw), 802.1x, RADIUS, TACACS+ |
+| **VPN** | IPsec, OpenVPN, WireGuard, SSL VPN |
+| **Tools** | Wireshark, tcpdump, nmap, dig guides |
+| **PKI** | TLS, OpenSSL, Let's Encrypt, certificates |
+| **Cellular** | GSM, GPRS, 3G, LTE, 5G |
 
 ---
 
@@ -173,6 +197,12 @@ cat ~/work/git/personal_code/LEARNING_ROADMAP.md
 | 2025-12-10 | Created initial roadmap |
 | 2025-12-14 | Obsidian → Comfortable. Vault cleanup done. Phase 3 guides created. |
 | 2025-12-14 | Python: Completed Week 1 Day 1. Starting Day 2. |
+| 2025-12-29 | Added AI research articles (VL-JEPA analysis, AI thinking paradigms) |
+| 2025-12-30 | Created quiz-app React project with full test suite |
+| 2025-12-31 | Added Cursor usage tracking tool |
+| 2026-01-01 | Created repo_cleaner Python tool for build artifact cleanup |
+| 2026-01-01 | Enhanced .gitignore with comprehensive patterns |
+| 2026-01-01 | Python Day 2: Implemented word_frequency_analyzer exercise |
 
 ---
 
