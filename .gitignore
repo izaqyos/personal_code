@@ -83,6 +83,10 @@ $RECYCLE.BIN/
 .Trash-*
 .nfs*
 
+# macOS network shares
+._.DS_Store
+**/.DS_Store
+
 # -----------------------------------------------------------------------------
 # IDEs & Editors
 # -----------------------------------------------------------------------------
@@ -116,13 +120,11 @@ out/
 [._]*.sw[a-p]
 [._]s[a-v][a-z]
 [._]sw[a-p]
-*~
 tags
 Session.vim
 .netrwhist
 
 # Emacs
-*~
 \#*\#
 /.emacs.desktop
 /.emacs.desktop.lock
@@ -130,6 +132,12 @@ Session.vim
 auto-save-list
 tramp
 .\#*
+
+# Fleet (JetBrains)
+.fleet/
+
+# Zed editor
+.zed/
 
 # -----------------------------------------------------------------------------
 # Node.js / JavaScript / TypeScript
@@ -153,33 +161,54 @@ pnpm-debug.log*
 
 # TypeScript
 *.tsbuildinfo
-dist/
-build/
 *.js.map
 *.d.ts.map
 
+# Vite
+.vite/
+dist-ssr/
+*.local
+
 # Next.js
 .next/
-out/
 
 # Nuxt.js
 .nuxt/
-dist/
 
 # Gatsby
 .cache/
 public/
+
+# React Testing
+**/__snapshots__/
+**/__mocks__/
+
+# Storybook
+storybook-static/
+.storybook-out/
 
 # Serverless
 .serverless/
 .serverless-webpack/
 
 # Parcel
-.cache/
-dist/
+.parcel-cache/
 
 # Webpack
 .webpack/
+webpack-stats.json
+
+# Rollup
+.rollup.cache/
+
+# esbuild
+.esbuild/
+
+# Turbo (monorepo)
+.turbo/
+
+# Vercel
+.vercel/
 
 # -----------------------------------------------------------------------------
 # Python
@@ -195,9 +224,7 @@ __pycache__/
 
 # Distribution / packaging
 .Python
-build/
 develop-eggs/
-dist/
 downloads/
 eggs/
 .eggs/
@@ -214,6 +241,8 @@ share/python-wheels/
 MANIFEST
 pip-log.txt
 pip-delete-this-directory.txt
+.pip-cache/
+pip-wheel-metadata/
 
 # PyInstaller
 *.manifest
@@ -314,6 +343,15 @@ dmypy.json
 # Cython
 cython_debug/
 
+# Ruff (modern linter)
+.ruff_cache/
+
+# Pyright (type checker)
+.pyright/
+
+# Black (formatter)
+.black/
+
 # -----------------------------------------------------------------------------
 # Java
 # -----------------------------------------------------------------------------
@@ -323,16 +361,11 @@ cython_debug/
 *.ear
 *.nar
 hs_err_pid*
-target/
 .classpath
 .project
 .settings/
 .metadata/
-bin/
 tmp/
-*.tmp
-*.bak
-*.swp
 *~.nib
 local.properties
 .loadpath
@@ -347,8 +380,7 @@ dependency-reduced-pom.xml
 .mvn/wrapper/maven-wrapper.jar
 
 # Gradle
-.gradle
-build/
+.gradle/
 !gradle-wrapper.jar
 !**/src/main/**/build/
 !**/src/test/**/build/
@@ -356,10 +388,7 @@ build/
 # -----------------------------------------------------------------------------
 # Rust
 # -----------------------------------------------------------------------------
-target/
-Cargo.lock
 **/*.rs.bk
-*.pdb
 
 # -----------------------------------------------------------------------------
 # C / C++
@@ -408,9 +437,6 @@ _deps
 # Autotools
 .deps/
 .libs/
-*.la
-*.lo
-Makefile
 Makefile.in
 /autom4te.cache
 /aclocal.m4
@@ -423,10 +449,7 @@ Makefile.in
 # -----------------------------------------------------------------------------
 # Go
 # -----------------------------------------------------------------------------
-*.exe
-*.exe~
 *.test
-*.prof
 vendor/
 go.work
 go.work.sum
@@ -451,13 +474,22 @@ lib/bundler/man/
 # -----------------------------------------------------------------------------
 # Database
 # -----------------------------------------------------------------------------
-*.sql
+
+# Database files (SQLite)
 *.sqlite
 *.sqlite3
-*.db
 *.db-journal
 *.db-shm
 *.db-wal
+
+# Database dumps and backups (not schema files)
+*dump.sql
+*backup.sql
+*-backup.sql
+local.sql
+/backups/**/*.sql
+/temp/**/*.sql
+/data/**/*.sql
 
 # PostgreSQL
 *.dump
@@ -481,10 +513,6 @@ docker-compose.override.yml
 logs/
 *.log
 log/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-lerna-debug.log*
 pids
 *.pid
 *.seed
@@ -497,9 +525,7 @@ pids
 *.temp
 *.swp
 *.swo
-*~
 .#*
-\#*#
 
 # -----------------------------------------------------------------------------
 # Build Outputs
@@ -517,6 +543,11 @@ x86/
 [Oo]bj/
 [Ll]og/
 [Ll]ogs/
+target/
+
+# Minified files
+*.min.js
+*.min.css
 
 # -----------------------------------------------------------------------------
 # Package Manager Lock Files (Optional - uncomment if needed)
@@ -541,6 +572,16 @@ site/
 coverage/
 .nyc_output/
 *.lcov
+lcov-report/
+*.info
+*.gcov
+*.gcno
+*.gcda
+
+# Test results
+test-results/
+test-reports/
+junit.xml
 
 # -----------------------------------------------------------------------------
 # Misc
@@ -561,7 +602,6 @@ coverage/
 *.rej
 *.bkp
 *.bak
-~*
 
 # Archives
 *.zip
@@ -585,15 +625,71 @@ coverage/
 *.webm
 
 # -----------------------------------------------------------------------------
+# Monorepo Build Systems
+# -----------------------------------------------------------------------------
+
+# Nx
+.nx/
+
+# Rush
+common/temp/
+
+# Lerna
+.lerna/
+
+# -----------------------------------------------------------------------------
+# CI/CD & DevOps
+# -----------------------------------------------------------------------------
+
+# GitHub Actions artifacts
+.github/workflows/artifacts/
+.github/actions-runner/
+
+# Benchmark results
+benchmark-results/
+.benchmarks/
+benchmarks/output/
+
+# Security scanning
+.snyk
+.sonarqube/
+.scannerwork/
+
+# DevContainer
+.devcontainer/
+
+# Vagrant
+.vagrant/
+*.box
+
+# Ansible
+*.retry
+.ansible/
+
+# -----------------------------------------------------------------------------
+# Performance Profiling
+# -----------------------------------------------------------------------------
+
+# Python profiling
+*.prof
+*.pstats
+profile_*.txt
+
+# Node.js profiling
+*.cpuprofile
+*.heapprofile
+*.heapsnapshot
+
+# Flame graphs
+flamegraph.svg
+perf.data
+
+# -----------------------------------------------------------------------------
 # Project Specific
 # -----------------------------------------------------------------------------
 
 # Keep certain directories but ignore their contents
 # Add your project-specific ignore patterns below
 
-
-# env files
-.env
-.env.*
-*.env
+# Project-specific env file
 code/AI/streamlit/tutorial/.env

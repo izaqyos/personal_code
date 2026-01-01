@@ -1,0 +1,59 @@
+.join-screen {
+  width: 100%;
+}
+
+.join-screen form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.primary-button {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.primary-button:hover {
+  background: linear-gradient(135deg, #5568d3 0%, #653a8f 100%);
+}
+
+.error-message {
+  color: #e74c3c;
+  font-size: 0.875rem;
+  margin-top: -8px;
+  padding: 4px 8px;
+  background-color: rgba(231, 76, 60, 0.1);
+  border-radius: 4px;
+}
+
+.host-section {
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid #e0e0e0;
+}
+
+.divider {
+  text-align: center;
+  color: #999;
+  font-size: 14px;
+  margin-bottom: 16px;
+}
+
+.host-button {
+  width: 100%;
+  background: #f5f5f5;
+  color: #333;
+  border: 2px solid #e0e0e0;
+}
+
+.host-button:hover {
+  background: #e8e8e8;
+  border-color: #667eea;
+}
+
+@media (max-width: 768px) {
+  .join-screen form {
+    gap: 12px;
+  }
+}
+

@@ -1,0 +1,260 @@
+# =============================================================================
+# Recommended Additions to .gitignore
+# Based on scan of /Users/yosii/work/git/personal_code
+# Generated: 2026-01-01
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# Modern Frontend Tooling (for React/Vite projects)
+# -----------------------------------------------------------------------------
+
+# Vite
+.vite/
+dist-ssr/
+*.local
+
+# Turbo (monorepo build system)
+.turbo/
+
+# Vercel deployment
+.vercel/
+
+# Testing snapshots (React/Jest)
+**/__snapshots__/
+**/__mocks__/
+
+# Storybook
+storybook-static/
+.storybook-out/
+
+# -----------------------------------------------------------------------------
+# More Specific SQL Patterns (instead of broad *.sql)
+# -----------------------------------------------------------------------------
+
+# Database dumps and backups (instead of *.sql)
+*dump.sql
+*backup.sql
+*-backup.sql
+local.sql
+/backups/**/*.sql
+/temp/**/*.sql
+/data/**/*.sql
+
+# Note: Remove or comment out the line "*.sql" in your current .gitignore
+# so that schema files and migrations can be tracked
+
+# -----------------------------------------------------------------------------
+# Monorepo Build Systems
+# -----------------------------------------------------------------------------
+
+# Nx
+.nx/
+.nx/cache/
+
+# Rush
+common/temp/
+common/deploy/
+
+# Lerna
+lerna-debug.log
+.lerna/
+
+# Turborepo (duplicate check - may already be covered)
+.turbo/
+
+# -----------------------------------------------------------------------------
+# CI/CD Artifacts
+# -----------------------------------------------------------------------------
+
+# GitHub Actions artifacts
+.github/workflows/artifacts/
+.github/actions-runner/
+
+# Coverage formats
+lcov-report/
+*.info
+*.gcov
+*.gcno
+*.gcda
+
+# Benchmark results
+benchmark-results/
+.benchmarks/
+benchmarks/output/
+
+# Test results
+test-results/
+test-reports/
+junit.xml
+
+# -----------------------------------------------------------------------------
+# Additional Build Artifacts (web)
+# -----------------------------------------------------------------------------
+
+# Minified files (if not needed in repo)
+*.min.js
+*.min.css
+
+# Webpack
+.webpack/
+webpack-stats.json
+
+# Rollup
+.rollup.cache/
+
+# esbuild
+.esbuild/
+
+# -----------------------------------------------------------------------------
+# Additional Python Tools
+# -----------------------------------------------------------------------------
+
+# Ruff cache (modern Python linter)
+.ruff_cache/
+
+# Pyright (Python type checker)
+.pyright/
+
+# Black (Python formatter)
+.black/
+
+# -----------------------------------------------------------------------------
+# Additional Development Tools
+# -----------------------------------------------------------------------------
+
+# DevContainer
+.devcontainer/
+devcontainer.json
+
+# Ansible
+*.retry
+.ansible/
+
+# Vagrant
+.vagrant/
+*.box
+
+# -----------------------------------------------------------------------------
+# Additional macOS (more comprehensive)
+# -----------------------------------------------------------------------------
+
+# macOS metadata in network shares
+._.DS_Store
+**/.DS_Store
+
+# macOS Finder custom folder attributes
+.FBCIndex
+.FBCLockFolder
+
+# -----------------------------------------------------------------------------
+# Package Manager Caches (beyond node_modules)
+# -----------------------------------------------------------------------------
+
+# pnpm store
+.pnpm-store/
+.pnpm-debug.log
+
+# Yarn v3+ (beyond what you have)
+.yarn/cache/
+.yarn/install-state.gz
+
+# pip cache directories
+.pip-cache/
+pip-wheel-metadata/
+
+# -----------------------------------------------------------------------------
+# IDE additions (beyond what you have)
+# -----------------------------------------------------------------------------
+
+# Fleet (JetBrains new IDE)
+.fleet/
+
+# Zed editor
+.zed/
+
+# Helix editor
+.helix/
+
+# -----------------------------------------------------------------------------
+# Security Scanning
+# -----------------------------------------------------------------------------
+
+# Snyk
+.snyk
+
+# SonarQube
+.sonarqube/
+.scannerwork/
+
+# Trivy
+.trivyignore
+trivy-report.json
+
+# -----------------------------------------------------------------------------
+# Performance and Profiling
+# -----------------------------------------------------------------------------
+
+# Python profiling
+*.prof
+*.pstats
+profile_*.txt
+
+# Node.js profiling
+*.cpuprofile
+*.heapprofile
+*.heapsnapshot
+
+# Chrome/Edge profiling
+*.cpuprofile
+*.heapprofile
+
+# Flame graphs
+flamegraph.svg
+perf.data
+
+# =============================================================================
+# CLEANUP RECOMMENDATIONS
+# =============================================================================
+
+# DUPLICATES TO REMOVE from your current .gitignore:
+# - Lines 8 & 596-598: .env entries are duplicated
+# - Multiple *~ entries (lines 81, 119, 125, 500)
+# - build/ appears multiple times (lines 198, 351, 508, etc.)
+# - dist/ appears multiple times (lines 156, 167, 179, 200, 507)
+#
+# Suggestion: Keep them in the most logical section and remove duplicates
+
+# CONSIDER BEING MORE SPECIFIC:
+# Instead of:     *.sql (line 454)
+# Consider:       See "More Specific SQL Patterns" section above
+#
+# Instead of:     *.log (multiple places)
+# Consider:       Being more specific about which logs to ignore
+
+# =============================================================================
+# OPTIONAL: Uncomment if needed
+# =============================================================================
+
+# Large ML models (if working with AI/ML)
+# *.h5
+# *.pb
+# *.ckpt
+# *.pth
+# *.pt
+# *.onnx
+# *.tflite
+# models/
+# checkpoints/
+
+# Documentation build outputs (if not deploying docs)
+# docs/_build/
+# docs/.build/
+# site/
+
+# Environment-specific config (if not already covered)
+# .env.development
+# .env.staging
+# .env.production
+# config/local.yml
+# config/development.yml
+

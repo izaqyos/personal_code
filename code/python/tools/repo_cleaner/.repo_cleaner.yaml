@@ -1,0 +1,56 @@
+# Repo Cleaner Configuration File
+# Place this file in your project root as .repo_cleaner.yaml
+
+# Global exclude patterns (applied to all cleaners)
+exclude:
+  - "**/important_build/"
+  - "**/vendor/**"
+
+# Language-specific configuration
+languages:
+  python:
+    enabled: true
+    # Additional patterns to clean
+    additional_patterns: []
+    # Patterns to exclude for this language
+    exclude: []
+
+  node:
+    enabled: true
+    additional_patterns: []
+    exclude: []
+
+  java:
+    enabled: true
+    additional_patterns: []
+    exclude: []
+
+  c_cpp:
+    enabled: true
+    additional_patterns: []
+    exclude: []
+
+  react:
+    enabled: true
+    additional_patterns: []
+    exclude: []
+
+  angular:
+    enabled: true
+    additional_patterns: []
+    exclude: []
+
+  vue:
+    enabled: true
+    additional_patterns: []
+    exclude: []
+
+# Safety settings
+safety:
+  # Require directory to be a git repository
+  require_git: false
+  # Minimum free disk space in MB before cleaning
+  min_free_space_mb: 100
+  # Maximum total size to delete in MB (0 = no limit)
+  max_delete_size_mb: 0
+

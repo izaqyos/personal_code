@@ -1,0 +1,18 @@
+# Core dependencies
+pyyaml>=6.0
+click>=8.0
+
+# Optional: Color support
+colorama>=0.4.6
+
+# Optional: Progress bars
+tqdm>=4.65
+
+# Development dependencies
+pytest>=7.0
+pytest-cov>=4.0
+pytest-mock>=3.10
+ruff>=0.1.0
+mypy>=1.0
+types-PyYAML>=6.0
+
