@@ -11,6 +11,7 @@ Time: 10-15 minutes
 """
 
 import sys
+import string
 from collections import defaultdict
 from typing import Dict, List
 
@@ -281,7 +282,7 @@ def dict_merging_patterns():
         merged4[k] += v
     print(f"Method 4 (custom merge): {merged4}")
     
-    print() # <- I'm here 
+    print()
 
 # ============================================================
 # BONUS CHALLENGE
@@ -299,8 +300,16 @@ def word_frequency_analyzer(text: str) -> Dict[str, int]:
     
     Bonus: Return only words that appear more than once
     """
-    # TODO: Implement
-    pass
+    lower_text = text.lower()
+    lower_text_no_punctuation = lower_text.translate(str.maketrans('', '', string.punctuation))
+    words = lower_text_no_punctuation.split()
+    word_count = defaultdict(int)
+    for word in words:
+        word_count[word] += 1
+    word_count = {k: v for k,v in word_count.items() if v > 1}
+    word_count = dict(sorted(word_count.items(), key=lambda x: x[1], reverse=True))
+    return word_count
+    
 
 def test_word_frequency():
     """Test the word frequency analyzer"""
@@ -409,9 +418,9 @@ if __name__ == "__main__":
     compare_dict_patterns()
     advanced_defaultdict_patterns()
     analyze_logs()
-    #dict_merging_patterns()
-    #test_word_frequency()
-    #performance_analysis()
+    dict_merging_patterns()
+    test_word_frequency()
+    #performance_analysis() <- cont. from here
     
     print("=" * 60)
     print("✅ Day 2 Complete!")
