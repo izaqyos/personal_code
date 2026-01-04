@@ -128,11 +128,10 @@ daily_runner/
 │       └── commands.py            # Command handlers
 │
 ├── teams/                         # Team configuration files
-│   ├── imagine_dragons.json       # Default team (your team)
-│   └── sample_team.json           # Example team for testing
+│   └── sample_team.json           # Example team (copy to create your own)
 │
 ├── data/                          # Generated data files (gitignored)
-│   ├── history_imagine_dragons.json  # Per-team history
+│   ├── history_<team_id>.json     # Per-team history
 │   └── .session_recovery.json     # Recovery file (generated)
 │
 ├── config.json                    # Application configuration
@@ -867,10 +866,10 @@ python main.py --mode cli
 python main.py --mode history
 
 # Specify team directly
-python main.py --team imagine_dragons
+python main.py --team sample_team
 
 # Using installed command (after pip install)
-daily-timer --team imagine_dragons
+daily-timer --team sample_team
 ```
 
 ### Available Commands

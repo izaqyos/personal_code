@@ -51,7 +51,7 @@ python main.py --mode cli
 ### Specify Team
 
 ```bash
-python main.py --team imagine_dragons
+python main.py --team sample_team
 ```
 
 ### View Meeting History
@@ -64,7 +64,7 @@ python main.py --mode history
 python main.py --mode history --days 7 --limit 10
 
 # View history for specific team
-python main.py --mode history --team imagine_dragons
+python main.py --mode history --team sample_team
 ```
 
 ### Using Installed Command
@@ -72,7 +72,7 @@ python main.py --mode history --team imagine_dragons
 After `pip install -e .`, you can also use the installed command:
 
 ```bash
-daily-timer --team imagine_dragons
+daily-timer --team sample_team
 daily-timer --mode history
 ```
 
@@ -97,28 +97,50 @@ Configuration is stored in `config.json`:
 
 ## Team Configuration
 
-Team files are stored in the `teams/` directory as JSON files:
+Team files are stored in the `teams/` directory as JSON files. A `sample_team.json` is provided as a template.
 
-```json
-{
-  "team": {
-    "name": "Team Name",
-    "emoji": "🐉"
-  },
-  "members": [
-    {
-      "id": "member_id",
-      "name": "Full Name",
-      "display_name": "Short Name",
-      "email": "email@example.com",
-      "daily_config": {
-        "default_time_seconds": 180,
-        "active": true
-      }
-    }
-  ]
-}
-```
+### Creating Your Own Team
+
+1. Copy the sample team file:
+   ```bash
+   cp teams/sample_team.json teams/my_team.json
+   ```
+
+2. Edit `teams/my_team.json` with your team's information:
+   ```json
+   {
+     "team": {
+       "name": "My Team",
+       "emoji": "🚀",
+       "team_leader": {
+         "name": "Team Lead Name",
+         "email": "lead@example.com"
+       }
+     },
+     "members": [
+       {
+         "id": "alice",
+         "name": "Alice Anderson",
+         "display_name": "Alice",
+         "email": "alice@example.com",
+         "github": "alice-dev",
+         "role": "Developer",
+         "specialization": ["frontend", "testing"],
+         "daily_config": {
+           "default_time_seconds": 180,
+           "active": true
+         }
+       }
+     ]
+   }
+   ```
+
+3. Run with your team:
+   ```bash
+   python main.py --team my_team
+   ```
+
+**Note:** Team files (except `sample_team.json`) are gitignored to protect personal data.
 
 ## Development
 

@@ -1042,7 +1042,7 @@ pip install -e ".[dev]"
 
 # Run Streamlit UI (default mode)
 python main.py
-python main.py --team imagine_dragons
+python main.py --team sample_team
 
 # Run CLI mode
 python main.py --mode cli
@@ -1050,10 +1050,10 @@ python main.py --mode cli
 # View meeting history
 python main.py --mode history
 python main.py --mode history --days 7 --limit 10
-python main.py --mode history --team imagine_dragons
+python main.py --mode history --team sample_team
 
 # Using installed command (after pip install)
-daily-timer --team imagine_dragons
+daily-timer --team sample_team
 daily-timer --mode history
 
 # Tests
