@@ -231,8 +231,9 @@ def analyze_logs():
     
     # Task 3: Calculate average response time per endpoint
     # TODO: Track sum and count, then compute averages with dict comprehension
-    endpoint_times = defaultdict(tuple) # (sum, count)
-    endpoint_times = {log[0]: (endpoint_times[log[0]][0] + log[2],endpoint_times[log[0]][1] +1 ) for log in logs}
+    endpoint_times = defaultdict(lambda: (0, 0)) # (sum, count)
+    for endpoint, status_code, response_time in logs:
+        endpoint_times[endpoint] = (endpoint_times[endpoint][0] + response_time ,  endpoint_times[endpoint][1] +1 )
     avg_response_times = {k: v[0]/v[1] for k,v in endpoint_times.items()}
     print(f"Average response times: {avg_response_times}")
     
@@ -420,7 +421,7 @@ if __name__ == "__main__":
     analyze_logs()
     dict_merging_patterns()
     test_word_frequency()
-    #performance_analysis() <- cont. from here
+    performance_analysis() 
     
     print("=" * 60)
     print("✅ Day 2 Complete!")

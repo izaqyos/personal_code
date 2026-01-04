@@ -149,6 +149,34 @@ def update_usage(requests_to_add, model_name="standard"):
     return data["total_used"]
 
 
+def set_usage(total_requests):
+    """Set usage to exact value from Cursor dashboard (non-incremental)"""
+    data = load_usage_data()
+    reset_date = get_next_reset_date()
+    now = datetime.now()
+
+    old_total = data.get("total_used", 0)
+    data["total_used"] = total_requests
+    data["last_updated"] = now.isoformat()
+    data["reset_date"] = reset_date.isoformat()
+
+    # Add to history
+    data["history"].append({
+        "timestamp": now.isoformat(),
+        "requests": total_requests - old_total,
+        "model": "sync",
+        "cost": total_requests - old_total,
+        "total_after": total_requests
+    })
+
+    # Cleanup: keep only last N entries
+    if len(data["history"]) > MAX_HISTORY_ENTRIES:
+        data["history"] = data["history"][-MAX_HISTORY_ENTRIES:]
+
+    save_usage_data(data)
+    return total_requests
+
+
 def display_status():
     """Display current usage status"""
     data = load_usage_data()
@@ -217,7 +245,7 @@ def display_status():
     print("\n" + "-"*60)
     print("📝 SYNC WITH REAL USAGE")
     print("   Check actual usage: https://cursor.com/dashboard?tab=usage")
-    print("   Then run: python3 cursor_tracker.py add <count>")
+    print("   Then run: python3 cursor_tracker.py set <total>")
     print("="*60 + "\n")
 
 
@@ -232,14 +260,25 @@ def main():
             if len(sys.argv) < 3:
                 print("Usage: python cursor_tracker.py add <number> [model_name]")
                 return
-            
+
             requests = int(sys.argv[2])
             model = sys.argv[3] if len(sys.argv) > 3 else "standard"
             new_total = update_usage(requests, model)
             print(f"✅ Added {requests} requests using {model}")
             print(f"   New total: {new_total}")
             display_status()
-        
+
+        elif command == "set":
+            if len(sys.argv) < 3:
+                print("Usage: python cursor_tracker.py set <total>")
+                print("  Set total usage to exact value from Cursor dashboard")
+                return
+
+            total = int(sys.argv[2])
+            set_usage(total)
+            print(f"✅ Set total usage to {total} (synced with dashboard)")
+            display_status()
+
         elif command == "reset":
             data = {
                 "total_used": 0,
@@ -270,6 +309,7 @@ def main():
         elif command == "help":
             print("\nCursor Usage Tracker Commands:")
             print("  python cursor_tracker.py              - Show current status")
+            print("  python cursor_tracker.py set N        - Set total to N (sync with dashboard)")
             print("  python cursor_tracker.py add N        - Add N requests to counter")
             print("  python cursor_tracker.py add N model  - Add N requests with specific model")
             print("  python cursor_tracker.py history      - Show usage history")

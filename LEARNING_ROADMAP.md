@@ -14,6 +14,7 @@
 | 4 | [Networking (CCNA/CCNP)](#4-networking-refresher) | 🟢 Materials Ready | Full study materials created | `code/networking/` |
 | 5 | [Prompt Engineering](#5-prompt-engineering) | 🟡 Started | 10 challenges | `code/practice/ai/prompts/` |
 | 6 | [Rust](#6-rust) | 🟡 In Progress | Midway | `code/rust/` |
+| 7 | [Machine Learning](#7-machine-learning) | ⚪ Not Started | — | `code/ai/learning/` |
 
 **Legend:** 🟢 Complete | 🟡 In Progress | ⚪ Not Started | 🔴 Blocked
 
@@ -152,13 +153,74 @@ guides/obsidian/
 
 **Goal:** Complete Rust fundamentals via Udemy course and build practical projects.
 
-**Location:** `code/rust/`  
-**Learning Plan:** `code/rust/learning/chatgptLearning/rust_learning_plan.md`  
+**Location:** `code/rust/`
+**Learning Plan:** `code/rust/learning/chatgptLearning/rust_learning_plan.md`
 **Learning Notes:** `code/rust/learning/chatgptLearning/rust_learning.md`
 
 ### Current Status
 - **Status:** Midway through Udemy course
 - **Next Step:** Continue course, reference learning plan for supplementary exercises
+
+---
+
+## 7. Machine Learning
+
+**Goal:** Build comprehensive understanding of ML fundamentals through advanced architectures, from classic algorithms to modern transformer-based models.
+
+**Location:** `code/ai/learning/`
+
+### Current Status
+- **Status:** Not Started
+- **Next Step:** Begin with classic ML fundamentals
+
+### Learning Tracks
+
+| Track | Focus | Status |
+|-------|-------|--------|
+| Classic ML | Fundamentals, KNN, SVM, Linear Regression, Gradient Descent | ⚪ |
+| Neural Networks | Architecture, Backpropagation, CNNs, RNNs | ⚪ |
+| Transformers & LLMs | Attention, Tokenization, Embeddings, Architecture | ⚪ |
+| Advanced Models | VJEPA, Multimodal, State-of-the-art Research | ⚪ |
+| Tools & Libraries | Cursor, Claude Code, Python ML Libraries | ⚪ |
+
+### Folder Structure
+```
+code/ai/learning/
+├── README.md
+├── 01-classic-ml/
+│   ├── 01-fundamentals.md
+│   ├── 02-linear-regression.md
+│   ├── 03-logistic-regression.md
+│   ├── 04-knn.md
+│   ├── 05-svm.md
+│   ├── 06-decision-trees.md
+│   ├── 07-gradient-descent.md
+│   └── 08-loss-functions.md
+├── 02-neural-networks/
+│   ├── 01-perceptrons-basics.md
+│   ├── 02-backpropagation.md
+│   ├── 03-activation-functions.md
+│   ├── 04-cnns.md
+│   └── 05-rnns-lstms.md
+├── 03-transformers-llms/
+│   ├── 01-tokenization.md
+│   ├── 02-embeddings.md
+│   ├── 03-attention-mechanism.md
+│   ├── 04-multi-head-attention.md
+│   ├── 05-positional-encoding.md
+│   ├── 06-transformer-architecture.md
+│   ├── 07-residual-connections.md
+│   └── 08-llm-layers.md
+├── 04-advanced-models/
+│   ├── 01-vjepa.md
+│   ├── 02-multimodal-models.md
+│   ├── 03-diffusion-models.md
+│   └── 04-emerging-architectures.md
+└── 05-tools/
+    ├── 01-cursor-efficiency.md
+    ├── 02-claude-code-efficiency.md
+    └── 03-python-ml-libraries.md
+```
 
 ---
 

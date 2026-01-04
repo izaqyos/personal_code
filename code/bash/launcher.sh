@@ -9,6 +9,7 @@ TRACKER_SCRIPT="/Users/yosii/work/git/personal_code/code/AI/cursor/tracking/curs
 REMINDER_SCRIPT="/Users/yosii/work/CheckPoint/Jira/release/reminder_app/remind_champion.py"
 REPO_CLEANER_DIR="/Users/yosii/work/git/personal_code/code/python/tools/repo_cleaner"
 REPO_CLEANER_CMD="repo-cleaner"
+CONTEXT_GENERATOR_SCRIPT="/Users/yosii/work/context/generate_context.sh"
 
 # Colors for output
 GREEN='\033[0;32m'
@@ -35,10 +36,11 @@ show_main_menu() {
     echo -e "  ${GREEN}1${NC} - Cursor Tracker"
     echo -e "  ${GREEN}2${NC} - Remind Champion"
     echo -e "  ${GREEN}3${NC} - Repo Cleaner"
+    echo -e "  ${GREEN}4${NC} - Context Generator"
     echo ""
     echo -e "  ${YELLOW}0${NC} - Exit"
     echo ""
-    echo -n "Enter choice [0-3]: "
+    echo -n "Enter choice [0-4]: "
 }
 
 # Show tracker submenu
@@ -51,14 +53,15 @@ show_tracker_menu() {
     echo -e "${BOLD}Select an action:${NC}"
     echo ""
     echo -e "  ${GREEN}1${NC} - Show Status"
-    echo -e "  ${GREEN}2${NC} - Add Usage"
-    echo -e "  ${GREEN}3${NC} - View History"
-    echo -e "  ${GREEN}4${NC} - Reset Counter"
-    echo -e "  ${GREEN}5${NC} - Show Help"
+    echo -e "  ${GREEN}2${NC} - Set Usage (Sync with Dashboard)"
+    echo -e "  ${GREEN}3${NC} - Add Usage (Incremental)"
+    echo -e "  ${GREEN}4${NC} - View History"
+    echo -e "  ${GREEN}5${NC} - Reset Counter"
+    echo -e "  ${GREEN}6${NC} - Show Help"
     echo ""
     echo -e "  ${YELLOW}0${NC} - Back to Main Menu"
     echo ""
-    echo -n "Enter choice [0-5]: "
+    echo -n "Enter choice [0-6]: "
 }
 
 # Show repo cleaner submenu
@@ -81,6 +84,26 @@ show_repo_cleaner_menu() {
     echo -e "  ${YELLOW}0${NC} - Back to Main Menu"
     echo ""
     echo -n "Enter choice [0-6]: "
+}
+
+# Show context generator submenu
+show_context_generator_menu() {
+    clear_screen
+    echo -e "${BOLD}${CYAN}╔════════════════════════════════════════╗${NC}"
+    echo -e "${BOLD}${CYAN}║      CONTEXT GENERATOR MENU            ║${NC}"
+    echo -e "${BOLD}${CYAN}╚════════════════════════════════════════╝${NC}"
+    echo ""
+    echo -e "${BOLD}Select an action:${NC}"
+    echo ""
+    echo -e "  ${GREEN}1${NC} - Generate Next Month's File"
+    echo -e "  ${GREEN}2${NC} - Generate Current Month's File"
+    echo -e "  ${GREEN}3${NC} - Generate Specific Month"
+    echo -e "  ${GREEN}4${NC} - List Existing Files"
+    echo -e "  ${GREEN}5${NC} - Show Help"
+    echo ""
+    echo -e "  ${YELLOW}0${NC} - Back to Main Menu"
+    echo ""
+    echo -n "Enter choice [0-5]: "
 }
 
 # Show reminder submenu
@@ -114,7 +137,7 @@ handle_tracker_menu() {
     while true; do
         show_tracker_menu
         read choice
-        
+
         case "$choice" in
             1)
                 clear_screen
@@ -124,6 +147,23 @@ handle_tracker_menu() {
                 read
                 ;;
             2)
+                clear_screen
+                echo -e "${CYAN}Sync with Cursor Dashboard${NC}"
+                echo "Check your usage at: https://cursor.com/dashboard?tab=usage"
+                echo ""
+                echo -n "Enter total usage from dashboard: "
+                read total
+                if [ -z "$total" ]; then
+                    echo "Error: No value provided"
+                    sleep 2
+                    continue
+                fi
+                python3 "$TRACKER_SCRIPT" set "$total"
+                echo ""
+                echo -n "Press Enter to continue..."
+                read
+                ;;
+            3)
                 clear_screen
                 echo -n "Enter number of requests to add: "
                 read count
@@ -140,14 +180,14 @@ handle_tracker_menu() {
                 echo -n "Press Enter to continue..."
                 read
                 ;;
-            3)
+            4)
                 clear_screen
                 python3 "$TRACKER_SCRIPT" history
                 echo ""
                 echo -n "Press Enter to continue..."
                 read
                 ;;
-            4)
+            5)
                 clear_screen
                 echo -e "${YELLOW}Are you sure you want to reset the counter? (y/N): ${NC}"
                 read confirm
@@ -160,7 +200,7 @@ handle_tracker_menu() {
                 echo -n "Press Enter to continue..."
                 read
                 ;;
-            5)
+            6)
                 clear_screen
                 python3 "$TRACKER_SCRIPT" help
                 echo ""
@@ -271,6 +311,82 @@ handle_repo_cleaner_menu() {
             6)
                 clear_screen
                 "$REPO_CLEANER_CMD" --list-languages
+                echo ""
+                echo -n "Press Enter to continue..."
+                read
+                ;;
+            0)
+                return
+                ;;
+            *)
+                echo -e "${YELLOW}Invalid choice. Please try again.${NC}"
+                sleep 1
+                ;;
+        esac
+    done
+}
+
+# Context generator menu handler
+handle_context_generator_menu() {
+    while true; do
+        show_context_generator_menu
+        read choice
+
+        case "$choice" in
+            1)
+                clear_screen
+                echo -e "${CYAN}Generating next month's context file...${NC}"
+                echo ""
+                "$CONTEXT_GENERATOR_SCRIPT"
+                echo ""
+                echo -n "Press Enter to continue..."
+                read
+                ;;
+            2)
+                clear_screen
+                echo -e "${CYAN}Generating current month's context file...${NC}"
+                echo ""
+                "$CONTEXT_GENERATOR_SCRIPT" --current
+                echo ""
+                echo -n "Press Enter to continue..."
+                read
+                ;;
+            3)
+                clear_screen
+                echo -n "Enter month (e.g., Jan, Feb, Mar): "
+                read month
+                if [ -z "$month" ]; then
+                    echo "Error: No month provided"
+                    sleep 2
+                    continue
+                fi
+                echo -n "Enter year (e.g., 2026): "
+                read year
+                if [ -z "$year" ]; then
+                    echo "Error: No year provided"
+                    sleep 2
+                    continue
+                fi
+                echo ""
+                echo -e "${CYAN}Generating context file for $month $year...${NC}"
+                echo ""
+                "$CONTEXT_GENERATOR_SCRIPT" "$month" "$year"
+                echo ""
+                echo -n "Press Enter to continue..."
+                read
+                ;;
+            4)
+                clear_screen
+                echo -e "${CYAN}Existing context files:${NC}"
+                echo ""
+                ls -la /Users/yosii/work/context/context_*
+                echo ""
+                echo -n "Press Enter to continue..."
+                read
+                ;;
+            5)
+                clear_screen
+                "$CONTEXT_GENERATOR_SCRIPT" --help
                 echo ""
                 echo -n "Press Enter to continue..."
                 read
@@ -410,6 +526,10 @@ check_scripts() {
     if ! command -v "$REPO_CLEANER_CMD" &> /dev/null; then
         echo -e "${YELLOW}Warning: repo-cleaner not installed (install from $REPO_CLEANER_DIR)${NC}"
     fi
+
+    if [ ! -f "$CONTEXT_GENERATOR_SCRIPT" ]; then
+        echo -e "${YELLOW}Warning: generate_context.sh not found at $CONTEXT_GENERATOR_SCRIPT${NC}"
+    fi
 }
 
 # Main loop
@@ -439,6 +559,14 @@ main() {
                 ;;
             3)
                 handle_repo_cleaner_menu
+                ;;
+            4)
+                if [ ! -f "$CONTEXT_GENERATOR_SCRIPT" ]; then
+                    echo -e "${YELLOW}Error: Context generator script not found!${NC}"
+                    sleep 2
+                    continue
+                fi
+                handle_context_generator_menu
                 ;;
             0)
                 clear_screen
