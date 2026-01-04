@@ -1,0 +1,94 @@
+{
+  "team": {
+    "name": "Sample Team",
+    "emoji": "🚀",
+    "group_manager": {
+      "name": "Jane Smith",
+      "email": "jane.smith@example.com"
+    },
+    "team_leader": {
+      "name": "John Doe",
+      "email": "john.doe@example.com"
+    }
+  },
+  "members": [
+    {
+      "id": "alice",
+      "name": "Alice Anderson",
+      "display_name": "Alice",
+      "email": "alice@example.com",
+      "github": "alice-dev",
+      "role": "Backend Developer",
+      "specialization": ["API design", "database optimization", "microservices"],
+      "daily_config": {
+        "default_time_seconds": 180,
+        "active": true
+      }
+    },
+    {
+      "id": "bob",
+      "name": "Bob Brown",
+      "display_name": "Bob",
+      "email": "bob@example.com",
+      "github": "bob-dev",
+      "role": "Frontend Developer",
+      "specialization": ["React", "UI components", "accessibility"],
+      "daily_config": {
+        "default_time_seconds": 180,
+        "active": true
+      }
+    },
+    {
+      "id": "charlie",
+      "name": "Charlie Chen",
+      "display_name": "Charlie",
+      "email": "charlie@example.com",
+      "github": "charlie-dev",
+      "role": "Full-stack Developer",
+      "specialization": ["authentication", "testing", "CI/CD"],
+      "daily_config": {
+        "default_time_seconds": 180,
+        "active": true
+      }
+    },
+    {
+      "id": "diana",
+      "name": "Diana Davis",
+      "display_name": "Diana",
+      "email": "diana@example.com",
+      "github": "diana-dev",
+      "role": "DevOps Engineer",
+      "specialization": ["infrastructure", "monitoring", "deployment"],
+      "daily_config": {
+        "default_time_seconds": 180,
+        "active": true
+      }
+    },
+    {
+      "id": "evan",
+      "name": "Evan Edwards",
+      "display_name": "Evan",
+      "email": "evan@example.com",
+      "github": "evan-dev",
+      "role": "QA Engineer",
+      "specialization": ["test automation", "performance testing"],
+      "daily_config": {
+        "default_time_seconds": 180,
+        "active": true
+      }
+    },
+    {
+      "id": "fiona",
+      "name": "Fiona Foster",
+      "display_name": "Fiona",
+      "email": "fiona@example.com",
+      "github": "fiona-dev",
+      "role": "Tech Lead",
+      "specialization": ["architecture", "code review", "mentoring"],
+      "daily_config": {
+        "default_time_seconds": 180,
+        "active": true
+      }
+    }
+  ]
+}

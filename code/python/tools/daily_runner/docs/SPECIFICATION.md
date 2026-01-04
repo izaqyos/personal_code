@@ -505,10 +505,10 @@ python main.py --mode history
 python main.py --mode history --days 7 --limit 10
 
 # Specify team directly
-python main.py --team example_team
+python main.py --team sample_team
 
 # After pip install -e .
-daily-timer --team example_team
+daily-timer --team sample_team
 daily-timer --mode history
 ```
 

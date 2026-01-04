@@ -82,3 +82,7 @@ data/history_*.json
 *.local.json
 .mypy_cache/
 .ruff_cache/
+
+# Team files (contain personal data) - keep only sample
+teams/*.json
+!teams/sample_team.json
