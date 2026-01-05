@@ -21,6 +21,22 @@ When a daily practice topic sparks your interest or you need deeper understandin
 
 ---
 
+### ✅ Observer Pattern (Observable)
+**File**: `observer_pattern.md`  
+**Topics Covered**:
+- Basic Subject/Observer implementation
+- Real-world examples (Stock ticker, Event system, Reactive streams)
+- Advanced patterns (Weak references, Async observers, Priority observers)
+- Python-specific implementations (Property descriptors, Signals)
+- Comparison with Mediator, Pub/Sub, Callback patterns
+- Common pitfalls (memory leaks, infinite loops, exception handling)
+- Thread-safe implementations
+- Best practices
+
+**When to Read**: When building event-driven systems, GUIs, or reactive data pipelines.
+
+---
+
 ### ✅ Generators and Coroutines
 **File**: `generators_and_coroutines.md`  
 **Topics Covered**:
@@ -256,6 +272,7 @@ As you master topics, consider creating your own deep dives:
 |-------|--------|----------------|--------------|
 | Dictionary Patterns | ✅ Created | 2025-12-14 | Use defaultdict for building, .get() for reading |
 | Generators & Coroutines | ✅ Created | 2025-11-12 | Foundation for async, memory efficiency |
+| Observer Pattern | ✅ Created | 2026-01-05 | Loose coupling, weak refs prevent leaks, handle exceptions |
 | Decorators | 🔲 Planned | | |
 | Memory Management | 🔲 Planned | | |
 | Descriptors | 🔲 Planned | | |
@@ -265,5 +282,5 @@ As you master topics, consider creating your own deep dives:
 
 ---
 
-**Last Updated**: 2025-12-14
+**Last Updated**: 2026-01-05
 
