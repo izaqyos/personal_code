@@ -20,14 +20,15 @@ def temp_dir() -> Generator[Path, None, None]:
 
 @pytest.fixture
 def sample_config() -> dict[str, Any]:
-    """Return a sample configuration dictionary."""
+    """Return a sample configuration dictionary optimized for testing (faster timers)."""
     return {
         "version": "1.0",
         "timer": {
-            "default_speaker_time_seconds": 180,
-            "transition_time_seconds": 30,
-            "grace_period_seconds": 15,
-            "warning_threshold_seconds": 30,
+            "default_speaker_time_seconds": 30,
+            "transition_time_seconds": 5,
+            "grace_period_seconds": 3,
+            "warning_threshold_seconds": 5,
+            "overflow_period_seconds": 10,
         },
         "alerts": {
             "warning_color": "#FFA500",
@@ -36,11 +37,11 @@ def sample_config() -> dict[str, Any]:
         },
         "history": {
             "file_path": "data/history_{team_id}.json",
-            "max_entries": 2000,
+            "max_entries": 100,
         },
         "recovery": {
             "enabled": True,
-            "auto_save_interval_seconds": 5,
+            "auto_save_interval_seconds": 1,
             "file_path": "data/.session_recovery.json",
         },
         "ui": {
@@ -82,7 +83,7 @@ def sample_team_data() -> dict[str, Any]:
                 "github": "alice-dev",
                 "role": "Developer",
                 "specialization": ["frontend"],
-                "daily_config": {"default_time_seconds": 180, "active": True},
+                "daily_config": {"default_time_seconds": 30, "active": True},
             },
             {
                 "id": "bob",
@@ -92,7 +93,7 @@ def sample_team_data() -> dict[str, Any]:
                 "github": "bob-dev",
                 "role": "Developer",
                 "specialization": ["backend"],
-                "daily_config": {"default_time_seconds": 180, "active": True},
+                "daily_config": {"default_time_seconds": 30, "active": True},
             },
         ],
     }
@@ -134,8 +135,8 @@ def sample_meeting_record() -> dict[str, Any]:
                 "member_id": "alice",
                 "display_name": "Alice",
                 "status": "present",
-                "allocated_time_seconds": 180,
-                "actual_time_seconds": 165,
+                "allocated_time_seconds": 30,
+                "actual_time_seconds": 25,
                 "overtime_seconds": 0,
                 "order_position": 1,
             },
@@ -143,9 +144,9 @@ def sample_meeting_record() -> dict[str, Any]:
                 "member_id": "bob",
                 "display_name": "Bob",
                 "status": "present",
-                "allocated_time_seconds": 180,
-                "actual_time_seconds": 195,
-                "overtime_seconds": 15,
+                "allocated_time_seconds": 30,
+                "actual_time_seconds": 35,
+                "overtime_seconds": 5,
                 "order_position": 2,
             },
         ],

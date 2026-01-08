@@ -1,0 +1,60 @@
+# LLM Fine-Tuning Project Dependencies
+# Install with: pip install -r requirements.txt
+
+# ============================================
+# Core ML Frameworks (Apple Silicon Optimized)
+# ============================================
+mlx>=0.5.0
+mlx-lm>=0.5.0
+
+# ============================================
+# Hugging Face Ecosystem
+# ============================================
+transformers>=4.36.0
+datasets>=2.16.0
+peft>=0.7.0
+accelerate>=0.25.0
+safetensors>=0.4.0
+tokenizers>=0.15.0
+huggingface-hub>=0.20.0
+
+# ============================================
+# Training Optimization
+# ============================================
+bitsandbytes>=0.41.0  # Note: May have limited Apple Silicon support
+scipy>=1.11.0
+sentencepiece>=0.1.99
+
+# ============================================
+# Data Processing
+# ============================================
+pandas>=2.1.0
+numpy>=1.24.0
+tqdm>=4.66.0
+python-dotenv>=1.0.0
+
+# ============================================
+# Evaluation & Metrics
+# ============================================
+evaluate>=0.4.0
+rouge-score>=0.1.2
+
+# ============================================
+# Development Tools
+# ============================================
+jupyter>=1.0.0
+ipywidgets>=8.1.0
+matplotlib>=3.8.0
+
+# ============================================
+# Optional: For GGUF conversion (llama.cpp)
+# ============================================
+# Install llama-cpp-python separately if needed:
+# CMAKE_ARGS="-DLLAMA_METAL=on" pip install llama-cpp-python
+
+# ============================================
+# Notes:
+# - For Apple Silicon (M1/M2/M3/M4), MLX is recommended over PyTorch
+# - bitsandbytes has limited Apple Silicon support; use MLX quantization instead
+# - Install Ollama separately: brew install ollama
+# ============================================

@@ -10,6 +10,7 @@ import uuid
 from collections.abc import Callable
 from datetime import datetime
 
+from src.core.constants import MAX_MEETING_DURATION_SECONDS, SESSION_ID_LENGTH
 from src.core.models import (
     AppConfig,
     CompletedSpeakerRecord,
@@ -21,7 +22,7 @@ from src.core.models import (
     SessionRecovery,
     TeamMember,
 )
-from src.core.state_manager import StateManager
+from src.core.state_manager import StateManager, SpeakerRecord
 from src.core.timer_engine import TimerEngine
 from src.data.history_repository import HistoryRepository
 from src.data.recovery_manager import RecoveryManager
@@ -81,6 +82,10 @@ class MeetingManager:
         self._in_grace_period = False
         self._grace_notified = False
 
+        # Overflow period tracking
+        self._in_overflow_period = False
+        self._overflow_notified = False
+
     # =========================================================================
     # Properties
     # =========================================================================
@@ -135,10 +140,10 @@ class MeetingManager:
 
     @property
     def speaker_time_remaining(self) -> float:
-        """Return remaining time for current speaker in seconds."""
+        """Return remaining time for current speaker in seconds (negative when overtime)."""
         if self._speaker_timer is None:
             return 0.0
-        return max(0.0, self._speaker_timer.remaining_seconds)
+        return self._speaker_timer.remaining_seconds  # Allow negative for overtime display
 
     @property
     def speaker_time_elapsed(self) -> float:
@@ -174,6 +179,25 @@ class MeetingManager:
         if self._speaker_timer is None:
             return 0.0
         return self._speaker_timer.overtime_seconds
+
+    def get_all_speaker_records(self) -> list[SpeakerRecord]:
+        """
+        Get all speaker records for the current meeting.
+
+        Returns:
+            List of SpeakerRecord objects with timing information.
+        """
+        return self._state_manager.get_all_speaker_records()
+
+    @property
+    def transition_time_seconds(self) -> int:
+        """Return configured transition time in seconds."""
+        return self._config.timer.transition_time_seconds
+
+    @property
+    def default_speaker_time_seconds(self) -> int:
+        """Return default speaker time in seconds."""
+        return self._config.timer.default_speaker_time_seconds
 
     # =========================================================================
     # Meeting Lifecycle
@@ -218,18 +242,20 @@ class MeetingManager:
             members = ordered_members if ordered_members else members
 
         # Initialize session
-        self._session_id = str(uuid.uuid4())[:8]
+        self._session_id = str(uuid.uuid4())[:SESSION_ID_LENGTH]
         self._team_id = team_id
         self._started_at = datetime.now()
         self._in_grace_period = False
         self._grace_notified = False
+        self._in_overflow_period = False
+        self._overflow_notified = False
 
         # Setup state manager
         self._state_manager.reset()
         self._state_manager.set_speaker_queue(members)
 
         # Initialize meeting timer
-        self._meeting_timer = TimerEngine(duration_seconds=3600)  # 1 hour max
+        self._meeting_timer = TimerEngine(duration_seconds=MAX_MEETING_DURATION_SECONDS)
         self._meeting_timer.start()
 
         # Start recovery auto-save
@@ -384,7 +410,7 @@ class MeetingManager:
 
     def pause(self) -> None:
         """Pause the meeting and all timers."""
-        if self._state_manager.state not in (MeetingState.SPEAKING, MeetingState.GRACE):
+        if self._state_manager.state not in (MeetingState.SPEAKING, MeetingState.GRACE, MeetingState.OVERFLOW):
             logger.warning(f"Cannot pause in state: {self._state_manager.state}")
             return
 
@@ -413,7 +439,9 @@ class MeetingManager:
             self._meeting_timer.resume()
 
         # Return to appropriate state
-        if self._in_grace_period:
+        if self._in_overflow_period:
+            self._state_manager.transition_to(MeetingState.OVERFLOW)
+        elif self._in_grace_period:
             self._state_manager.transition_to(MeetingState.GRACE)
         else:
             self._state_manager.transition_to(MeetingState.SPEAKING)
@@ -495,6 +523,8 @@ class MeetingManager:
 
         self._in_grace_period = False
         self._grace_notified = False
+        self._in_overflow_period = False
+        self._overflow_notified = False
 
         if self._state_manager.state != MeetingState.SPEAKING:
             self._state_manager.transition_to(MeetingState.SPEAKING)
@@ -512,21 +542,74 @@ class MeetingManager:
             True if in grace period.
         """
         if self._speaker_timer is None:
+            logger.debug("check_grace_period: no speaker timer")
             return False
 
-        if self._speaker_timer.is_overtime and not self._in_grace_period:
-            self._in_grace_period = True
+        overtime = self._speaker_timer.overtime_seconds
+        is_overtime = self._speaker_timer.is_overtime
+        current_state = self._state_manager.state
 
-            if self._state_manager.state == MeetingState.SPEAKING:
+        if is_overtime and not self._in_grace_period:
+            self._in_grace_period = True
+            logger.info(f"Entering grace period at overtime={overtime:.1f}s")
+
+            if current_state == MeetingState.SPEAKING:
+                logger.info(f"Transitioning from SPEAKING to GRACE")
                 self._state_manager.transition_to(MeetingState.GRACE)
 
             if not self._grace_notified:
                 self._grace_notified = True
                 self._notify_observers("grace_period_started", {
-                    "overtime": self._speaker_timer.overtime_seconds
+                    "overtime": overtime
                 })
 
+        # Check for overflow period (after grace period threshold)
+        self.check_overflow_period()
+
         return self._in_grace_period
+
+    def check_overflow_period(self) -> bool:
+        """
+        Check if overflow period should be triggered.
+
+        Overflow occurs after grace_period + overflow_period seconds of overtime.
+
+        Returns:
+            True if in overflow period.
+        """
+        if self._speaker_timer is None:
+            logger.debug("check_overflow_period: no speaker timer")
+            return False
+
+        grace_limit = self._config.timer.grace_period_seconds
+        overflow_period = self._config.timer.overflow_period_seconds
+        overflow_threshold = grace_limit + overflow_period
+        overtime = self._speaker_timer.overtime_seconds
+        is_overtime = self._speaker_timer.is_overtime
+        current_state = self._state_manager.state
+
+        if (
+            is_overtime
+            and overtime >= overflow_threshold
+            and not self._in_overflow_period
+        ):
+            self._in_overflow_period = True
+            logger.info(
+                f"Entering overflow period at overtime={overtime:.1f}s "
+                f"(threshold was {overflow_threshold}s)"
+            )
+
+            if current_state in (MeetingState.GRACE, MeetingState.SPEAKING):
+                logger.info(f"Transitioning from {current_state.value} to OVERFLOW")
+                self._state_manager.transition_to(MeetingState.OVERFLOW)
+
+            if not self._overflow_notified:
+                self._overflow_notified = True
+                self._notify_observers("overflow_period_started", {
+                    "overtime": overtime
+                })
+
+        return self._in_overflow_period
 
     def should_auto_advance(self) -> bool:
         """
@@ -603,7 +686,7 @@ class MeetingManager:
                 self._state_manager.advance_speaker()
 
             # Restore meeting timer
-            self._meeting_timer = TimerEngine(duration_seconds=3600)
+            self._meeting_timer = TimerEngine(duration_seconds=MAX_MEETING_DURATION_SECONDS)
             self._meeting_timer.start()
 
             # Restore speaker timer with remaining time

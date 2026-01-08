@@ -7,7 +7,17 @@ countdown, progress bar, and status indicators.
 
 import streamlit as st
 
-from src.core.constants import COLORS, DEFAULT_WARNING_THRESHOLD_SECONDS
+from src.core.constants import (
+    COLORS,
+    DEFAULT_GRACE_PERIOD_SECONDS,
+    DEFAULT_OVERFLOW_PERIOD_SECONDS,
+    DEFAULT_WARNING_THRESHOLD_SECONDS,
+    NO_TEXT_SHADOW,
+    OVERFLOW_TEXT_SHADOW,
+    PROGRESS_MAX,
+    TIMER_FONT_SIZE_NORMAL,
+    TIMER_FONT_SIZE_OVERFLOW,
+)
 from src.core.meeting_manager import MeetingManager
 from src.core.models import MeetingState
 from src.core.time_utils import format_time_mmss
@@ -16,11 +26,14 @@ from src.core.time_utils import format_time_mmss
 COLOR_NORMAL = COLORS["normal"]
 COLOR_WARNING = COLORS["warning"]
 COLOR_OVERTIME = COLORS["overtime"]
+COLOR_OVERFLOW = COLORS["overflow"]
 COLOR_PAUSED = COLORS["paused"]
 COLOR_TRANSITION = COLORS["transition"]
 
 # Thresholds
 WARNING_THRESHOLD_SECONDS = DEFAULT_WARNING_THRESHOLD_SECONDS
+GRACE_PERIOD_SECONDS = DEFAULT_GRACE_PERIOD_SECONDS
+OVERFLOW_PERIOD_SECONDS = DEFAULT_OVERFLOW_PERIOD_SECONDS
 
 
 def get_timer_color(remaining: float, state: MeetingState) -> str:
@@ -38,6 +51,8 @@ def get_timer_color(remaining: float, state: MeetingState) -> str:
         return COLOR_PAUSED
     if state == MeetingState.TRANSITION:
         return COLOR_TRANSITION
+    if state == MeetingState.OVERFLOW:
+        return COLOR_OVERFLOW
     if remaining < 0:
         return COLOR_OVERTIME
     if remaining <= WARNING_THRESHOLD_SECONDS:
@@ -74,11 +89,32 @@ def get_status_text(state: MeetingState, remaining: float) -> str:
         return "PAUSED"
     if state == MeetingState.TRANSITION:
         return "TRANSITION"
+    if state == MeetingState.OVERFLOW:
+        return "OVERFLOW"
     if remaining < 0:
         return "OVERTIME"
     if remaining <= WARNING_THRESHOLD_SECONDS:
         return "WARNING"
     return "SPEAKING"
+
+
+def is_overflow_state(remaining: float, state: MeetingState) -> bool:
+    """
+    Check if the timer is in overflow state.
+
+    Args:
+        remaining: Remaining seconds (negative when overtime).
+        state: Current meeting state.
+
+    Returns:
+        True if in overflow state (90 seconds after grace period starts).
+    """
+    if state == MeetingState.OVERFLOW:
+        return True
+    if remaining < 0:
+        overtime = abs(remaining)
+        return overtime >= (GRACE_PERIOD_SECONDS + OVERFLOW_PERIOD_SECONDS)
+    return False
 
 
 def render_timer(manager: MeetingManager) -> None:
@@ -93,46 +129,50 @@ def render_timer(manager: MeetingManager) -> None:
 
     # Container for timer
     with st.container():
-        # Speaker name
+        # Speaker name (compact)
         if speaker:
-            st.subheader(speaker.display_name)
+            st.markdown(f"**{speaker.display_name}**")
         else:
-            st.subheader("No Speaker")
+            st.markdown("**No Speaker**")
 
         # Get timing info
         if state == MeetingState.TRANSITION:
             remaining = manager.transition_time_remaining
-            total = manager._config.timer.transition_time_seconds
+            total = manager.transition_time_seconds
         else:
             remaining = manager.speaker_time_remaining
-            total = manager._config.timer.default_speaker_time_seconds
+            total = manager.default_speaker_time_seconds
             if speaker and speaker.daily_config:
                 total = speaker.daily_config.default_time_seconds
+
+        # Check for overflow state (90s after grace period)
+        is_overflow = is_overflow_state(remaining, state)
 
         # Timer color
         color = get_timer_color(remaining, state)
 
-        # Large timer display using markdown
+        # Compact timer display using markdown
         time_str = format_time(remaining)
-        st.markdown(
-            f"""
-            <div style="text-align: center;">
-                <h1 style="color: {color}; font-size: 5rem; font-family: monospace; margin: 0;">
-                    {time_str}
-                </h1>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-
-        # Status indicator
         status = get_status_text(state, remaining)
+
+        # Override status for overflow condition
+        if is_overflow and state not in (MeetingState.PAUSED, MeetingState.TRANSITION):
+            status = "OVERFLOW"
+            color = COLOR_OVERFLOW
+
+        # Apply extra bold styling for overflow state
+        font_size = TIMER_FONT_SIZE_OVERFLOW if is_overflow else TIMER_FONT_SIZE_NORMAL
+        text_shadow = OVERFLOW_TEXT_SHADOW if is_overflow else NO_TEXT_SHADOW
+
         st.markdown(
             f"""
-            <div style="text-align: center;">
-                <span style="color: {color}; font-size: 1.5rem; font-weight: bold;">
-                    [{status}]
-                </span>
+            <div style="text-align: center; margin: 0; padding: 0;">
+                <div style="color: {color}; font-size: {font_size}; font-family: monospace; font-weight: bold; margin: 0; line-height: 1; text-shadow: {text_shadow};">
+                    {time_str}
+                </div>
+                <div style="color: {color}; font-size: 0.75rem; font-weight: bold; margin: 0;">
+                    {status}
+                </div>
             </div>
             """,
             unsafe_allow_html=True,
@@ -141,7 +181,7 @@ def render_timer(manager: MeetingManager) -> None:
         # Progress bar (only when not in transition or paused)
         if state not in (MeetingState.TRANSITION, MeetingState.PAUSED) and total > 0:
             elapsed = max(0, total - remaining)
-            progress = min(elapsed / total, 1.0)
+            progress = min(elapsed / total, PROGRESS_MAX)
             st.progress(progress)
 
 

@@ -644,4 +644,5 @@ class TestEnums:
         assert MeetingState.SPEAKING.value == "speaking"
         assert MeetingState.PAUSED.value == "paused"
         assert MeetingState.GRACE.value == "grace"
+        assert MeetingState.OVERFLOW.value == "overflow"
         assert MeetingState.COMPLETED.value == "completed"

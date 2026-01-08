@@ -9,6 +9,7 @@ import argparse
 import logging
 import signal
 import sys
+from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
 from rich.console import Console, Group
@@ -16,7 +17,17 @@ from rich.live import Live
 
 from src.cli.commands import Command, KeyboardHandler
 from src.cli.display import CLIDisplay
-from src.core.constants import CLI_REFRESH_INTERVAL_SECONDS, TIME_INCREMENT_SECONDS
+from src.core.constants import (
+    CLI_REFRESH_INTERVAL_SECONDS,
+    CLI_REFRESH_PER_SECOND,
+    LOG_BACKUP_COUNT,
+    LOG_DATE_FORMAT,
+    LOG_DIR,
+    LOG_FILE_NAME,
+    LOG_FORMAT,
+    LOG_MAX_BYTES,
+    TIME_INCREMENT_SECONDS,
+)
 from src.core.meeting_manager import MeetingManager
 from src.core.models import AppConfig, MeetingState
 from src.data.config_manager import ConfigManager
@@ -263,7 +274,7 @@ class CLIApp:
         with Live(
             self._render_display(),
             console=self._console,
-            refresh_per_second=10,
+            refresh_per_second=CLI_REFRESH_PER_SECOND,
             transient=True,
         ) as live:
             while self._running and self._meeting_manager.is_active:
@@ -294,8 +305,8 @@ class CLIApp:
                 ):
                     self._meeting_manager.start_speaking()
 
-                # Check grace period
-                if current_state == MeetingState.SPEAKING:
+                # Check grace period and overflow transitions
+                if current_state in (MeetingState.SPEAKING, MeetingState.GRACE, MeetingState.OVERFLOW):
                     self._meeting_manager.check_grace_period()
 
                 # Update display
@@ -304,7 +315,7 @@ class CLIApp:
         # Show summary
         self._display.clear()
         if self._meeting_manager is not None:
-            records = self._meeting_manager._state_manager.get_all_speaker_records()
+            records = self._meeting_manager.get_all_speaker_records()
             self._console.print(
                 self._display.render_meeting_summary(
                     total_duration=self._meeting_manager.meeting_elapsed,
@@ -365,7 +376,7 @@ class CLIApp:
             self._display.render_queue(
                 speakers=self._meeting_manager.speaker_queue,
                 current_index=self._meeting_manager.current_speaker_index,
-                speaker_records=self._meeting_manager._state_manager.get_all_speaker_records(),
+                speaker_records=self._meeting_manager.get_all_speaker_records(),
             )
         )
 
@@ -389,23 +400,23 @@ class CLIApp:
         if command == Command.PAUSE_RESUME:
             if state == MeetingState.PAUSED:
                 self._meeting_manager.resume()
-            elif state in (MeetingState.SPEAKING, MeetingState.GRACE):
+            elif state in (MeetingState.SPEAKING, MeetingState.GRACE, MeetingState.OVERFLOW):
                 self._meeting_manager.pause()
 
         elif command == Command.NEXT_SPEAKER:
-            if state in (MeetingState.SPEAKING, MeetingState.GRACE, MeetingState.TRANSITION):
+            if state in (MeetingState.SPEAKING, MeetingState.GRACE, MeetingState.OVERFLOW, MeetingState.TRANSITION):
                 self._meeting_manager.next_speaker()
 
         elif command == Command.SKIP_SPEAKER:
-            if state in (MeetingState.SPEAKING, MeetingState.GRACE, MeetingState.TRANSITION):
+            if state in (MeetingState.SPEAKING, MeetingState.GRACE, MeetingState.OVERFLOW, MeetingState.TRANSITION):
                 self._meeting_manager.skip_speaker()
 
         elif command == Command.ADD_TIME:
-            if state in (MeetingState.SPEAKING, MeetingState.GRACE):
+            if state in (MeetingState.SPEAKING, MeetingState.GRACE, MeetingState.OVERFLOW):
                 self._meeting_manager.add_time(TIME_INCREMENT_SECONDS)
 
         elif command == Command.SUBTRACT_TIME:
-            if state in (MeetingState.SPEAKING, MeetingState.GRACE):
+            if state in (MeetingState.SPEAKING, MeetingState.GRACE, MeetingState.OVERFLOW):
                 self._meeting_manager.add_time(-TIME_INCREMENT_SECONDS)
 
         elif command == Command.MARK_ABSENT:
@@ -488,16 +499,52 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
+def setup_logging(verbose: bool) -> None:
+    """
+    Configure logging with rotating file handler.
+
+    Console logging is disabled to avoid interfering with Rich Live display.
+    All logs go to file only. Use `tail -f logs/daily_timer.log` to monitor.
+
+    Args:
+        verbose: If True, enable DEBUG level in file logging.
+    """
+    log_level = logging.DEBUG if verbose else logging.INFO
+
+    # Create logs directory if needed
+    log_dir = Path(LOG_DIR)
+    log_dir.mkdir(parents=True, exist_ok=True)
+    log_file = log_dir / LOG_FILE_NAME
+
+    # Create formatter
+    formatter = logging.Formatter(LOG_FORMAT, datefmt=LOG_DATE_FORMAT)
+
+    # Root logger setup
+    root_logger = logging.getLogger()
+    root_logger.setLevel(log_level)
+
+    # Clear any existing handlers
+    root_logger.handlers.clear()
+
+    # File handler only - no console to avoid interfering with Rich Live
+    file_handler = RotatingFileHandler(
+        log_file,
+        maxBytes=LOG_MAX_BYTES,
+        backupCount=LOG_BACKUP_COUNT,
+    )
+    file_handler.setLevel(log_level)
+    file_handler.setFormatter(formatter)
+    root_logger.addHandler(file_handler)
+
+    logging.info(f"Logging initialized: file={log_file}, level={logging.getLevelName(log_level)}")
+
+
 def main() -> int:
     """Main entry point for the CLI."""
     args = parse_args()
 
-    # Setup logging
-    log_level = logging.DEBUG if args.verbose else logging.WARNING
-    logging.basicConfig(
-        level=log_level,
-        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    )
+    # Setup logging with rotation
+    setup_logging(args.verbose)
 
     # Load configuration
     config_mgr = ConfigManager(Path(args.config))

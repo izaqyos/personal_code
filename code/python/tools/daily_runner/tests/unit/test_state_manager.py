@@ -212,6 +212,7 @@ class TestTransitionMatrix:
             MeetingState.SPEAKING: [MeetingState.SPEAKING],
             MeetingState.PAUSED: [MeetingState.SPEAKING, MeetingState.PAUSED],
             MeetingState.GRACE: [MeetingState.SPEAKING, MeetingState.GRACE],
+            MeetingState.OVERFLOW: [MeetingState.SPEAKING, MeetingState.GRACE, MeetingState.OVERFLOW],
             MeetingState.COMPLETED: [MeetingState.SPEAKING, MeetingState.COMPLETED],
         }
         for state in paths.get(target, []):

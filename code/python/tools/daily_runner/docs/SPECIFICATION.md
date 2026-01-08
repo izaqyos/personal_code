@@ -37,6 +37,7 @@ A timer application with:
 | FR-06 | Grace period of 15 seconds after timer expires | Must |
 | FR-07 | Auto-advance to next speaker after grace period | Must |
 | FR-08 | Overtime counter when speaker exceeds limit | Must |
+| FR-08a | Overflow state (90s after grace) with bold red display | Must |
 
 ### 2.2 Moderator Controls
 
@@ -338,7 +339,8 @@ A timer application with:
 - **Green**: Time remaining > 30s
 - **Yellow/Orange**: Time remaining <= 30s (warning)
 - **Red**: Overtime (timer shows negative or overtime count)
-- **Flashing Red**: Grace period exceeded
+- **Red (Grace)**: Grace period (15s after timer expires)
+- **Bold Red with Glow**: Overflow state (90s after grace period - hard limit indicator)
 
 ### 6.2 CLI Interface Layout
 
@@ -435,8 +437,15 @@ A timer application with:
          │                      │ (15s warn)│  │
          │                      └─────┬─────┘  │
          │                            │        │
+         │                     overflow_check  │
+         │                            │        │
+         │                      ┌─────▼─────┐  │
+         │                      │  OVERFLOW │  │
+         │                      │(90s limit)│  │
+         │                      └─────┬─────┘  │
+         │                            │        │
          │              ┌─────────────┴────────┘
-         │              │ grace_expired OR next_speaker()
+         │              │ overflow_expired OR next_speaker()
          │              ▼
          │       ┌─────────────┐
          │       │ NEXT_SPEAKER│
@@ -522,5 +531,6 @@ daily-timer --mode history
 | **Speaker** | Team member currently giving their update |
 | **Transition** | 30-second break between speakers |
 | **Grace Period** | 15 seconds after timer expires before auto-advance |
+| **Overflow** | 90 seconds after grace period starts - hard time limit indicator |
 | **Overtime** | Time spent beyond allocated limit |
 | **Moderator** | Person controlling the meeting (typically Team Lead) |
