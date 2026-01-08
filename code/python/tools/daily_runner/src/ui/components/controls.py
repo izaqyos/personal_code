@@ -14,83 +14,60 @@ from src.core.models import MeetingState
 
 def render_controls(manager: MeetingManager) -> None:
     """
-    Render the meeting control buttons.
+    Render the meeting control buttons (compact layout for sidebar).
 
     Args:
         manager: The meeting manager instance.
     """
     state = manager.state
+    can_next = state in (MeetingState.SPEAKING, MeetingState.GRACE, MeetingState.OVERFLOW, MeetingState.TRANSITION)
+    can_skip = can_next
+    can_adjust = state in (MeetingState.SPEAKING, MeetingState.GRACE, MeetingState.OVERFLOW)
 
-    # Main control row
-    cols = st.columns(5)
-
-    # Pause/Resume button
-    with cols[0]:
+    # Row 1: Pause/Resume, Next, Skip (3 columns)
+    c1, c2, c3 = st.columns(3)
+    with c1:
         if state == MeetingState.PAUSED:
-            if st.button("▶️ Resume", use_container_width=True):
+            if st.button("▶", use_container_width=True, help="Resume (P)"):
                 manager.resume()
                 st.rerun()
-        elif state in (MeetingState.SPEAKING, MeetingState.GRACE):
-            if st.button("⏸️ Pause", use_container_width=True):
+        elif state in (MeetingState.SPEAKING, MeetingState.GRACE, MeetingState.OVERFLOW):
+            if st.button("⏸", use_container_width=True, help="Pause (P)"):
                 manager.pause()
                 st.rerun()
         else:
-            st.button("⏸️ Pause", use_container_width=True, disabled=True)
-
-    # Next speaker button
-    with cols[1]:
-        can_next = state in (
-            MeetingState.SPEAKING,
-            MeetingState.GRACE,
-            MeetingState.TRANSITION,
-        )
-        if st.button("⏭️ Next", use_container_width=True, disabled=not can_next) and can_next:
+            st.button("⏸", use_container_width=True, disabled=True)
+    with c2:
+        if st.button("⏭", use_container_width=True, disabled=not can_next, help="Next (N)") and can_next:
             manager.next_speaker()
             st.rerun()
-
-    # Skip speaker button
-    with cols[2]:
-        can_skip = state in (
-            MeetingState.SPEAKING,
-            MeetingState.GRACE,
-            MeetingState.TRANSITION,
-        )
-        if st.button("⏩ Skip", use_container_width=True, disabled=not can_skip) and can_skip:
+    with c3:
+        if st.button("⏩", use_container_width=True, disabled=not can_skip, help="Skip (S)") and can_skip:
             manager.skip_speaker()
             st.rerun()
 
-    # Add time button
-    with cols[3]:
-        can_adjust = state in (MeetingState.SPEAKING, MeetingState.GRACE)
-        if st.button(f"+{TIME_INCREMENT_SECONDS}s", use_container_width=True, disabled=not can_adjust) and can_adjust:
+    # Row 2: Time +/-, Start Now / End
+    c4, c5, c6 = st.columns(3)
+    with c4:
+        if st.button("+30", use_container_width=True, disabled=not can_adjust, help="Add time (+)") and can_adjust:
             manager.add_time(TIME_INCREMENT_SECONDS)
             st.rerun()
-
-    # Subtract time button
-    with cols[4]:
-        can_adjust = state in (MeetingState.SPEAKING, MeetingState.GRACE)
-        if st.button(f"-{TIME_INCREMENT_SECONDS}s", use_container_width=True, disabled=not can_adjust) and can_adjust:
+    with c5:
+        if st.button("-30", use_container_width=True, disabled=not can_adjust, help="Subtract time (-)") and can_adjust:
             manager.add_time(-TIME_INCREMENT_SECONDS)
             st.rerun()
+    with c6:
+        if state == MeetingState.TRANSITION:
+            if st.button("🎤", use_container_width=True, help="Start Now"):
+                manager.start_speaking()
+                st.rerun()
+        else:
+            if st.button("🛑", use_container_width=True, help="End Meeting"):
+                manager.end_meeting(save_history=True)
+                st.rerun()
 
-    # Secondary control row
-    cols2 = st.columns(3)
-
-    # Mark absent button
-    with cols2[0]:
-        render_absent_selector(manager)
-
-    # Start speaking button (for transition state)
-    with cols2[1]:
-        if state == MeetingState.TRANSITION and st.button("🎤 Start Now", use_container_width=True):
-            manager.start_speaking()
-            st.rerun()
-
-    # End meeting button
-    with cols2[2]:
-        if st.button("🛑 End Meeting", use_container_width=True, type="secondary"):
-            manager.end_meeting(save_history=True)
-            st.rerun()
+    # Row 3: Absent selector (full width)
+    render_absent_selector(manager)
 
 
 def render_absent_selector(manager: MeetingManager) -> None:
@@ -132,7 +109,7 @@ def render_time_controls(manager: MeetingManager) -> None:
         manager: The meeting manager instance.
     """
     state = manager.state
-    can_adjust = state in (MeetingState.SPEAKING, MeetingState.GRACE)
+    can_adjust = state in (MeetingState.SPEAKING, MeetingState.GRACE, MeetingState.OVERFLOW)
 
     col1, col2 = st.columns(2)
 

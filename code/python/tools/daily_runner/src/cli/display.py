@@ -6,7 +6,11 @@ for the CLI interface including timers, speaker queues,
 and status displays.
 """
 
+import logging
+
 from rich.align import Align
+
+logger = logging.getLogger(__name__)
 from rich.console import Console, Group
 from rich.panel import Panel
 from rich.progress import BarColumn, Progress, TextColumn
@@ -23,6 +27,7 @@ COLORS = {
     "normal": "green",
     "warning": "yellow",
     "overtime": "red",
+    "overflow": "bold red",  # Hard limit - extra emphasis
     "paused": "blue",
     "transition": "cyan",
     "completed": "dim",
@@ -102,6 +107,9 @@ class CLIDisplay:
         elif state == MeetingState.TRANSITION:
             color = COLORS["transition"]
             status = "TRANSITION"
+        elif state == MeetingState.OVERFLOW:
+            color = COLORS["overflow"]
+            status = "OVERFLOW"
         elif remaining_seconds < 0:
             color = COLORS["overtime"]
             status = "OVERTIME"
@@ -231,14 +239,14 @@ class CLIDisplay:
 
         if state == MeetingState.PAUSED:
             controls.append(("[p]", "Resume"))
-        elif state in (MeetingState.SPEAKING, MeetingState.GRACE):
+        elif state in (MeetingState.SPEAKING, MeetingState.GRACE, MeetingState.OVERFLOW):
             controls.append(("[p]", "Pause"))
 
-        if state in (MeetingState.SPEAKING, MeetingState.GRACE, MeetingState.TRANSITION):
+        if state in (MeetingState.SPEAKING, MeetingState.GRACE, MeetingState.OVERFLOW, MeetingState.TRANSITION):
             controls.append(("[n]", "Next"))
             controls.append(("[s]", "Skip"))
 
-        if state in (MeetingState.SPEAKING, MeetingState.GRACE):
+        if state in (MeetingState.SPEAKING, MeetingState.GRACE, MeetingState.OVERFLOW):
             controls.append(("[+]", "+30s"))
             controls.append(("[-]", "-30s"))
 
@@ -432,6 +440,8 @@ class CLIDisplay:
         """
         if state == MeetingState.PAUSED:
             return COLORS["paused"]
+        elif state == MeetingState.OVERFLOW:
+            return COLORS["overflow"]
         elif remaining_seconds < 0:
             return COLORS["overtime"]
         elif remaining_seconds <= self._warning_threshold:

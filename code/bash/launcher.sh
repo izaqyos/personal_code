@@ -10,6 +10,8 @@ REMINDER_SCRIPT="/Users/yosii/work/CheckPoint/Jira/release/reminder_app/remind_c
 REPO_CLEANER_DIR="/Users/yosii/work/git/personal_code/code/python/tools/repo_cleaner"
 REPO_CLEANER_CMD="repo-cleaner"
 CONTEXT_GENERATOR_SCRIPT="/Users/yosii/work/context/generate_context.sh"
+DAILY_RUNNER_DIR="/Users/yosii/work/git/personal_code/code/python/tools/daily_runner"
+DAILY_RUNNER_VENV="$DAILY_RUNNER_DIR/.venv"
 
 # Colors for output
 GREEN='\033[0;32m'
@@ -37,10 +39,11 @@ show_main_menu() {
     echo -e "  ${GREEN}2${NC} - Remind Champion"
     echo -e "  ${GREEN}3${NC} - Repo Cleaner"
     echo -e "  ${GREEN}4${NC} - Context Generator"
+    echo -e "  ${GREEN}5${NC} - Daily Standup Timer"
     echo ""
     echo -e "  ${YELLOW}0${NC} - Exit"
     echo ""
-    echo -n "Enter choice [0-4]: "
+    echo -n "Enter choice [0-5]: "
 }
 
 # Show tracker submenu
@@ -130,6 +133,25 @@ show_reminder_menu() {
     echo -e "  ${YELLOW}0${NC} - Back to Main Menu"
     echo ""
     echo -n "Enter choice [0-11]: "
+}
+
+# Show daily timer submenu
+show_daily_timer_menu() {
+    clear_screen
+    echo -e "${BOLD}${CYAN}╔════════════════════════════════════════╗${NC}"
+    echo -e "${BOLD}${CYAN}║      DAILY STANDUP TIMER MENU          ║${NC}"
+    echo -e "${BOLD}${CYAN}╚════════════════════════════════════════╝${NC}"
+    echo ""
+    echo -e "${BOLD}Select an action:${NC}"
+    echo ""
+    echo -e "  ${GREEN}1${NC} - Start Meeting (CLI)"
+    echo -e "  ${GREEN}2${NC} - Start Meeting (Web UI)"
+    echo -e "  ${GREEN}3${NC} - View Meeting History"
+    echo -e "  ${GREEN}4${NC} - View History (Custom Range)"
+    echo ""
+    echo -e "  ${YELLOW}0${NC} - Back to Main Menu"
+    echo ""
+    echo -n "Enter choice [0-4]: "
 }
 
 # Tracker menu handler
@@ -513,6 +535,97 @@ handle_reminder_menu() {
     done
 }
 
+# Daily timer menu handler
+handle_daily_timer_menu() {
+    # Check if venv exists
+    if [ ! -d "$DAILY_RUNNER_VENV" ]; then
+        clear_screen
+        echo -e "${YELLOW}Warning: Daily Runner venv not found${NC}"
+        echo ""
+        echo "To set up, run:"
+        echo "  cd $DAILY_RUNNER_DIR"
+        echo "  python -m venv .venv"
+        echo "  source .venv/bin/activate"
+        echo "  pip install -e ."
+        echo ""
+        echo -n "Press Enter to continue..."
+        read
+        return
+    fi
+
+    while true; do
+        show_daily_timer_menu
+        read choice
+
+        case "$choice" in
+            1)
+                clear_screen
+                echo -e "${CYAN}Starting Daily Standup (CLI mode)...${NC}"
+                echo ""
+                cd "$DAILY_RUNNER_DIR"
+                source "$DAILY_RUNNER_VENV/bin/activate"
+                python main.py --mode cli --team imagine_dragons
+                deactivate
+                cd - > /dev/null
+                echo ""
+                echo -n "Press Enter to continue..."
+                read
+                ;;
+            2)
+                clear_screen
+                echo -e "${CYAN}Starting Daily Standup (Web UI)...${NC}"
+                echo ""
+                cd "$DAILY_RUNNER_DIR"
+                source "$DAILY_RUNNER_VENV/bin/activate"
+                python main.py --mode ui --team imagine_dragons
+                deactivate
+                cd - > /dev/null
+                echo ""
+                echo -n "Press Enter to continue..."
+                read
+                ;;
+            3)
+                clear_screen
+                echo -e "${CYAN}Meeting History (last 30 days):${NC}"
+                echo ""
+                cd "$DAILY_RUNNER_DIR"
+                source "$DAILY_RUNNER_VENV/bin/activate"
+                python main.py --mode history --team imagine_dragons
+                deactivate
+                cd - > /dev/null
+                echo ""
+                echo -n "Press Enter to continue..."
+                read
+                ;;
+            4)
+                clear_screen
+                echo -n "Enter number of days to show (default 30): "
+                read days
+                days=${days:-30}
+                echo -n "Enter max entries to show (default 20): "
+                read limit
+                limit=${limit:-20}
+                echo ""
+                cd "$DAILY_RUNNER_DIR"
+                source "$DAILY_RUNNER_VENV/bin/activate"
+                python main.py --mode history --team imagine_dragons --days "$days" --limit "$limit"
+                deactivate
+                cd - > /dev/null
+                echo ""
+                echo -n "Press Enter to continue..."
+                read
+                ;;
+            0)
+                return
+                ;;
+            *)
+                echo -e "${YELLOW}Invalid choice. Please try again.${NC}"
+                sleep 1
+                ;;
+        esac
+    done
+}
+
 # Check if scripts exist
 check_scripts() {
     if [ ! -f "$TRACKER_SCRIPT" ]; then
@@ -529,6 +642,10 @@ check_scripts() {
 
     if [ ! -f "$CONTEXT_GENERATOR_SCRIPT" ]; then
         echo -e "${YELLOW}Warning: generate_context.sh not found at $CONTEXT_GENERATOR_SCRIPT${NC}"
+    fi
+
+    if [ ! -d "$DAILY_RUNNER_VENV" ]; then
+        echo -e "${YELLOW}Warning: Daily Runner venv not found at $DAILY_RUNNER_VENV${NC}"
     fi
 }
 
@@ -567,6 +684,9 @@ main() {
                     continue
                 fi
                 handle_context_generator_menu
+                ;;
+            5)
+                handle_daily_timer_menu
                 ;;
             0)
                 clear_screen

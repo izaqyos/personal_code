@@ -5,7 +5,9 @@ A Python application for managing daily standup meetings with configurable timer
 ## Features
 
 - **Per-developer timers** with configurable time limits (default: 3 minutes)
-- **Visual alerts** for warnings and overtime
+- **Visual alerts** for warnings, overtime, and overflow states
+- **Grace period** (15s) after timer expires with warning
+- **Overflow period** (90s after grace) with bold red display for hard time limits
 - **Two interface modes**: Streamlit UI and Interactive CLI
 - **Meeting history** tracking with analytics
 - **Session recovery** for crash resilience
@@ -33,6 +35,22 @@ pip install -e ".[dev]"
 ```
 
 ## Usage
+
+### Quick Start (Imagine Dragons Team)
+
+```bash
+# Launch daily standup (Streamlit UI)
+python main.py --team imagine_dragons
+
+# Launch daily standup (CLI mode)
+python main.py --mode cli --team imagine_dragons
+
+# View meeting history
+python main.py --mode history --team imagine_dragons
+
+# Launch with test config (faster timers for testing)
+python main.py --config config.test.json --team imagine_dragons
+```
 
 ### Streamlit UI Mode (Default)
 
@@ -78,7 +96,19 @@ daily-timer --mode history
 
 ## Configuration
 
-Configuration is stored in `config.json`:
+Configuration is stored in `config.json`. A test configuration (`config.test.json`) is also available with reduced timers for faster testing:
+
+| Setting | Production | Test |
+|---------|------------|------|
+| Speaker time | 180s (3m) | 30s |
+| Transition time | 30s | 5s |
+| Grace period | 15s | 3s |
+| Warning threshold | 30s | 5s |
+| Overflow period | 90s | 10s |
+| Auto-save interval | 5s | 1s |
+| Max history entries | 2000 | 100 |
+
+### Default Configuration (`config.json`)
 
 ```json
 {
@@ -86,7 +116,8 @@ Configuration is stored in `config.json`:
     "default_speaker_time_seconds": 180,
     "transition_time_seconds": 30,
     "grace_period_seconds": 15,
-    "warning_threshold_seconds": 30
+    "warning_threshold_seconds": 30,
+    "overflow_period_seconds": 90
   },
   "teams": {
     "directory": "teams",

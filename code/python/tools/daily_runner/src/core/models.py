@@ -41,6 +41,7 @@ class MeetingState(str, Enum):
     SPEAKING = "speaking"
     PAUSED = "paused"
     GRACE = "grace"
+    OVERFLOW = "overflow"
     COMPLETED = "completed"
 
 
@@ -217,6 +218,12 @@ class TimerConfig(BaseModel):
         ge=5,
         le=120,
         description="When to show warning (5-120 seconds before end)",
+    )
+    overflow_period_seconds: int = Field(
+        default=90,
+        ge=5,
+        le=300,
+        description="Overflow period after grace (5-300 seconds)",
     )
 
 

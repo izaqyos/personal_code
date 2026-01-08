@@ -14,7 +14,7 @@ Test coverage for Phase 9:
 
 
 from src.core.models import MeetingState
-from src.ui.components.speaker_queue import format_elapsed
+from src.core.time_utils import format_time_mmss
 from src.ui.components.timer_display import (
     COLOR_NORMAL,
     COLOR_OVERTIME,
@@ -123,20 +123,20 @@ class TestSpeakerQueueFormatting:
     """Test speaker queue formatting functions."""
 
     def test_format_elapsed_zero(self) -> None:
-        """format_elapsed should handle zero."""
-        assert format_elapsed(0.0) == "00:00"
+        """format_time_mmss should handle zero."""
+        assert format_time_mmss(0.0, show_sign=False) == "00:00"
 
     def test_format_elapsed_seconds_only(self) -> None:
-        """format_elapsed should format seconds only."""
-        assert format_elapsed(45.0) == "00:45"
+        """format_time_mmss should format seconds only."""
+        assert format_time_mmss(45.0, show_sign=False) == "00:45"
 
     def test_format_elapsed_with_minutes(self) -> None:
-        """format_elapsed should format minutes and seconds."""
-        assert format_elapsed(130.0) == "02:10"
+        """format_time_mmss should format minutes and seconds."""
+        assert format_time_mmss(130.0, show_sign=False) == "02:10"
 
     def test_format_elapsed_long_duration(self) -> None:
-        """format_elapsed should handle long durations."""
-        assert format_elapsed(3661.0) == "61:01"
+        """format_time_mmss should handle long durations."""
+        assert format_time_mmss(3661.0, show_sign=False) == "61:01"
 
 
 # =============================================================================
@@ -285,9 +285,9 @@ class TestEdgeCases:
         assert status == "WARNING"
 
     def test_format_elapsed_fractional(self) -> None:
-        """format_elapsed should handle fractional seconds."""
+        """format_time_mmss should handle fractional seconds."""
         # 90.5 seconds should round down to 90
-        assert format_elapsed(90.5) == "01:30"
+        assert format_time_mmss(90.5, show_sign=False) == "01:30"
 
 
 class TestColorConstants:

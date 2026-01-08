@@ -34,8 +34,26 @@ VALID_TRANSITIONS: dict[MeetingState, set[MeetingState]] = {
         MeetingState.TRANSITION,
         MeetingState.COMPLETED,
     },
-    MeetingState.PAUSED: {MeetingState.SPEAKING, MeetingState.TRANSITION, MeetingState.COMPLETED},
-    MeetingState.GRACE: {MeetingState.SPEAKING, MeetingState.PAUSED, MeetingState.TRANSITION, MeetingState.COMPLETED},
+    MeetingState.PAUSED: {
+        MeetingState.SPEAKING,
+        MeetingState.GRACE,
+        MeetingState.OVERFLOW,
+        MeetingState.TRANSITION,
+        MeetingState.COMPLETED,
+    },
+    MeetingState.GRACE: {
+        MeetingState.SPEAKING,
+        MeetingState.PAUSED,
+        MeetingState.OVERFLOW,
+        MeetingState.TRANSITION,
+        MeetingState.COMPLETED,
+    },
+    MeetingState.OVERFLOW: {
+        MeetingState.SPEAKING,
+        MeetingState.PAUSED,
+        MeetingState.TRANSITION,
+        MeetingState.COMPLETED,
+    },
     MeetingState.COMPLETED: set(),  # Terminal state - no transitions out
 }
 
@@ -314,7 +332,7 @@ class StateManager:
 
         old_state = self._state
         self._state = new_state
-        logger.debug(f"State transition: {old_state.value} -> {new_state.value}")
+        logger.info(f"STATE TRANSITION: {old_state.value} -> {new_state.value}")
 
         self._notify_observers(old_state, new_state)
 

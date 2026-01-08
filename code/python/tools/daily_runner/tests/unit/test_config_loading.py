@@ -105,7 +105,7 @@ class TestTeamFileLoading:
             team_data = json.load(f)
 
         assert "members" in team_data
-        assert len(team_data["members"]) == 6  # Chen, Miri, Muhe, Osher, Yair, Yocheved
+        assert len(team_data["members"]) == 8  # Yosi, Chen, Guy, Miri, Muhe, Osher, Yair, Yocheved
 
     def test_default_team_members_have_required_fields(self) -> None:
         """Test that team members have all required fields."""
@@ -129,5 +129,6 @@ class TestTeamFileLoading:
             team_data = json.load(f)
 
         display_names = [m["display_name"] for m in team_data["members"]]
-        expected_order = ["Chen", "Miri", "Muhe", "Osher", "Yair", "Yocheved"]
+        # Yosi is first as team leader, followed by team members
+        expected_order = ["Yosi", "Chen", "Guy", "Miri", "Muhe", "Osher", "Yair", "Yocheved"]
         assert display_names == expected_order

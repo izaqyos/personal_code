@@ -53,21 +53,21 @@ def sample_speakers() -> list[TeamMember]:
             name="Alice Anderson",
             display_name="Alice",
             email="alice@test.com",
-            daily_config=DailyConfig(default_time_seconds=180, active=True),
+            daily_config=DailyConfig(default_time_seconds=30, active=True),
         ),
         TeamMember(
             id="bob",
             name="Bob Brown",
             display_name="Bob",
             email="bob@test.com",
-            daily_config=DailyConfig(default_time_seconds=180, active=True),
+            daily_config=DailyConfig(default_time_seconds=30, active=True),
         ),
         TeamMember(
             id="charlie",
             name="Charlie Chen",
             display_name="Charlie",
             email="charlie@test.com",
-            daily_config=DailyConfig(default_time_seconds=180, active=True),
+            daily_config=DailyConfig(default_time_seconds=30, active=True),
         ),
     ]
 
@@ -190,7 +190,7 @@ class TestTimerDisplay:
         """Timer should render in normal state."""
         panel = display.render_timer(
             remaining_seconds=120.0,
-            total_seconds=180.0,
+            total_seconds=30.0,
             state=MeetingState.SPEAKING,
             speaker_name="Alice",
         )
@@ -202,7 +202,7 @@ class TestTimerDisplay:
         """Timer should show formatted time."""
         panel = display.render_timer(
             remaining_seconds=125.0,  # 2:05
-            total_seconds=180.0,
+            total_seconds=30.0,
             state=MeetingState.SPEAKING,
             speaker_name="Alice",
         )
@@ -217,7 +217,7 @@ class TestTimerDisplay:
         """Timer should show current speaker name."""
         panel = display.render_timer(
             remaining_seconds=60.0,
-            total_seconds=180.0,
+            total_seconds=30.0,
             state=MeetingState.SPEAKING,
             speaker_name="Bob",
         )
@@ -232,7 +232,7 @@ class TestTimerDisplay:
         """Timer should show PAUSED status when paused."""
         panel = display.render_timer(
             remaining_seconds=60.0,
-            total_seconds=180.0,
+            total_seconds=30.0,
             state=MeetingState.PAUSED,
             speaker_name="Alice",
         )
@@ -331,8 +331,8 @@ class TestWarningColors:
 
     def test_get_timer_color_warning(self, display: CLIDisplay) -> None:
         """Timer should be yellow at warning threshold."""
-        display.set_warning_threshold(30)
-        color = display.get_timer_color(25.0, MeetingState.SPEAKING)
+        display.set_warning_threshold(5)
+        color = display.get_timer_color(4.0, MeetingState.SPEAKING)
         assert color == COLORS["warning"]
 
     def test_get_timer_color_overtime(self, display: CLIDisplay) -> None:
@@ -358,7 +358,7 @@ class TestOvertimeDisplay:
         """Overtime should show negative time format."""
         panel = display.render_timer(
             remaining_seconds=-15.0,
-            total_seconds=180.0,
+            total_seconds=30.0,
             state=MeetingState.GRACE,
             speaker_name="Alice",
         )
@@ -373,7 +373,7 @@ class TestOvertimeDisplay:
         """Overtime should show OVERTIME status."""
         panel = display.render_timer(
             remaining_seconds=-30.0,
-            total_seconds=180.0,
+            total_seconds=30.0,
             state=MeetingState.GRACE,
             speaker_name="Alice",
         )
@@ -623,7 +623,7 @@ class TestDisplayEdgeCases:
         """Timer should render without speaker name."""
         panel = display.render_timer(
             remaining_seconds=60.0,
-            total_seconds=180.0,
+            total_seconds=30.0,
             state=MeetingState.SPEAKING,
             speaker_name=None,
         )
@@ -776,7 +776,7 @@ class TestDisplayEdgeCases:
         """Timer should include progress bar in normal state."""
         panel = display.render_timer(
             remaining_seconds=90.0,
-            total_seconds=180.0,
+            total_seconds=30.0,
             state=MeetingState.SPEAKING,
             speaker_name="Test",
         )

@@ -74,6 +74,7 @@ venv.bak/
 # Application generated files
 data/.session_recovery.json
 data/history_*.json
+logs/
 
 # Keep the data directory but ignore generated files
 !data/.gitkeep

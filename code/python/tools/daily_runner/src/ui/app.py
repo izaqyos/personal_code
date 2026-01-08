@@ -2,13 +2,14 @@
 Main Streamlit application for the Daily Standup Timer.
 
 This module provides the entry point and main page layout
-for the Streamlit web interface.
+for the Streamlit web interface. Optimized for compact sidebar display.
 """
 
 import time
 from pathlib import Path
 
 import streamlit as st
+import streamlit_hotkeys as hotkeys
 
 from src.core.meeting_manager import MeetingManager
 from src.core.models import AppConfig, MeetingState
@@ -16,16 +17,53 @@ from src.data.config_manager import ConfigManager
 from src.data.history_repository import HistoryRepository
 from src.data.recovery_manager import RecoveryManager
 from src.data.team_repository import TeamRepository
+from src.core.time_utils import format_time_mmss
 from src.ui.components.controls import render_controls
 from src.ui.components.speaker_queue import render_speaker_queue
 from src.ui.components.timer_display import render_timer
 
 # Constants
-PAGE_TITLE = "Daily Standup Timer"
+PAGE_TITLE = "Daily Timer"
 PAGE_ICON = "⏱️"
 REFRESH_INTERVAL_MS = 100
 DATA_DIR = Path("data")
 CONFIG_PATH = Path("config.json")
+
+# Compact CSS to reduce Streamlit's default spacing
+COMPACT_CSS = """
+<style>
+    /* Reduce main container padding */
+    .main .block-container {
+        padding-top: 1rem;
+        padding-bottom: 0.5rem;
+        padding-left: 0.5rem;
+        padding-right: 0.5rem;
+        max-width: 100%;
+    }
+    /* Reduce header size */
+    h1 { font-size: 1.2rem !important; margin-bottom: 0.5rem !important; }
+    h2, h3 { font-size: 1rem !important; margin: 0.3rem 0 !important; }
+    /* Compact buttons */
+    .stButton > button {
+        padding: 0.2rem 0.4rem;
+        font-size: 0.85rem;
+        min-height: 2rem;
+    }
+    /* Reduce spacing between elements */
+    .stMarkdown, .stProgress { margin-bottom: 0.2rem !important; }
+    div[data-testid="stVerticalBlock"] > div { gap: 0.3rem !important; }
+    /* Compact selectbox */
+    .stSelectbox { margin-bottom: 0.2rem; }
+    .stSelectbox > div > div { font-size: 0.85rem; }
+    /* Hide Streamlit branding for cleaner look */
+    #MainMenu, footer, header { visibility: hidden; }
+    /* Progress bar height */
+    .stProgress > div > div { height: 0.3rem !important; }
+</style>
+"""
+
+# Keyboard shortcuts - using number keys to avoid Vimium conflicts
+# Bindings are created lazily to avoid issues at module load time
 
 
 def init_session_state() -> None:
@@ -115,8 +153,11 @@ def render_team_selection() -> None:
     )
 
     if st.button("Start Meeting", type="primary", use_container_width=True) and selected_team:
-        start_meeting(selected_team)
-        st.rerun()
+        try:
+            start_meeting(selected_team)
+            st.rerun()
+        except Exception as e:
+            st.error(f"Failed to start meeting: {e}")
 
 
 def render_meeting_summary() -> None:
@@ -128,12 +169,10 @@ def render_meeting_summary() -> None:
     st.header("Meeting Complete!")
 
     # Total duration
-    total_mins = int(manager.meeting_elapsed // 60)
-    total_secs = int(manager.meeting_elapsed % 60)
-    st.metric("Total Duration", f"{total_mins:02d}:{total_secs:02d}")
+    st.metric("Total Duration", format_time_mmss(manager.meeting_elapsed, show_sign=False))
 
     # Speaker summary table
-    records = manager._state_manager.get_all_speaker_records()
+    records = manager.get_all_speaker_records()
 
     st.subheader("Speaker Summary")
     for record in records:
@@ -146,9 +185,7 @@ def render_meeting_summary() -> None:
             elif record.skipped:
                 st.write("Skipped")
             else:
-                mins = int(record.elapsed_seconds // 60)
-                secs = int(record.elapsed_seconds % 60)
-                st.write(f"{mins:02d}:{secs:02d}")
+                st.write(format_time_mmss(record.elapsed_seconds, show_sign=False))
         with col3:
             if record.overtime_seconds > 0:
                 st.write(f"+{int(record.overtime_seconds)}s overtime")
@@ -162,7 +199,7 @@ def render_meeting_summary() -> None:
 
 
 def render_active_meeting() -> None:
-    """Render the active meeting interface."""
+    """Render the active meeting interface (compact vertical layout)."""
     manager = get_meeting_manager()
     if not manager:
         return
@@ -173,25 +210,89 @@ def render_active_meeting() -> None:
         if manager.transition_time_remaining <= 0:
             manager.start_speaking()
             st.rerun()
-    elif state == MeetingState.SPEAKING:
+    elif state in (MeetingState.SPEAKING, MeetingState.GRACE, MeetingState.OVERFLOW):
         manager.check_grace_period()
 
-    # Layout: Timer on left, Queue on right
-    col_timer, col_queue = st.columns([2, 1])
-
-    with col_timer:
-        render_timer(manager)
-
-    with col_queue:
-        render_speaker_queue(manager)
-
-    # Controls at bottom
-    st.divider()
+    # Compact vertical layout (stacked for sidebar use)
+    render_timer(manager)
     render_controls(manager)
+    render_speaker_queue(manager)
+    render_keyboard_legend()
 
     # Auto-refresh for timer updates
     time.sleep(REFRESH_INTERVAL_MS / 1000)
     st.rerun()
+
+
+def inject_compact_styles() -> None:
+    """Inject compact CSS."""
+    st.markdown(COMPACT_CSS, unsafe_allow_html=True)
+
+
+def setup_hotkeys() -> None:
+    """Activate keyboard shortcuts using streamlit-hotkeys."""
+    bindings = [
+        hotkeys.hk("pause", "1", help="Pause/Resume timer"),
+        hotkeys.hk("next", "2", help="Next speaker"),
+        hotkeys.hk("skip", "3", help="Skip speaker"),
+        hotkeys.hk("add_time", "4", help="Add 30 seconds"),
+        hotkeys.hk("sub_time", "5", help="Subtract 30 seconds"),
+        hotkeys.hk("end", "0", help="End meeting"),
+    ]
+    hotkeys.activate(bindings)
+
+
+def handle_hotkey_actions(manager: MeetingManager) -> bool:
+    """
+    Handle keyboard shortcut actions.
+
+    Returns True if an action was handled (requires rerun).
+    """
+    state = manager.state
+    can_next = state in (MeetingState.SPEAKING, MeetingState.GRACE, MeetingState.OVERFLOW, MeetingState.TRANSITION)
+    can_adjust = state in (MeetingState.SPEAKING, MeetingState.GRACE, MeetingState.OVERFLOW)
+    handled = False
+
+    if hotkeys.pressed("pause"):
+        if state == MeetingState.PAUSED:
+            manager.resume()
+        elif state in (MeetingState.SPEAKING, MeetingState.GRACE, MeetingState.OVERFLOW):
+            manager.pause()
+        handled = True
+
+    if hotkeys.pressed("next") and can_next:
+        manager.next_speaker()
+        handled = True
+
+    if hotkeys.pressed("skip") and can_next:
+        manager.skip_speaker()
+        handled = True
+
+    if hotkeys.pressed("add_time") and can_adjust:
+        manager.add_time(30)
+        handled = True
+
+    if hotkeys.pressed("sub_time") and can_adjust:
+        manager.add_time(-30)
+        handled = True
+
+    if hotkeys.pressed("end"):
+        manager.end_meeting(save_history=True)
+        handled = True
+
+    return handled
+
+
+def render_keyboard_legend() -> None:
+    """Render keyboard shortcut legend using streamlit-hotkeys."""
+    st.markdown(
+        '<div style="font-size:0.75rem;color:#888;margin-top:0.5rem;'
+        'border-top:1px solid #444;padding-top:0.5rem;">'
+        "<b>⌨️ Shortcuts</b></div>",
+        unsafe_allow_html=True,
+    )
+    # Use the built-in legend from streamlit-hotkeys
+    hotkeys.legend()
 
 
 def main() -> None:
@@ -200,13 +301,21 @@ def main() -> None:
         page_title=PAGE_TITLE,
         page_icon=PAGE_ICON,
         layout="wide",
+        initial_sidebar_state="collapsed",
     )
 
+    inject_compact_styles()
     init_session_state()
 
-    st.title(f"{PAGE_ICON} {PAGE_TITLE}")
+    st.markdown(f"**{PAGE_ICON} {PAGE_TITLE}**")
 
     manager = get_meeting_manager()
+
+    # Setup and handle keyboard shortcuts if meeting is active
+    if manager and manager.is_active:
+        setup_hotkeys()
+        if handle_hotkey_actions(manager):
+            st.rerun()
 
     if manager is None:
         # No active meeting - show team selection
@@ -215,7 +324,7 @@ def main() -> None:
         # Meeting ended - show summary
         render_meeting_summary()
     else:
-        # Active meeting - show timer and controls
+        # Active meeting - show timer, controls, queue, and keyboard legend
         render_active_meeting()
 
 
