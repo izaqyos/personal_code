@@ -46,7 +46,7 @@ function App() {
   const timerSeconds = selectedQuiz?.timerSeconds || 20
 
   // Derive screen from game state
-  const screen = gameState?.screen || 'join'
+  const gameScreen = gameState?.screen || 'join'
   const participants = gameState?.participants || []
   const scores = gameState?.scores || {}
   const responses = gameState?.responses || []
@@ -54,6 +54,12 @@ function App() {
 
   // Find current participant
   const currentParticipant = participants.find(p => p.id === sessionParticipantId)
+  
+  // If this tab hasn't joined yet (no participant ID or not found in participants),
+  // show join screen even if game is in waiting state (to allow new players to join)
+  const screen = (!sessionParticipantId || !currentParticipant) && gameScreen === 'waiting' 
+    ? 'join' 
+    : gameScreen
 
   const handleSelectQuiz = useCallback((quiz) => {
     setSelectedQuiz(quiz)
@@ -74,7 +80,7 @@ function App() {
     await joinGame(participant)
   }, [joinGame])
 
-  const handleHostJoin = useCallback(async () => {
+  const handleHostJoin = useCallback(async (name) => {
     setIsHost(true)
     setHostMode(true)
 
@@ -82,7 +88,7 @@ function App() {
     const participantId = 'host_' + Date.now().toString()
     const participant = {
       id: participantId,
-      name: 'Host',
+      name: name || 'Host',
       joinedAt: new Date().toISOString(),
       isHost: true
     }
@@ -161,6 +167,7 @@ function App() {
           <JoinScreen
             onJoin={handleJoin}
             onHostJoin={handleHostJoin}
+            onReset={handleReset}
             quizTitle={selectedQuiz?.title}
           />
         </div>
@@ -189,6 +196,7 @@ function App() {
           responses={responses}
           onAnswerSubmit={handleAnswerSubmit}
           onNextQuestion={handleNextQuestion}
+          onReset={handleReset}
           timerDuration={timerSeconds}
         />
       )}

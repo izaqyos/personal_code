@@ -11,6 +11,8 @@ import sys
 from datetime import datetime, timedelta
 from pathlib import Path
 
+from src.core.time_utils import format_team_name
+
 
 def show_history(team_id: str | None, days: int, limit: int) -> int:
     """
@@ -75,21 +77,19 @@ def show_history(team_id: str | None, days: int, limit: int) -> int:
     entries = history_repo.get_entries(start_date=start_date, end_date=end_date)
 
     if not entries:
-        console.print(f"\n[yellow]No meetings found for team '{team_id}' in the last {days} days.[/yellow]")
+        formatted_team = format_team_name(team_id)
+        console.print(f"\n[yellow]No meetings found for team '{formatted_team}' in the last {days} days.[/yellow]")
         return 0
 
     # Apply limit (most recent first)
     entries = entries[-limit:] if limit < len(entries) else entries
     entries = list(reversed(entries))  # Show newest first
 
-    # Get team name
-    try:
-        team_name = team_repo.get_team_name(team_id)
-    except Exception:
-        team_name = team_id
+    # Get formatted team name with emoji
+    formatted_team = format_team_name(team_id)
 
     # Display summary
-    console.print(f"\n[bold cyan]Meeting History: {team_name}[/bold cyan]")
+    console.print(f"\n[bold cyan]Meeting History: {formatted_team}[/bold cyan]")
     console.print(f"[dim]Showing {len(entries)} meetings from last {days} days[/dim]\n")
 
     # Create meetings table

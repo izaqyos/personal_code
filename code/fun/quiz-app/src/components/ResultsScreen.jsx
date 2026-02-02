@@ -9,15 +9,21 @@ import { setStorageItem, STORAGE_KEYS } from '../utils/storage'
 import './ResultsScreen.css'
 
 function ResultsScreen({ participants, scores, responses, questions, onReset }) {
+  // Filter out host from players
+  const players = useMemo(
+    () => participants.filter(p => !p.isHost),
+    [participants]
+  )
+
   const sortedParticipants = useMemo(
-    () => sortParticipantsByScore(participants, scores),
-    [participants, scores]
+    () => sortParticipantsByScore(players, scores),
+    [players, scores]
   )
 
   const winner = sortedParticipants[0]
   const topThree = useMemo(
-    () => getTopParticipants(participants, scores, 3),
-    [participants, scores]
+    () => getTopParticipants(players, scores, 3),
+    [players, scores]
   )
 
   const stats = useMemo(
@@ -27,12 +33,12 @@ function ResultsScreen({ participants, scores, responses, questions, onReset }) 
 
   // Save results to localStorage as backup
   useEffect(() => {
-    const resultsData = formatResultsData(participants, scores, responses, questions)
+    const resultsData = formatResultsData(players, scores, responses, questions)
     setStorageItem(STORAGE_KEYS.RESULTS, resultsData)
-  }, [participants, scores, responses, questions])
+  }, [players, scores, responses, questions])
 
   const handleDownloadResults = () => {
-    const resultsData = formatResultsData(participants, scores, responses, questions)
+    const resultsData = formatResultsData(players, scores, responses, questions)
     const blob = new Blob([JSON.stringify(resultsData, null, 2)], { type: 'application/json' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
@@ -101,8 +107,8 @@ function ResultsScreen({ participants, scores, responses, questions, onReset }) 
               <div className="stat-label">Questions</div>
             </div>
             <div className="stat-item">
-              <div className="stat-value">{participants.length}</div>
-              <div className="stat-label">Participants</div>
+              <div className="stat-value">{players.length}</div>
+              <div className="stat-label">Players</div>
             </div>
             <div className="stat-item">
               <div className="stat-value">{stats.correctResponses}</div>

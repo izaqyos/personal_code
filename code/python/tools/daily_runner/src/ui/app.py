@@ -13,11 +13,11 @@ import streamlit_hotkeys as hotkeys
 
 from src.core.meeting_manager import MeetingManager
 from src.core.models import AppConfig, MeetingState
+from src.core.time_utils import format_team_name, format_time_mmss
 from src.data.config_manager import ConfigManager
 from src.data.history_repository import HistoryRepository
 from src.data.recovery_manager import RecoveryManager
 from src.data.team_repository import TeamRepository
-from src.core.time_utils import format_time_mmss
 from src.ui.components.controls import render_controls
 from src.ui.components.speaker_queue import render_speaker_queue
 from src.ui.components.timer_display import render_timer
@@ -149,7 +149,7 @@ def render_team_selection() -> None:
     selected_team = st.selectbox(
         "Choose a team:",
         options=teams,
-        format_func=lambda x: x.replace("_", " ").title(),
+        format_func=format_team_name,
     )
 
     if st.button("Start Meeting", type="primary", use_container_width=True) and selected_team:

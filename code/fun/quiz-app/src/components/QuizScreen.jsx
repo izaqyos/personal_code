@@ -15,6 +15,7 @@ function QuizScreen({
   responses,
   onAnswerSubmit,
   onNextQuestion,
+  onReset,
   timerDuration = DEFAULT_TIMER
 }) {
   const [timeRemaining, setTimeRemaining] = useState(timerDuration)
@@ -37,9 +38,9 @@ function QuizScreen({
     ? submittedParticipantIds.has(currentParticipant.id)
     : false
 
-  // Memoize sorted participants for leaderboard
+  // Memoize sorted participants for leaderboard (exclude host)
   const sortedParticipants = useMemo(
-    () => sortParticipantsByScore(participants, scores),
+    () => sortParticipantsByScore(participants.filter(p => !p.isHost), scores),
     [participants, scores]
   )
 
@@ -167,42 +168,61 @@ function QuizScreen({
     </div>
   )
 
-  // Host view - see all participants' status
-  const renderHostView = () => (
-    <div className="host-view">
-      <div className="participants-status">
-        <h3>Participants Status ({submittedParticipantIds.size}/{participants.length})</h3>
-        <div className="status-list">
-          {participants.map(p => (
-            <div key={p.id} className="status-item">
-              <span className="status-name">{p.name}</span>
-              <span className={`status-badge ${submittedParticipantIds.has(p.id) ? 'submitted' : 'waiting'}`}>
-                {submittedParticipantIds.has(p.id) ? '✓ Submitted' : 'Waiting...'}
-              </span>
-            </div>
-          ))}
-        </div>
-      </div>
+  // Host view - non-player, just controls the game
+  const renderHostView = () => {
+    // Filter out host from players for display
+    const players = participants.filter(p => !p.isHost)
+    const playerSubmittedCount = [...submittedParticipantIds].filter(id => 
+      players.some(p => p.id === id)
+    ).length
 
-      <div className="answer-preview">
-        <h3>Answer Options</h3>
-        <div className="answer-options readonly">
-          {question.options.map(option => (
-            <div
-              key={option.id}
-              className={`answer-option ${showResults && option.id === question.correctAnswer ? 'correct' : ''}`}
-            >
-              <span className="option-label">{option.id}</span>
-              <span className="option-text">{option.text}</span>
-              {showResults && option.id === question.correctAnswer && (
-                <span className="answer-icon correct-icon">✓</span>
-              )}
+    return (
+      <div className="host-view">
+        <div className="host-badge-section">
+          <span className="host-controller-badge">👑 Game Controller</span>
+          <p className="host-hint">You're hosting this game. Watch the players compete!</p>
+        </div>
+
+        {/* Answer Options Preview (read-only) */}
+        <div className="answer-preview">
+          <h3>Answer Options</h3>
+          <div className="answer-options readonly">
+            {question.options.map(option => (
+              <div
+                key={option.id}
+                className={`answer-option ${showResults && option.id === question.correctAnswer ? 'correct' : ''}`}
+              >
+                <span className="option-label">{option.id}</span>
+                <span className="option-text">{option.text}</span>
+                {showResults && option.id === question.correctAnswer && (
+                  <span className="answer-icon correct-icon">✓</span>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Players Status */}
+        <div className="participants-status">
+          <h3>Players Status ({playerSubmittedCount}/{players.length})</h3>
+          {players.length === 0 ? (
+            <p className="no-players-message">No players have joined yet.</p>
+          ) : (
+            <div className="status-list">
+              {players.map(p => (
+                <div key={p.id} className="status-item">
+                  <span className="status-name">{p.name}</span>
+                  <span className={`status-badge ${submittedParticipantIds.has(p.id) ? 'submitted' : 'waiting'}`}>
+                    {submittedParticipantIds.has(p.id) ? '✓ Submitted' : 'Waiting...'}
+                  </span>
+                </div>
+              ))}
             </div>
-          ))}
+          )}
         </div>
       </div>
-    </div>
-  )
+    )
+  }
 
   // Waiting view - for participants who haven't joined
   const renderWaitingView = () => (
@@ -274,6 +294,14 @@ function QuizScreen({
           ))}
         </div>
       </div>
+
+      {isHost && onReset && (
+        <div className="host-reset-section">
+          <button onClick={onReset} className="danger-button reset-button">
+            🔄 Reset Game
+          </button>
+        </div>
+      )}
     </div>
   )
 }

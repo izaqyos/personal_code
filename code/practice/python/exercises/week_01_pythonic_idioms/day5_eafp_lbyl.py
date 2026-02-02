@@ -71,22 +71,12 @@ def file_operations_comparison():
     # LBYL: Check if file exists before opening
     print("LBYL Approach:")
     # TODO: Check if file exists, then open
-    if os.path.exists(filename):
-        with open(filename, 'r') as f:
-            content = f.read()
-            print(f"  File content: {content[:50]}...")
-    else:
-        print(f"  File {filename} does not exist")
+    pass  # TODO: Implement LBYL approach
     
     # EAFP: Try to open, handle exception
     print("\nEAFP Approach (Pythonic):")
     # TODO: Try to open file, catch FileNotFoundError
-    try:
-        with open(filename, 'r') as f:
-            content = f.read()
-            print(f"  File content: {content[:50]}...")
-    except FileNotFoundError:
-        print(f"  File {filename} does not exist")
+    pass  # TODO: Implement EAFP approach
     
     # Why EAFP is better here:
     # 1. Race condition: file could be deleted between check and open

@@ -227,6 +227,61 @@ class OAuthRefresher:
                         with contextlib.suppress(OSError):
                             file_path.unlink()
 
+    def wipe_all_tokens(self, config_dir: Path) -> list[str]:
+        """Completely wipe all OAuth-related files from config directory.
+
+        This is a nuclear option that removes everything, forcing a complete
+        fresh OAuth flow. Use when tokens are corrupted or in a bad state.
+
+        Args:
+            config_dir: Path to config directory
+
+        Returns:
+            List of removed file paths for reporting
+        """
+        removed_files: list[str] = []
+
+        if not config_dir.exists():
+            return removed_files
+
+        # Remove ALL OAuth-related files including client registration
+        patterns = [
+            "*_tokens.json",       # Token files
+            "tokens.json",         # Direct token file
+            "*_code_verifier.txt", # OAuth PKCE verifier
+            "*_lock.json",         # Lock files
+            "*_client_info.json",  # Client registration
+            "client_info.json",    # Direct client info
+            "*.tmp",               # Temp files
+        ]
+
+        def remove_matching_files(directory: Path) -> None:
+            """Remove files matching patterns from a directory."""
+            for pattern in patterns:
+                for file_path in directory.glob(pattern):
+                    try:
+                        file_path.unlink()
+                        removed_files.append(str(file_path))
+                    except OSError:
+                        pass
+
+        # Clean root directory
+        remove_matching_files(config_dir)
+
+        # Clean subdirectories
+        for item in config_dir.iterdir():
+            if item.is_dir():
+                remove_matching_files(item)
+                # Remove empty subdirectories
+                try:
+                    if not any(item.iterdir()):
+                        item.rmdir()
+                        removed_files.append(f"{item}/ (empty dir)")
+                except OSError:
+                    pass
+
+        return removed_files
+
     async def refresh_atlassian(self, config_dir: Path) -> RefreshResult:
         """Refresh Atlassian OAuth tokens.
 

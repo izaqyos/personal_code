@@ -29,13 +29,15 @@ def basic_unpacking(): #<- I'm here
     coordinates = (10, 20, 30)
     # TODO: Unpack into x, y, z
     # x, y, z = ...
-    print(f"Coordinates: x={coordinates[0]}, y={coordinates[1]}, z={coordinates[2]}")
+    x = y = z = None
+    x, y, z = coordinates
+    print(f"Coordinates: x={x}, y={y}, z={z}")
     
     # 2. Swapping variables (Pythonic way)
     a, b = 5, 10
     print(f"Before swap: a={a}, b={b}")
     # TODO: Swap a and b in one line without temp variable
-    # a, b = ...
+    a,b = b,a
     print(f"After swap: a={a}, b={b}")
     
     # 3. Unpacking from function return
@@ -43,7 +45,6 @@ def basic_unpacking(): #<- I'm here
         return "Alice", 30, "alice@example.com"
     
     # TODO: Unpack into name, age, email
-    # name, age, email = ...
     name, age, email = get_user_info()
     print(f"User: {name}, {age}, {email}")
     
@@ -51,8 +52,8 @@ def basic_unpacking(): #<- I'm here
     users = [("Bob", 25), ("Charlie", 35), ("Diana", 28)]
     print("Users:")
     for user in users:
-        # TODO: Unpack directly in the loop
-        print(f"  {user[0]} is {user[1]} years old")
+        name, age = user
+        print(f"  {name} is {age} years old")
     
     print()
 
@@ -72,20 +73,23 @@ def extended_unpacking():
     numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
     # TODO: Get first, second, and rest
     # first, second, *rest = ...
-    first, second, rest = numbers[0], numbers[1], numbers[2:]
+    first = second = None
+    rest = []
+    first, second, *rest = numbers
     print(f"First: {first}, Second: {second}, Rest: {rest}")
     
     # 2. Capture middle items
     # TODO: Get first, last, and middle
-    # first, *middle, last = ...
-    first, middle, last = numbers[0], numbers[1:-1], numbers[-1]
+    first = last = None
+    middle = []
+    first, *middle, last = numbers
     print(f"First: {first}, Middle: {middle}, Last: {last}")
     
     # 3. Ignore unwanted items with _
     person = ("Alice", 30, "Engineer", "New York", "USA")
     # TODO: Get only name and profession, ignore rest
-    # name, _, profession, *_ = ...
-    name, profession = person[0], person[2]
+    name = profession = None
+    name, _, profession, *_ = person
     print(f"Name: {name}, Profession: {profession}")
     
     # 4. Unpacking in function arguments
@@ -93,11 +97,11 @@ def extended_unpacking():
         print(f"  Top score: {first}")
         print(f"  Second: {second}")
         print(f"  Others: {others}")
-        return sum([first, second] + list(others)) / (2 + len(others))
+        return sum([first, second, *others]) / (2 + len(others))
     
     scores = [95, 87, 82, 78, 91]
-    # TODO: Call process_scores with unpacked scores
     avg = None  # process_scores(...)
+    avg = process_scores(scores[0], scores[1], *scores[2:])
     print(f"Average: {avg}")
     
     print()
@@ -118,18 +122,18 @@ def nested_unpacking():
     person = ("Alice", (30, "Engineer"), ("New York", "USA"))
     # TODO: Unpack all in one line
     # name, (age, job), (city, country) = ...
-    name = person[0]
-    age, job = person[1]
-    city, country = person[2]
+    name = age = job = city = country = None
+    name, (age, job), (city, country) = person
     print(f"{name}, {age}, {job} from {city}, {country}")
     
     # 2. Unpacking from nested lists
     matrix = [[1, 2, 3], [4, 5, 6], [7, 8, 9]]
     # TODO: Get first row and unpack it
+    first_row = matrix[0]
+    a, b, c = first_row
     # first_row = ...
     # a, b, c = first_row
-    first_row = matrix[0]
-    print(f"First row: {first_row}")
+    print(f"First row: {first_row} elements {a}, {b}, {c}")
     
     # 3. Complex nested structure
     data = [
@@ -139,6 +143,8 @@ def nested_unpacking():
     
     for person in data:
         # TODO: Unpack name and info dict
+        name = None
+        info = {"age": None, "city": None}
         name, info = person
         print(f"  {name}: {info['age']} years old, lives in {info['city']}")
     
@@ -151,10 +157,7 @@ def nested_unpacking():
 def process_csv_data():
     """
     Process CSV-like data using unpacking patterns.
-    
     Scenario: Parse employee records and extract specific fields
-    
-    TODO: Use unpacking to process records efficiently
     """
     print("--- Exercise 4: CSV Processing ---")
     
@@ -171,16 +174,19 @@ def process_csv_data():
     print("Employee Summary:")
     for record in employees:
         fields = record.split(',')
-        # TODO: Unpack only needed fields, ignore others
         # emp_id, name, dept, salary, *_ = fields
-        print(f"  {fields[1]}: {fields[2]} - ${fields[3]}")
+        emp_id = name = dept = salary = None
+        emp_id , name , dept , salary, *_ = fields
+        print(f"  {name}: {dept} - ${salary}")
     
     # Task 2: Find engineering employees with salary > 90k
     print("\nHigh-earning Engineers:")
     for record in employees:
         fields = record.split(',')
-        # TODO: Unpack and filter
-        emp_id, name, dept, salary, years, city = fields
+        emp_id = name = dept = salary = years = city = None
+        emp_id , name , dept , salary, years, city = fields
+        if dept is None or salary is None:
+            continue
         if dept == "Engineering" and int(salary) > 90000:
             print(f"  {name} (${salary}) - {years} years in {city}")
     
@@ -189,9 +195,11 @@ def process_csv_data():
     dept_salaries = defaultdict(list)
     
     for record in employees:
-        # TODO: Unpack and group by department
         fields = record.split(',')
-        _, _, dept, salary, *_ = fields
+        dept = salary = None
+        _, _,  dept , salary, *_ = fields
+        if dept is None or salary is None:
+            continue
         dept_salaries[dept].append(int(salary))
     
     print("\nAverage Salary by Department:")
@@ -216,12 +224,11 @@ def function_unpacking_patterns():
     # Pattern 1: *args for variable positional arguments
     def calculate_total(*prices):
         """Sum all prices"""
-        # TODO: Calculate total
         return sum(prices)
     
     # TODO: Call with unpacked list
     items = [10.99, 5.49, 3.99, 12.50]
-    total = None  # calculate_total(...)
+    total = calculate_total(*items)
     print(f"Total: ${total}")
     
     # Pattern 2: **kwargs for variable keyword arguments
@@ -232,7 +239,7 @@ def function_unpacking_patterns():
     
     # TODO: Call with unpacked dict
     user_data = {"name": "Alice", "age": 30, "email": "alice@example.com"}
-    user = None  # create_user(...)
+    user = create_user(**user_data)
     
     # Pattern 3: Combining positional, *args, and **kwargs
     def api_request(endpoint, method="GET", *params, **headers):
@@ -307,7 +314,9 @@ def parallel_assignment_challenge():
         """Rotate list left by n positions"""
         # TODO: Use unpacking to rotate
         # Hint: lst[n:] + lst[:n] can be done with unpacking
-        return lst[n:] + lst[:n]
+        # TODO: Use unpacking to rotate
+        # return [*lst[n:], *lst[:n]]
+        return []
     
     numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
     rotated = rotate_left(numbers, 3)
@@ -318,7 +327,9 @@ def parallel_assignment_challenge():
         """Merge iterables by alternating elements"""
         # TODO: Use zip and unpacking
         # Hint: zip(*iterables) transposes
-        return [item for sublist in zip(*iterables) for item in sublist]
+        # TODO: Use zip and unpacking
+        # return [item for sublist in zip(*iterables) for item in sublist]
+        return []
     
     list1 = [1, 2, 3]
     list2 = ['a', 'b', 'c']
@@ -329,7 +340,9 @@ def parallel_assignment_challenge():
     # Challenge 3: Flatten nested structure using unpacking
     nested = [[1, 2], [3, 4], [5, 6]]
     # TODO: Flatten in one line using unpacking
-    flattened = [item for sublist in nested for item in sublist]
+    # TODO: Flatten in one line using unpacking
+    # flattened = [item for sublist in nested for item in sublist]
+    flattened = []
     print(f"Flattened: {flattened}")
     
     print()
@@ -415,11 +428,11 @@ if __name__ == "__main__":
     basic_unpacking()
     extended_unpacking()
     nested_unpacking()
-    process_csv_data()
+    process_csv_data() 
     function_unpacking_patterns()
-    tuple_vs_list()
-    parallel_assignment_challenge()
-    performance_analysis()
+    # tuple_vs_list()# <- continue here
+    # parallel_assignment_challenge()
+    # performance_analysis()
     
     print("=" * 60)
     print("✅ Day 3 Complete!")

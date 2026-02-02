@@ -293,6 +293,68 @@ class TestSkipSpeaker:
         assert alice_record is not None
         assert alice_record.status == ParticipantStatus.SKIPPED
 
+    def test_skipped_speaker_has_zero_elapsed_time(
+        self, meeting_manager: MeetingManager
+    ) -> None:
+        """BUG FIX: Skipped speaker should have 0 elapsed time.
+
+        Scenario: User speaks for 4:08, advances to next speaker,
+        then skips that speaker. The skipped speaker should have
+        0 elapsed time, not the previous speaker's time.
+        """
+        meeting_manager.start_meeting()
+        meeting_manager.start_speaking()
+
+        # Alice speaks for a while (simulate with timer update)
+        alice = meeting_manager.current_speaker
+        assert alice is not None
+        assert alice.id == "alice"
+
+        # Advance to bob (transition)
+        meeting_manager.next_speaker()
+        if meeting_manager.state == MeetingState.TRANSITION:
+            # Skip bob during transition (before he speaks)
+            meeting_manager.skip_speaker()
+
+        # Verify bob was skipped with 0 time
+        record = meeting_manager._state_manager.get_speaker_record("bob")
+        assert record is not None
+        assert record.skipped is True
+        assert record.elapsed_seconds == 0.0
+        assert record.overtime_seconds == 0.0
+
+    def test_skipped_speaker_zero_time_in_history(
+        self, meeting_manager: MeetingManager, history_repo: HistoryRepository
+    ) -> None:
+        """Skipped speaker should have 0 actual_time in history record."""
+        import time
+
+        meeting_manager.start_meeting()
+        meeting_manager.start_speaking()
+
+        # Let alice "speak" briefly
+        time.sleep(0.1)
+
+        # Advance to bob
+        meeting_manager.next_speaker()
+
+        # Skip bob during transition
+        meeting_manager.skip_speaker()
+
+        # End meeting
+        meeting_manager.end_meeting()
+
+        # Check history
+        entries = history_repo.get_entries()
+        assert len(entries) == 1
+
+        bob_record = next(
+            (p for p in entries[0].participants if p.member_id == "bob"), None
+        )
+        assert bob_record is not None
+        assert bob_record.status == ParticipantStatus.SKIPPED
+        assert bob_record.actual_time_seconds == 0.0
+
 
 # =============================================================================
 # Test 6.T4: Mark Absent
@@ -491,6 +553,21 @@ class TestTransitionPeriod:
         meeting_manager.start_meeting()
 
         assert meeting_manager.transition_time_remaining > 0
+
+    def test_transition_resets_elapsed_for_next_speaker(
+        self, meeting_manager: MeetingManager
+    ) -> None:
+        """Transition should reset elapsed timer for the next speaker."""
+        meeting_manager.start_meeting()
+        meeting_manager.start_speaking()
+        time.sleep(0.1)
+
+        assert meeting_manager.speaker_time_elapsed > 0
+
+        meeting_manager.next_speaker()
+
+        assert meeting_manager.state == MeetingState.TRANSITION
+        assert meeting_manager.speaker_time_elapsed == 0.0
 
     def test_start_speaking_transitions_state(
         self, meeting_manager: MeetingManager

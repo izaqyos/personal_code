@@ -25,10 +25,16 @@ describe('QuizScreen', () => {
     { id: '2', name: 'Bob', joinedAt: '2024-01-01T00:01:00Z' }
   ]
 
+  // Current participant is Alice (first participant)
+  const mockCurrentParticipant = mockParticipants[0]
+
   const mockScores = {
     '1': 10,
     '2': 5
   }
+
+  // Empty responses array - no one has submitted yet
+  const mockResponses = []
 
   beforeEach(() => {
     vi.useFakeTimers()
@@ -49,15 +55,19 @@ describe('QuizScreen', () => {
         questionNumber={1}
         totalQuestions={10}
         participants={mockParticipants}
+        currentParticipant={mockCurrentParticipant}
+        isHost={false}
         scores={mockScores}
+        responses={mockResponses}
         onAnswerSubmit={mockOnAnswerSubmit}
         onNextQuestion={mockOnNextQuestion}
+        timerDuration={TEST_TIMER_DURATION}
       />
     )
 
     expect(screen.getByText(/question 1 of 10/i)).toBeInTheDocument()
     expect(screen.getByText(/what is 2\+2\?/i)).toBeInTheDocument()
-    // Options appear multiple times (once per participant), so use getAllByText
+    // Options appear in participant view
     expect(screen.getAllByText('3').length).toBeGreaterThan(0)
     expect(screen.getAllByText('4').length).toBeGreaterThan(0)
   })
@@ -72,9 +82,13 @@ describe('QuizScreen', () => {
         questionNumber={1}
         totalQuestions={10}
         participants={mockParticipants}
+        currentParticipant={mockCurrentParticipant}
+        isHost={false}
         scores={mockScores}
+        responses={mockResponses}
         onAnswerSubmit={mockOnAnswerSubmit}
         onNextQuestion={mockOnNextQuestion}
+        timerDuration={TEST_TIMER_DURATION}
       />
     )
 
@@ -99,9 +113,13 @@ describe('QuizScreen', () => {
         questionNumber={1}
         totalQuestions={10}
         participants={mockParticipants}
+        currentParticipant={mockCurrentParticipant}
+        isHost={false}
         scores={mockScores}
+        responses={mockResponses}
         onAnswerSubmit={mockOnAnswerSubmit}
         onNextQuestion={mockOnNextQuestion}
+        timerDuration={TEST_TIMER_DURATION}
       />
     )
     
@@ -122,16 +140,20 @@ describe('QuizScreen', () => {
         questionNumber={1}
         totalQuestions={10}
         participants={mockParticipants}
+        currentParticipant={mockCurrentParticipant}
+        isHost={false}
         scores={mockScores}
+        responses={mockResponses}
         onAnswerSubmit={mockOnAnswerSubmit}
         onNextQuestion={mockOnNextQuestion}
+        timerDuration={TEST_TIMER_DURATION}
       />
     )
     
     const optionB = screen.getAllByText('4')[0].closest('button')
     await user.click(optionB)
     
-    const submitButton = screen.getAllByRole('button', { name: /submit answer/i })[0]
+    const submitButton = screen.getByRole('button', { name: /submit answer/i })
     await user.click(submitButton)
     
     expect(mockOnAnswerSubmit).toHaveBeenCalledWith(
@@ -152,16 +174,18 @@ describe('QuizScreen', () => {
         questionNumber={1}
         totalQuestions={10}
         participants={mockParticipants}
+        currentParticipant={mockCurrentParticipant}
+        isHost={false}
         scores={mockScores}
+        responses={mockResponses}
         onAnswerSubmit={mockOnAnswerSubmit}
         onNextQuestion={mockOnNextQuestion}
+        timerDuration={TEST_TIMER_DURATION}
       />
     )
     
-    const submitButtons = screen.getAllByRole('button', { name: /submit answer/i })
-    submitButtons.forEach(button => {
-      expect(button).toBeDisabled()
-    })
+    const submitButton = screen.getByRole('button', { name: /submit answer/i })
+    expect(submitButton).toBeDisabled()
   })
 
   it('should show leaderboard with scores', () => {
@@ -174,14 +198,18 @@ describe('QuizScreen', () => {
         questionNumber={1}
         totalQuestions={10}
         participants={mockParticipants}
+        currentParticipant={mockCurrentParticipant}
+        isHost={false}
         scores={mockScores}
+        responses={mockResponses}
         onAnswerSubmit={mockOnAnswerSubmit}
         onNextQuestion={mockOnNextQuestion}
+        timerDuration={TEST_TIMER_DURATION}
       />
     )
 
     expect(screen.getByText(/current scores/i)).toBeInTheDocument()
-    // Names appear multiple times (in participant sections and leaderboard)
+    // Names appear in participant header and leaderboard
     expect(screen.getAllByText(/alice/i).length).toBeGreaterThan(0)
     expect(screen.getAllByText(/bob/i).length).toBeGreaterThan(0)
     expect(screen.getAllByText(/10 pts/i).length).toBeGreaterThan(0)
@@ -197,9 +225,13 @@ describe('QuizScreen', () => {
         questionNumber={1}
         totalQuestions={10}
         participants={mockParticipants}
+        currentParticipant={mockCurrentParticipant}
+        isHost={false}
         scores={mockScores}
+        responses={mockResponses}
         onAnswerSubmit={mockOnAnswerSubmit}
         onNextQuestion={mockOnNextQuestion}
+        timerDuration={TEST_TIMER_DURATION}
       />
     )
 

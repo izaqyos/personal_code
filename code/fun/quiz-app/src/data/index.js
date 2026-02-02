@@ -1,10 +1,10 @@
 import programmingLanguages from './questions.json'
 import webDevelopment from './web-development.json'
-import dogsHebrew from './dogs-quiz.json'
+import programmingLangsQuiz from './prog_lang_quiz.json'
 
 // All available quizzes
 export const quizzes = [
-  dogsHebrew,
+  programmingLangsQuiz,
   programmingLanguages,
   webDevelopment
 ]
@@ -15,4 +15,4 @@ export function getQuizById(id) {
 }
 
 // Default quiz
-export const defaultQuiz = dogsHebrew
+export const defaultQuiz = programmingLangsQuiz

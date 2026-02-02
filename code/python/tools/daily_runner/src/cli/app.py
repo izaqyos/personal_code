@@ -343,7 +343,6 @@ class CLIApp:
         components.append(
             self._display.render_header(
                 team_name=team_name,
-                session_id=self._meeting_manager.session_id,
             )
         )
 
@@ -377,6 +376,7 @@ class CLIApp:
                 speakers=self._meeting_manager.speaker_queue,
                 current_index=self._meeting_manager.current_speaker_index,
                 speaker_records=self._meeting_manager.get_all_speaker_records(),
+                current_speaker_elapsed=self._meeting_manager.speaker_time_elapsed,
             )
         )
 

@@ -218,11 +218,16 @@ class StateManager:
         return None
 
     def skip_current_speaker(self) -> None:
-        """Mark the current speaker as skipped."""
+        """Mark the current speaker as skipped.
+
+        Resets their elapsed time to 0 since they never spoke.
+        """
         if self.current_speaker:
             record = self._speaker_records.get(self.current_speaker.id)
             if record:
                 record.skipped = True
+                record.elapsed_seconds = 0.0  # Never spoke
+                record.overtime_seconds = 0.0
                 logger.debug(f"Skipped speaker: {self.current_speaker.display_name}")
 
     def mark_absent(self, member_id: str) -> bool:
