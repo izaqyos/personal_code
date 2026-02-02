@@ -130,46 +130,8 @@ def challenge1_before():
 
 def challenge1_after():
     """
-    PYTHONIC CODE - Refactored version
-    
-    TODO: Refactor using Week 1 idioms:
-    - Unpacking in loops
-    - defaultdict/Counter
-    - Dict comprehensions
-    - max() with key parameter
-    """
-    print("--- Challenge 1: AFTER (Pythonic) ---")
-    
-    transactions = [
-        (1, 100.0, "food", 1234567890),
-        (2, 50.0, "transport", 1234567891),
-        (1, 75.0, "food", 1234567892),
-        (3, 200.0, "entertainment", 1234567893),
-        (2, 30.0, "food", 1234567894),
-        (1, 120.0, "transport", 1234567895),
-        (3, 80.0, "food", 1234567896),
-    ]
-    
-    # TODO: Refactor using Pythonic idioms
-    
-    # Use defaultdict for accumulation
-    user_totals = defaultdict(float)
-    category_totals = defaultdict(float)
-    user_categories = defaultdict(set)
-    
-    # Unpack in loop
-    for user_id, amount, category, _ in transactions:
-        user_totals[user_id] += amount
-        category_totals[category] += amount
-        user_categories[user_id].add(category)
-    
-    # Find top spender using max with key
-    top_user = max(user_totals, key=user_totals.get)
-    max_amount = user_totals[top_user]
-    
-    print(f"User totals: {dict(user_totals)}")
-    print(f"Category totals: {dict(category_totals)}")
-    print(f"Top spender: User {top_user} (${max_amount})")
+    # TODO: Refactor challenge1_before() using Pythonic idioms
+    pass
     print()
 
 # ============================================================

@@ -733,3 +733,137 @@ class TestResetAndEdgeCases:
         assert record.is_absent is False
         assert record.skipped is False
         assert record.overtime_seconds == 0.0
+
+
+# =============================================================================
+# Bug Fix Tests: Skip Speaker Edge Cases
+# =============================================================================
+
+
+class TestSkipSpeakerEdgeCases:
+    """Test skip speaker edge cases including bug fix for elapsed time reset.
+
+    Bug: When a speaker is skipped, their elapsed_seconds should be 0,
+    not the timer value from the previous speaker.
+    """
+
+    def test_skip_resets_elapsed_time_to_zero(
+        self, state_manager: StateManager, sample_members: list[TeamMember]
+    ) -> None:
+        """BUG FIX: Skipped speaker's elapsed time should be 0.
+
+        Scenario: User spoke for 4:08, then skipped Chen to Guy.
+        Chen's time should be 0, not 4:08+.
+        """
+        state_manager.set_speaker_queue(sample_members)
+
+        # First speaker (alice) speaks for 4:08
+        state_manager.advance_speaker()
+        state_manager.update_speaker_time("alice", 248.0, 0.0)  # 4:08
+
+        # Advance to second speaker (bob)
+        state_manager.advance_speaker()
+
+        # User skips bob before he speaks
+        state_manager.skip_current_speaker()
+
+        # Bob's time should be 0, not alice's time
+        record = state_manager.get_speaker_record("bob")
+        assert record is not None
+        assert record.skipped is True
+        assert record.elapsed_seconds == 0.0
+        assert record.overtime_seconds == 0.0
+
+    def test_skip_resets_overtime_to_zero(
+        self, state_manager: StateManager, sample_members: list[TeamMember]
+    ) -> None:
+        """Skipped speaker's overtime should be 0."""
+        state_manager.set_speaker_queue(sample_members)
+        state_manager.advance_speaker()
+
+        # Even if someone set time before skip (edge case)
+        state_manager.update_speaker_time("alice", 300.0, 120.0)  # 5 min with 2 min overtime
+
+        # Skip alice - times should reset
+        state_manager.skip_current_speaker()
+
+        record = state_manager.get_speaker_record("alice")
+        assert record is not None
+        assert record.skipped is True
+        assert record.elapsed_seconds == 0.0
+        assert record.overtime_seconds == 0.0
+
+    def test_skip_speaker_not_in_queue_noop(
+        self, state_manager: StateManager
+    ) -> None:
+        """Skipping when no current speaker does nothing (no crash)."""
+        # No queue set
+        state_manager.skip_current_speaker()  # Should not raise
+
+        # With empty queue
+        state_manager.set_speaker_queue([])
+        state_manager.skip_current_speaker()  # Should not raise
+
+    def test_skip_multiple_speakers_consecutively(
+        self, state_manager: StateManager, sample_members: list[TeamMember]
+    ) -> None:
+        """Multiple consecutive skips should all have 0 elapsed time."""
+        state_manager.set_speaker_queue(sample_members)
+
+        # Start with alice who speaks
+        state_manager.advance_speaker()
+        state_manager.update_speaker_time("alice", 180.0, 0.0)
+
+        # Advance to bob
+        state_manager.advance_speaker()
+
+        # Skip bob
+        state_manager.skip_current_speaker()
+
+        # Advance to charlie
+        state_manager.advance_speaker()
+
+        # Skip charlie too
+        state_manager.skip_current_speaker()
+
+        # Both skipped speakers should have 0 time
+        bob_record = state_manager.get_speaker_record("bob")
+        charlie_record = state_manager.get_speaker_record("charlie")
+
+        assert bob_record is not None and bob_record.elapsed_seconds == 0.0
+        assert charlie_record is not None and charlie_record.elapsed_seconds == 0.0
+
+        # Alice who actually spoke should have her time
+        alice_record = state_manager.get_speaker_record("alice")
+        assert alice_record is not None and alice_record.elapsed_seconds == 180.0
+
+    def test_completed_speakers_includes_skipped(
+        self, state_manager: StateManager, sample_members: list[TeamMember]
+    ) -> None:
+        """Completed speakers list includes skipped speakers."""
+        state_manager.set_speaker_queue(sample_members)
+        state_manager.advance_speaker()
+
+        state_manager.skip_current_speaker()
+
+        completed = state_manager.completed_speakers
+        assert len(completed) == 1
+        assert completed[0].skipped is True
+
+    def test_skip_after_time_was_recorded(
+        self, state_manager: StateManager, sample_members: list[TeamMember]
+    ) -> None:
+        """If time was somehow recorded before skip, skip resets it."""
+        state_manager.set_speaker_queue(sample_members)
+        state_manager.advance_speaker()
+
+        # Time recorded (maybe speaker timer update before skip)
+        state_manager.update_speaker_time("alice", 100.0, 10.0)
+
+        # Then skipped - should reset
+        state_manager.skip_current_speaker()
+
+        record = state_manager.get_speaker_record("alice")
+        assert record is not None
+        assert record.elapsed_seconds == 0.0
+        assert record.overtime_seconds == 0.0

@@ -322,9 +322,138 @@ npx playwright install
 - Check if dev server is running
 - Verify selectors are correct
 
+## Manual Testing Instructions
+
+### Local Development Testing
+
+#### 1. Start the Dev Server
+
+```bash
+cd /Users/yosii/work/git/personal_code/code/fun/quiz-app
+npm run dev
+```
+
+**Expected output:**
+```
+VITE v5.x.x  ready in xxx ms
+
+➜  Local:   http://localhost:3000/
+➜  Network: http://192.168.x.x:3000/
+```
+
+**Console should show:**
+```
+[useGameSync] 🏠 Running in LOCAL DEV mode (using localStorage)
+```
+
+#### 2. Test Multiplayer Locally
+
+Open **two browser tabs** (or windows):
+
+**Tab 1 - Host:**
+1. Go to `http://localhost:3000`
+2. Click "Join as Host"
+3. You should see "Waiting Room" with your name as Host
+
+**Tab 2 - Player:**
+1. Go to `http://localhost:3000`
+2. Enter name (e.g., "Player 1")
+3. Click "Join Quiz"
+4. You should see "Waiting Room" with both participants
+
+**Back to Tab 1 (Host):**
+1. Click "Start Quiz"
+2. Both tabs should show the quiz question
+
+**Test answering:**
+- Select an answer in each tab
+- Click "Submit Answer"
+- Verify both tabs update when all players submit
+
+#### 3. Check Browser Console
+
+Look for logs like:
+```
+[useGameSync] Action: JOIN
+[useGameSync] ✅ Action processed locally
+[useGameSync] 🔄 Detected state change from another tab
+```
+
+### Deployment Testing (Vercel)
+
+#### Deploy to Vercel
+
+**Option A: Via Git (Recommended)**
+
+```bash
+# Commit all changes
+git add .
+git commit -m "feat: add multiplayer support with local dev mode"
+
+# Push to GitHub
+git push origin main
+```
+
+Vercel will auto-deploy if connected to your GitHub repo.
+
+**Option B: Via Vercel CLI**
+
+```bash
+# Install Vercel CLI (if not installed)
+npm install -g vercel
+
+# Deploy
+cd /Users/yosii/work/git/personal_code/code/fun/quiz-app
+vercel
+
+# Follow prompts:
+# - Link to existing project or create new
+# - Select settings (use defaults)
+```
+
+#### After Deployment
+
+1. **Set up Vercel KV** (required for multiplayer):
+   - Go to [vercel.com/dashboard](https://vercel.com/dashboard)
+   - Select your project
+   - Go to **Storage** → **Create Database** → **KV**
+   - Name it `quiz-game-state`
+   - Click **Connect to Project**
+
+2. **Redeploy** (to pick up KV env vars):
+   ```bash
+   vercel --prod
+   ```
+   Or push an empty commit:
+   ```bash
+   git commit --allow-empty -m "chore: redeploy with KV"
+   git push
+   ```
+
+3. **Test on Vercel**:
+   - Open your Vercel URL (e.g., `https://your-app.vercel.app`)
+   - Test with multiple devices/browsers
+   - Check console for: `[useGameSync] 🌐 Running in API mode`
+
+#### Testing Checklist
+
+- [ ] Join screen loads correctly
+- [ ] Can join as regular participant
+- [ ] Can join as host
+- [ ] Waiting room shows all participants
+- [ ] Host can start quiz
+- [ ] Timer counts down
+- [ ] Can select and submit answers
+- [ ] Leaderboard updates correctly
+- [ ] Results screen shows final scores
+- [ ] Can reset and play again
+- [ ] Multiple tabs/devices sync properly
+- [ ] Mobile responsive design works
+
 ## Resources
 
 - [Vitest Docs](https://vitest.dev/)
 - [React Testing Library](https://testing-library.com/react)
 - [Playwright Docs](https://playwright.dev/)
+- [Vercel Deployment Guide](./docs/VERCEL_DEPLOYMENT.md)
 

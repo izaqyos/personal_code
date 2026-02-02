@@ -20,7 +20,7 @@ from rich.text import Text
 from src.core.constants import DEFAULT_WARNING_THRESHOLD_SECONDS
 from src.core.models import MeetingState, TeamMember
 from src.core.state_manager import SpeakerRecord
-from src.core.time_utils import format_time_mmss
+from src.core.time_utils import format_team_name, format_time_mmss, format_timestamp_israel
 
 # Color scheme for Rich (terminal color names)
 COLORS = {
@@ -58,21 +58,21 @@ class CLIDisplay:
         """Set the warning threshold in seconds."""
         self._warning_threshold = seconds
 
-    def render_header(self, team_name: str, session_id: str | None = None) -> Panel:
+    def render_header(self, team_name: str, team_emoji: str | None = None) -> Panel:
         """
         Render the header banner.
 
         Args:
-            team_name: Name of the team.
-            session_id: Optional session identifier.
+            team_name: Name/ID of the team.
+            team_emoji: Optional emoji for the team.
 
         Returns:
             A Rich Panel with the header.
         """
         title = Text("Daily Standup Timer", style="bold white")
-        subtitle = Text(f"Team: {team_name}", style="cyan")
-        if session_id:
-            subtitle.append(f" | Session: {session_id}", style="dim")
+        # Format team name nicely (e.g., "imagine_dragons" -> "Imagine Dragons 🐉")
+        formatted_team = format_team_name(team_name, team_emoji)
+        subtitle = Text(f"Team: {formatted_team}", style="cyan")
 
         content = Group(
             Align.center(title),
@@ -160,6 +160,7 @@ class CLIDisplay:
         speakers: list[TeamMember],
         current_index: int,
         speaker_records: list[SpeakerRecord],
+        current_speaker_elapsed: float = 0.0,
     ) -> Panel:
         """
         Render the speaker queue.
@@ -168,6 +169,7 @@ class CLIDisplay:
             speakers: List of speakers in order.
             current_index: Index of current speaker (-1 if not started).
             speaker_records: Records with timing info.
+            current_speaker_elapsed: Live elapsed time for current speaker.
 
         Returns:
             A Rich Panel with the queue display.
@@ -205,11 +207,13 @@ class CLIDisplay:
                 style = COLORS["pending"]
                 status = "Pending"
 
-            # Format time
+            # Format time (skip for absent/skipped speakers)
             time_str = ""
-            if record and (is_completed or is_current):
-                time_str = format_time_mmss(record.elapsed_seconds, show_sign=False)
-                if record.overtime_seconds > 0:
+            if record and (is_completed or is_current) and not is_absent and not is_skipped:
+                # Use live elapsed time for current speaker, stored time for completed
+                elapsed = current_speaker_elapsed if is_current else record.elapsed_seconds
+                time_str = format_time_mmss(elapsed, show_sign=False)
+                if record.overtime_seconds > 0 and not is_current:
                     time_str = f"[red]{time_str}[/red]"
 
             # Add marker for current speaker
@@ -346,6 +350,7 @@ class CLIDisplay:
         started_at: str,
         speaker_index: int,
         total_speakers: int,
+        team_emoji: str | None = None,
     ) -> Panel:
         """
         Render the recovery session prompt.
@@ -355,15 +360,20 @@ class CLIDisplay:
             started_at: When the session started.
             speaker_index: Current speaker position.
             total_speakers: Total number of speakers.
+            team_emoji: Optional emoji for the team.
 
         Returns:
             A Rich Panel with recovery info.
         """
+        # Format team name and timestamp nicely
+        formatted_team = format_team_name(team_id, team_emoji)
+        formatted_time = format_timestamp_israel(started_at)
+
         content = Group(
             Align.center(Text("Previous Session Found", style="bold yellow")),
             Align.center(Text("")),
-            Align.center(Text(f"Team: {team_id}", style="white")),
-            Align.center(Text(f"Started: {started_at}", style="white")),
+            Align.center(Text(f"Team: {formatted_team}", style="white")),
+            Align.center(Text(f"Started: {formatted_time}", style="white")),
             Align.center(Text(f"Progress: Speaker {speaker_index + 1}/{total_speakers}", style="white")),
             Align.center(Text("")),
             Align.center(Text("[r] Resume  |  [n] New Meeting", style="cyan")),
@@ -387,8 +397,10 @@ class CLIDisplay:
         ]
 
         for i, team in enumerate(teams, 1):
+            # Format team name nicely
+            formatted_team = format_team_name(team)
             content_items.append(
-                Align.center(Text(f"[{i}] {team}", style="cyan"))
+                Align.center(Text(f"[{i}] {formatted_team}", style="cyan"))
             )
 
         content_items.append(Align.center(Text("")))

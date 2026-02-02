@@ -9,6 +9,8 @@ A Python CLI tool for monitoring MCP (Model Context Protocol) server health by v
 - **Hybrid Token Refresh**: 
   - Auto-refresh OAuth tokens (Atlassian)
   - User notifications for manual tokens (GitHub PAT, Slack Bot Token)
+  - **Wipe & Re-Auth**: Nuclear option to completely wipe corrupted tokens and re-authenticate
+- **Process Cleanup**: Kill stale `mcp-remote` processes causing auth popup spam
 - **Rich Reporting**: Color-coded console output and JSON export for automation
 - **Parallel Validation**: All servers validated concurrently for faster checks
 - **Watch Mode**: Continuous monitoring with configurable intervals
@@ -71,6 +73,21 @@ mcp-health check --skip-mcp
 
 # Auto-refresh expired OAuth tokens
 mcp-health check --auto-refresh
+
+# Re-authenticate via browser (for invalid tokens)
+mcp-health check --server perimeter81-atlassian --reauth
+
+# Nuclear option: Wipe all tokens and re-authenticate
+mcp-health wipe-reauth -s perimeter81-atlassian
+
+# Wipe all Atlassian servers (skip confirmation)
+mcp-health wipe-reauth --force
+
+# Kill stale mcp-remote processes (auth popup spam fix)
+mcp-health cleanup
+
+# Preview what would be killed without actually killing
+mcp-health cleanup --dry-run
 ```
 
 ## Configuration
@@ -155,7 +172,25 @@ Claude Code has native MCP OAuth support and connects directly to Atlassian's cl
 
 1. **Toggle in Cursor**: Settings → MCP Servers → Toggle Atlassian OFF/ON (most reliable)
 2. **Use mcp-health**: `mcp-health check --server perimeter81-atlassian --reauth`
-3. **Use Claude Code**: For Atlassian-heavy workflows (no token issues)
+3. **Nuclear option**: `mcp-health wipe-reauth -s perimeter81-atlassian` (wipes all tokens and re-authenticates)
+4. **Use Claude Code**: For Atlassian-heavy workflows (no token issues)
+
+**If you see constant auth popup tabs (OAuth spam):**
+
+This happens when stale `mcp-remote` processes accumulate over time. Each process independently attempts token refresh, triggering multiple browser popups.
+
+```bash
+# Quick fix: Kill all stale processes
+mcp-health cleanup
+
+# Or manually
+pkill -f "mcp-remote"
+```
+
+**Symptoms:**
+- Multiple browser tabs opening for Atlassian OAuth
+- "localhost refused to connect" errors in OAuth callback pages
+- Slow MCP responses
 
 See [ATLASSIAN_TOKEN_ISSUES.md](docs/ATLASSIAN_TOKEN_ISSUES.md) for detailed troubleshooting and architecture explanation.
 

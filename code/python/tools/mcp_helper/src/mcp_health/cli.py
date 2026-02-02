@@ -96,9 +96,9 @@ def main() -> None:
     help="Show verbose output",
 )
 @click.option(
-    "--skip-mcp",
-    is_flag=True,
-    help="Skip MCP protocol connection tests",
+    "--skip-mcp/--with-mcp",
+    default=True,
+    help="Skip MCP protocol connection tests (default: skip)",
 )
 @click.option(
     "--auto-refresh",
@@ -473,6 +473,246 @@ async def run_refresh(server_name: str, config_path: Path | None) -> None:
         instructions = notifier.get_instructions(service_type)
         console.print(f"\n[yellow]{server_name} uses a non-refreshable token.[/]\n")
         console.print(instructions)
+
+
+@main.command(name="wipe-reauth")
+@click.option(
+    "--config",
+    "-c",
+    type=click.Path(exists=True, path_type=Path),
+    help="Path to MCP config file",
+)
+@click.option(
+    "--server",
+    "-s",
+    "server_name",
+    default=None,
+    help="Specific server to wipe (default: all Atlassian servers)",
+)
+@click.option(
+    "--force",
+    "-f",
+    is_flag=True,
+    help="Skip confirmation prompt",
+)
+def wipe_reauth(config: Path | None, server_name: str | None, force: bool) -> None:
+    """Completely wipe OAuth tokens and re-authenticate via browser.
+
+    This is a nuclear option for when tokens are corrupted or in a bad state.
+    It removes ALL OAuth-related files and triggers a fresh authentication.
+
+    Example:
+        mcp-health wipe-reauth -s perimeter81-atlassian
+    """
+    asyncio.run(run_wipe_reauth(config, server_name, force))
+
+
+async def run_wipe_reauth(
+    config_path: Path | None,
+    server_name: str | None,
+    force: bool,
+) -> None:
+    """Run the wipe and re-authentication flow.
+
+    Args:
+        config_path: Path to config file
+        server_name: Specific server name or None for all Atlassian servers
+        force: Skip confirmation prompt
+    """
+    loader = ConfigLoader()
+    refresher = OAuthRefresher()
+
+    try:
+        mcp_config = loader.load(config_path)
+    except ConfigError as e:
+        console.print(f"[red]Error loading config:[/] {e}")
+        raise SystemExit(1) from e
+
+    # Find Atlassian servers with OAuth config
+    atlassian_servers: list[tuple[str, Path]] = []
+    for name, server_config in mcp_config:
+        is_atlassian = "atlassian" in name.lower() or "jira" in name.lower()
+        config_dir = server_config.get_env_var("MCP_REMOTE_CONFIG_DIR")
+
+        if config_dir and is_atlassian:
+            if server_name is None or name == server_name:
+                atlassian_servers.append((name, Path(config_dir)))
+
+    if not atlassian_servers:
+        if server_name:
+            console.print(f"[red]Server not found or not an OAuth server:[/] {server_name}")
+            console.print("\nAvailable OAuth servers:")
+            for name, server_config in mcp_config:
+                if server_config.get_env_var("MCP_REMOTE_CONFIG_DIR"):
+                    console.print(f"  - {name}")
+        else:
+            console.print("[yellow]No Atlassian OAuth servers found in config.[/]")
+        raise SystemExit(1)
+
+    # Show what will be wiped
+    console.print("\n[bold red]⚠️  WIPE AND RE-AUTHENTICATE[/]\n")
+    console.print("This will completely remove all OAuth tokens and force re-authentication.\n")
+    console.print("[bold]Servers to wipe:[/]")
+    for name, config_dir in atlassian_servers:
+        console.print(f"  • [cyan]{name}[/]")
+        console.print(f"    Config dir: [dim]{config_dir}[/]")
+
+    console.print("\n[bold]Files to remove:[/]")
+    console.print("  • Token files (*_tokens.json)")
+    console.print("  • Client registration (*_client_info.json)")
+    console.print("  • PKCE verifiers (*_code_verifier.txt)")
+    console.print("  • Lock files (*_lock.json)")
+
+    # Confirm unless --force
+    if not force:
+        console.print("")
+        if not click.confirm("Proceed with wipe and re-authentication?", default=False):
+            console.print("[yellow]Cancelled.[/]")
+            raise SystemExit(0)
+
+    # Wipe tokens for each server
+    console.print("\n[bold]Wiping tokens...[/]")
+    for name, config_dir in atlassian_servers:
+        console.print(f"\n  [{name}]")
+        removed_files = refresher.wipe_all_tokens(config_dir)
+        if removed_files:
+            for f in removed_files:
+                console.print(f"    [red]✗[/] Removed: [dim]{f}[/]")
+        else:
+            console.print("    [dim]No token files found[/]")
+
+    # Re-authenticate
+    console.print("\n[bold]Starting re-authentication...[/]")
+    console.print("[dim]A browser will open for you to log in to Atlassian.[/]\n")
+
+    for name, config_dir in atlassian_servers:
+        console.print(f"[bold cyan]Re-authenticating {name}...[/]")
+        result = await refresher.reauth_atlassian(config_dir)
+
+        if result.is_success():
+            console.print(f"[green]✓ {result.message}[/]")
+        else:
+            console.print(f"[red]✗ {result.message}[/]")
+            console.print("\n[yellow]Manual steps if re-auth failed:[/]")
+            console.print("  1. Open Cursor Settings → MCP Servers")
+            console.print("  2. Toggle OFF the Atlassian MCP server")
+            console.print("  3. Toggle it back ON")
+            console.print("  4. Complete OAuth in browser when prompted")
+            raise SystemExit(1)
+
+    console.print("\n[green bold]✓ Re-authentication complete![/]")
+    console.print("\n[dim]Note: You may need to toggle the MCP server in Cursor Settings")
+    console.print("if Cursor doesn't pick up the new tokens automatically.[/]")
+
+
+@main.command()
+@click.option(
+    "--dry-run",
+    is_flag=True,
+    help="Show what would be killed without actually killing",
+)
+@click.option(
+    "--force",
+    "-f",
+    is_flag=True,
+    help="Kill processes without confirmation",
+)
+def cleanup(dry_run: bool, force: bool) -> None:
+    """Kill stale mcp-remote processes causing auth popup spam.
+
+    Use when you see multiple browser tabs opening for Atlassian OAuth,
+    "localhost refused to connect" errors, or excessive auth prompts.
+
+    Example:
+        mcp-health cleanup         # Interactive cleanup
+        mcp-health cleanup --force # Skip confirmation
+        mcp-health cleanup --dry-run  # Preview only
+    """
+    import subprocess
+
+    console.print("\n[bold]MCP Process Cleanup[/]\n")
+
+    # Find mcp-remote processes
+    try:
+        result = subprocess.run(
+            ["pgrep", "-f", "mcp-remote"],
+            capture_output=True,
+            text=True,
+        )
+        pids = result.stdout.strip().split("\n") if result.stdout.strip() else []
+    except FileNotFoundError:
+        # pgrep not available, try ps approach
+        result = subprocess.run(
+            ["ps", "aux"],
+            capture_output=True,
+            text=True,
+        )
+        lines = [line for line in result.stdout.split("\n") if "mcp-remote" in line and "grep" not in line]
+        pids = [line.split()[1] for line in lines if line]
+
+    if not pids:
+        console.print("[green]✓ No stale mcp-remote processes found.[/]")
+        console.print("[dim]Everything looks clean![/]")
+        return
+
+    # Get process details
+    console.print(f"[yellow]Found {len(pids)} mcp-remote process(es):[/]\n")
+    
+    try:
+        ps_result = subprocess.run(
+            ["ps", "-p", ",".join(pids), "-o", "pid,etime,command"],
+            capture_output=True,
+            text=True,
+        )
+        if ps_result.stdout:
+            for line in ps_result.stdout.strip().split("\n"):
+                if "PID" in line:
+                    console.print(f"  [dim]{line}[/]")
+                else:
+                    console.print(f"  {line[:100]}{'...' if len(line) > 100 else ''}")
+    except Exception:
+        for pid in pids:
+            console.print(f"  PID: {pid}")
+
+    console.print("")
+
+    if dry_run:
+        console.print("[yellow]Dry run - no processes killed.[/]")
+        console.print("[dim]Run without --dry-run to kill these processes.[/]")
+        return
+
+    # Confirm unless --force
+    if not force:
+        if not click.confirm("Kill all mcp-remote processes?", default=True):
+            console.print("[yellow]Cancelled.[/]")
+            return
+
+    # Kill processes
+    try:
+        result = subprocess.run(
+            ["pkill", "-f", "mcp-remote"],
+            capture_output=True,
+            text=True,
+        )
+        if result.returncode == 0:
+            console.print(f"[green]✓ Killed {len(pids)} mcp-remote process(es).[/]")
+        else:
+            # pkill returns 1 if no processes found (already killed)
+            console.print("[green]✓ Processes terminated.[/]")
+    except FileNotFoundError:
+        # pkill not available, use kill
+        for pid in pids:
+            try:
+                subprocess.run(["kill", pid], check=True)
+            except subprocess.CalledProcessError:
+                pass
+        console.print(f"[green]✓ Killed {len(pids)} mcp-remote process(es).[/]")
+
+    console.print("\n[bold]Next steps:[/]")
+    console.print("  1. Your next MCP call will spawn fresh processes")
+    console.print("  2. You'll get a one-time browser auth prompt")
+    console.print("  3. Subsequent calls will use cached tokens")
+    console.print("\n[dim]Tip: Run 'mcp-health check' to verify MCP servers are working.[/]")
 
 
 if __name__ == "__main__":

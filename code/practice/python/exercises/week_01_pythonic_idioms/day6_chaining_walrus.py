@@ -98,7 +98,7 @@ def walrus_operator_basics():
     index = 0
     
     # TODO: Use walrus operator in while condition
-    while (line := inputs[index] if index < len(inputs) else "quit") != "quit":
+    while False:  # TODO: Use walrus operator to assign and check
         print(f"    Processing: {line}")
         index += 1
     
@@ -142,7 +142,7 @@ def walrus_in_comprehensions():
     texts = ["hello", "world", "python", "programming"]
     
     # TODO: Get lengths > 5 along with the length
-    result = [(text, length) for text in texts if (length := len(text)) > 5]
+    result = []  # TODO: Use walrus to capture length
     print(f"\n  Long words: {result}")
     
     print()
@@ -227,7 +227,7 @@ def process_file_with_walrus():
     print("\nWith walrus operator:")
     with open(test_file, 'r') as f:
         # TODO: Use walrus in while condition
-        while (line := f.readline()):
+        while False:  # TODO: Use walrus in condition
             if "important" in line.lower():
                 print(f"  {line.strip()}")
     
@@ -255,7 +255,7 @@ def combining_features():
     print("Valid scores (0-100) with grades:")
     for score in scores:
         # TODO: Combine walrus and chaining
-        if 0 <= (s := score) <= 100:
+        if False:  # TODO: Use walrus and chaining
             if 90 <= s <= 100:
                 grade = "A"
             elif 80 <= s < 90:

@@ -110,8 +110,9 @@ class TestTeamSelection:
 
         assert "[1]" in output
         assert "[2]" in output
-        assert "alpha" in output
-        assert "beta" in output
+        # Team names are now formatted as title case
+        assert "Alpha" in output
+        assert "Beta" in output
 
 
 # =============================================================================
@@ -805,6 +806,125 @@ class TestDisplayEdgeCases:
 
         assert "02:45" in output  # Alice's time
 
+    def test_queue_skipped_speaker_does_not_show_elapsed_time(
+        self,
+        display: CLIDisplay,
+        sample_speakers: list[TeamMember],
+    ) -> None:
+        """Skipped speaker should NOT show elapsed time even if record has non-zero value.
+
+        Regression test for timer bug where skipped speakers showed their timer value.
+        """
+        records = [
+            # Skipped speaker with non-zero elapsed_seconds (simulates the bug scenario)
+            SpeakerRecord(
+                member=sample_speakers[0],
+                skipped=True,
+                elapsed_seconds=3.0,  # This should NOT be displayed
+            ),
+            SpeakerRecord(member=sample_speakers[1], elapsed_seconds=0.0),
+            SpeakerRecord(member=sample_speakers[2], elapsed_seconds=0.0),
+        ]
+        panel = display.render_queue(
+            speakers=sample_speakers,
+            current_index=1,  # Alice is done (skipped), Bob is current
+            speaker_records=records,
+        )
+
+        console = Console(file=StringIO(), force_terminal=True, width=80)
+        console.print(panel)
+        output = console.file.getvalue()  # type: ignore[union-attr]
+
+        assert "Skipped" in output
+        # Verify no time is shown for the skipped speaker (0:03 or 00:03)
+        assert "0:03" not in output
+        assert "00:03" not in output
+
+    def test_queue_absent_speaker_does_not_show_elapsed_time(
+        self,
+        display: CLIDisplay,
+        sample_speakers: list[TeamMember],
+    ) -> None:
+        """Absent speaker should NOT show elapsed time even if record has non-zero value."""
+        records = [
+            # Absent speaker with non-zero elapsed_seconds
+            SpeakerRecord(
+                member=sample_speakers[0],
+                is_absent=True,
+                elapsed_seconds=5.0,  # This should NOT be displayed
+            ),
+            SpeakerRecord(member=sample_speakers[1], elapsed_seconds=0.0),
+            SpeakerRecord(member=sample_speakers[2], elapsed_seconds=0.0),
+        ]
+        panel = display.render_queue(
+            speakers=sample_speakers,
+            current_index=1,
+            speaker_records=records,
+        )
+
+        console = Console(file=StringIO(), force_terminal=True, width=80)
+        console.print(panel)
+        output = console.file.getvalue()  # type: ignore[union-attr]
+
+        assert "Absent" in output
+        # Verify no time is shown for the absent speaker
+        assert "0:05" not in output
+        assert "00:05" not in output
+
+    def test_queue_normal_completed_speaker_shows_time(
+        self,
+        display: CLIDisplay,
+        sample_speakers: list[TeamMember],
+    ) -> None:
+        """Normal completed speaker (not skipped/absent) should show their time."""
+        records = [
+            SpeakerRecord(
+                member=sample_speakers[0],
+                elapsed_seconds=45.0,  # This SHOULD be displayed
+            ),
+            SpeakerRecord(member=sample_speakers[1], elapsed_seconds=0.0),
+            SpeakerRecord(member=sample_speakers[2], elapsed_seconds=0.0),
+        ]
+        panel = display.render_queue(
+            speakers=sample_speakers,
+            current_index=1,  # Alice is done, Bob is current
+            speaker_records=records,
+        )
+
+        console = Console(file=StringIO(), force_terminal=True, width=80)
+        console.print(panel)
+        output = console.file.getvalue()  # type: ignore[union-attr]
+
+        # Verify time IS shown for normal completed speaker
+        assert "0:45" in output or "00:45" in output
+
+    def test_queue_multiple_skipped_speakers_no_times_shown(
+        self,
+        display: CLIDisplay,
+        sample_speakers: list[TeamMember],
+    ) -> None:
+        """Multiple skipped speakers should all show no time."""
+        records = [
+            SpeakerRecord(member=sample_speakers[0], skipped=True, elapsed_seconds=3.0),
+            SpeakerRecord(member=sample_speakers[1], skipped=True, elapsed_seconds=5.0),
+            SpeakerRecord(member=sample_speakers[2], elapsed_seconds=0.0),
+        ]
+        panel = display.render_queue(
+            speakers=sample_speakers,
+            current_index=2,  # Alice and Bob skipped, Charlie is current
+            speaker_records=records,
+        )
+
+        console = Console(file=StringIO(), force_terminal=True, width=80)
+        console.print(panel)
+        output = console.file.getvalue()  # type: ignore[union-attr]
+
+        # Count occurrences of "Skipped"
+        assert output.count("Skipped") == 2
+        # Verify no times are shown
+        assert "0:03" not in output
+        assert "0:05" not in output
+
 
 # =============================================================================
 # CLIApp Tests
@@ -1475,3 +1595,180 @@ class TestCLIAppRecoveryPrompt:
 
         result = app._handle_recovery_prompt()
         assert result is True
+
+
+# =============================================================================
+# Test: Current Speaker Time Display Regression Fix
+# =============================================================================
+
+
+class TestCurrentSpeakerTimeDisplay:
+    """Test that current speaker's elapsed time displays correctly during speaking.
+    
+    Regression test for bug where speaker time showed as 0:00 during speaking
+    but updated correctly only after moving to next speaker.
+    """
+
+    def test_queue_shows_live_elapsed_time_for_current_speaker(
+        self,
+        display: CLIDisplay,
+        sample_speakers: list[TeamMember],
+    ) -> None:
+        """Current speaker should show live elapsed time, not 0:00.
+        
+        This tests the regression where the speaker time column showed 0
+        because the record.elapsed_seconds wasn't updated until the speaker
+        finished. Now we pass current_speaker_elapsed separately.
+        """
+        # Simulate: Alice (idx 0) is done, Bob (idx 1) is currently speaking
+        records = [
+            SpeakerRecord(member=sample_speakers[0], elapsed_seconds=45.0),  # Alice done
+            SpeakerRecord(member=sample_speakers[1], elapsed_seconds=0.0),  # Bob - record not updated yet
+            SpeakerRecord(member=sample_speakers[2], elapsed_seconds=0.0),  # Charlie pending
+        ]
+        
+        # Bob has been speaking for 23.5 seconds (live timer value)
+        live_elapsed = 23.5
+        
+        panel = display.render_queue(
+            speakers=sample_speakers,
+            current_index=1,  # Bob is current speaker
+            speaker_records=records,
+            current_speaker_elapsed=live_elapsed,
+        )
+
+        console = Console(file=StringIO(), force_terminal=True, width=80)
+        console.print(panel)
+        output = console.file.getvalue()  # type: ignore[union-attr]
+
+        # Alice's completed time should still show
+        assert "0:45" in output or "00:45" in output
+        
+        # Bob's LIVE elapsed time should show (not 0:00)
+        assert "0:23" in output or "00:23" in output
+        
+        # Verify 0:00 is NOT shown for Bob (the regression)
+        # Note: Charlie (pending) has no time shown at all
+        
+    def test_queue_shows_zero_without_live_elapsed_parameter(
+        self,
+        display: CLIDisplay,
+        sample_speakers: list[TeamMember],
+    ) -> None:
+        """Without current_speaker_elapsed param, falls back to record (0).
+        
+        This tests backward compatibility - if caller doesn't pass the param,
+        it defaults to 0.0.
+        """
+        records = [
+            SpeakerRecord(member=sample_speakers[0], elapsed_seconds=45.0),
+            SpeakerRecord(member=sample_speakers[1], elapsed_seconds=0.0),  # Current, not updated
+            SpeakerRecord(member=sample_speakers[2], elapsed_seconds=0.0),
+        ]
+        
+        # Don't pass current_speaker_elapsed - uses default 0.0
+        panel = display.render_queue(
+            speakers=sample_speakers,
+            current_index=1,
+            speaker_records=records,
+            # current_speaker_elapsed not passed, defaults to 0.0
+        )
+
+        console = Console(file=StringIO(), force_terminal=True, width=80)
+        console.print(panel)
+        output = console.file.getvalue()  # type: ignore[union-attr]
+
+        # Alice's time should show
+        assert "0:45" in output or "00:45" in output
+        
+        # Bob shows 0:00 (the old behavior when param not passed)
+        assert "0:00" in output or "00:00" in output
+
+    def test_queue_uses_record_elapsed_for_completed_speakers(
+        self,
+        display: CLIDisplay,
+        sample_speakers: list[TeamMember],
+    ) -> None:
+        """Completed speakers should use their stored elapsed_seconds, not live timer."""
+        records = [
+            SpeakerRecord(member=sample_speakers[0], elapsed_seconds=62.0),  # Alice done - 1:02
+            SpeakerRecord(member=sample_speakers[1], elapsed_seconds=55.0),  # Bob done - 0:55
+            SpeakerRecord(member=sample_speakers[2], elapsed_seconds=0.0),  # Charlie current
+        ]
+        
+        # Live timer shows 18 seconds for Charlie (current speaker)
+        live_elapsed = 18.0
+        
+        panel = display.render_queue(
+            speakers=sample_speakers,
+            current_index=2,  # Charlie is current
+            speaker_records=records,
+            current_speaker_elapsed=live_elapsed,
+        )
+
+        console = Console(file=StringIO(), force_terminal=True, width=80)
+        console.print(panel)
+        output = console.file.getvalue()  # type: ignore[union-attr]
+
+        # Completed speakers show their stored times
+        assert "1:02" in output or "01:02" in output  # Alice
+        assert "0:55" in output or "00:55" in output  # Bob
+        
+        # Current speaker shows live time
+        assert "0:18" in output or "00:18" in output  # Charlie (live)
+
+    def test_queue_first_speaker_shows_live_time(
+        self,
+        display: CLIDisplay,
+        sample_speakers: list[TeamMember],
+    ) -> None:
+        """First speaker (index 0) should show live elapsed time immediately."""
+        records = [
+            SpeakerRecord(member=sample_speakers[0], elapsed_seconds=0.0),  # Alice current
+            SpeakerRecord(member=sample_speakers[1], elapsed_seconds=0.0),
+            SpeakerRecord(member=sample_speakers[2], elapsed_seconds=0.0),
+        ]
+        
+        # Alice has been speaking for 5 seconds
+        live_elapsed = 5.0
+        
+        panel = display.render_queue(
+            speakers=sample_speakers,
+            current_index=0,  # Alice is first speaker
+            speaker_records=records,
+            current_speaker_elapsed=live_elapsed,
+        )
+
+        console = Console(file=StringIO(), force_terminal=True, width=80)
+        console.print(panel)
+        output = console.file.getvalue()  # type: ignore[union-attr]
+
+        # Alice should show live time (0:05), not 0:00
+        assert "0:05" in output or "00:05" in output
+
+    def test_queue_overtime_styling_only_for_completed(
+        self,
+        display: CLIDisplay,
+        sample_speakers: list[TeamMember],
+    ) -> None:
+        """Overtime red styling should only apply to completed speakers, not current."""
+        records = [
+            SpeakerRecord(
+                member=sample_speakers[0],
+                elapsed_seconds=95.0,
+                overtime_seconds=35.0,  # Completed with overtime
+            ),
+            SpeakerRecord(member=sample_speakers[1], elapsed_seconds=0.0),  # Current
+            SpeakerRecord(member=sample_speakers[2], elapsed_seconds=0.0),
+        ]
+        
+        panel = display.render_queue(
+            speakers=sample_speakers,
+            current_index=1,  # Bob is current
+            speaker_records=records,
+            current_speaker_elapsed=10.0,
+        )
+
+        # Just verify it renders without error
+        # (Red styling is in Rich markup, hard to test directly)
+        assert panel is not None

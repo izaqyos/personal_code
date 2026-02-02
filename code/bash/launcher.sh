@@ -8,150 +8,454 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 TRACKER_SCRIPT="/Users/yosii/work/git/personal_code/code/AI/cursor/tracking/cursor_tracker.py"
 REMINDER_SCRIPT="/Users/yosii/work/CheckPoint/Jira/release/reminder_app/remind_champion.py"
 REPO_CLEANER_DIR="/Users/yosii/work/git/personal_code/code/python/tools/repo_cleaner"
-REPO_CLEANER_CMD="repo-cleaner"
+REPO_CLEANER_VENV="$REPO_CLEANER_DIR/.venv"
 CONTEXT_GENERATOR_SCRIPT="/Users/yosii/work/context/generate_context.sh"
 DAILY_RUNNER_DIR="/Users/yosii/work/git/personal_code/code/python/tools/daily_runner"
 DAILY_RUNNER_VENV="$DAILY_RUNNER_DIR/.venv"
+MCP_HELPER_DIR="/Users/yosii/work/git/personal_code/code/python/tools/mcp_helper"
+MCP_HELPER_VENV="$MCP_HELPER_DIR/.venv"
+NUGGETS_DIR="/Users/yosii/work/git/personal_code/code/python/knowledge/oneliners"
 
-# Colors for output
-GREEN='\033[0;32m'
-BLUE='\033[0;34m'
-YELLOW='\033[1;33m'
-CYAN='\033[0;36m'
-NC='\033[0m' # No Color
-BOLD='\033[1m'
+# Colors for output (using $'...' for proper escape interpretation)
+GREEN=$'\033[0;32m'
+BLUE=$'\033[0;34m'
+YELLOW=$'\033[1;33m'
+CYAN=$'\033[0;36m'
+MAGENTA=$'\033[0;35m'
+NC=$'\033[0m' # No Color
+BOLD=$'\033[1m'
+
+# Box width constants for 140-char layout
+BOX_WIDTH=140
+BOX_INNER=138
+CONTENT_WIDTH=132  # BOX_INNER - 6 (3 padding each side)
+
+# ============================================================================
+# ANSI-aware string formatting functions
+# ============================================================================
+
+# Strip ANSI escape codes from a string to get visible text only
+# Usage: stripped=$(strip_ansi "$colored_string")
+strip_ansi() {
+    local input="$1"
+    # Remove all ANSI escape sequences (colors, formatting, cursor movement)
+    echo -e "$input" | sed 's/\x1b\[[0-9;]*[a-zA-Z]//g'
+}
+
+# Get the visible length of a string (excluding ANSI codes, accounting for wide chars)
+# Usage: len=$(visible_length "$colored_string")
+visible_length() {
+    local input="$1"
+    local stripped
+    stripped=$(strip_ansi "$input")
+    
+    # Try to use wc -m for proper multi-byte character counting
+    # This handles emojis and wide characters better
+    if command -v wc &> /dev/null; then
+        # Use printf to avoid newline, then count display width
+        # Note: This still won't be perfect for all emojis, but better than ${#stripped}
+        local len
+        len=$(printf "%s" "$stripped" | wc -m | tr -d ' ')
+        echo "$len"
+    else
+        echo ${#stripped}
+    fi
+}
+
+# Pad a string with spaces on the right to reach exact visible width
+# Usage: padded=$(pad_right "$string" 50)
+pad_right() {
+    local content="$1"
+    local target_width="$2"
+    local vis_len
+    vis_len=$(visible_length "$content")
+    local padding=$((target_width - vis_len))
+    
+    if [ $padding -gt 0 ]; then
+        printf "%s%*s" "$content" "$padding" ""
+    else
+        printf "%s" "$content"
+    fi
+}
+
+# Pad a string with spaces on both sides to center it
+# Usage: centered=$(pad_center "$string" 50)
+pad_center() {
+    local content="$1"
+    local target_width="$2"
+    local vis_len
+    vis_len=$(visible_length "$content")
+    local total_padding=$((target_width - vis_len))
+    local pad_left=$((total_padding / 2))
+    local pad_right=$((total_padding - pad_left))
+    
+    if [ $total_padding -gt 0 ]; then
+        printf "%*s%s%*s" "$pad_left" "" "$content" "$pad_right" ""
+    else
+        printf "%s" "$content"
+    fi
+}
+
+# Get a random programming nugget
+# Python has double chance (2/6), others have 1/6 each
+# Sets global variables: NUGGET_TAG, NUGGET_COLOR, NUGGET_LINE1, NUGGET_LINE2
+get_random_nugget() {
+    local lang_choice=$((RANDOM % 6))
+    local lang_file=""
+    
+    NUGGET_TAG=""
+    NUGGET_COLOR=""
+    NUGGET_LINE1=""
+    NUGGET_LINE2=""
+    
+    case $lang_choice in
+        0|1) # Python gets 2/6 chance
+            lang_file="python.json"
+            NUGGET_TAG="Python"
+            NUGGET_COLOR="${GREEN}"
+            ;;
+        2)
+            lang_file="bash.json"
+            NUGGET_TAG="Bash"
+            NUGGET_COLOR="${YELLOW}"
+            ;;
+        3)
+            lang_file="cpp.json"
+            NUGGET_TAG="C++"
+            NUGGET_COLOR="${BLUE}"
+            ;;
+        4)
+            lang_file="nodejs.json"
+            NUGGET_TAG="Node.js"
+            NUGGET_COLOR="${MAGENTA}"
+            ;;
+        5)
+            lang_file="javascript.json"
+            NUGGET_TAG="JS"
+            NUGGET_COLOR="${CYAN}"
+            ;;
+    esac
+    
+    local json_path="${NUGGETS_DIR}/${lang_file}"
+    
+    # Check if file exists and jq is available
+    if [ -f "$json_path" ] && command -v jq &> /dev/null; then
+        local count=$(jq '.nuggets | length' "$json_path" 2>/dev/null)
+        if [ -n "$count" ] && [ "$count" -gt 0 ]; then
+            local idx=$((RANDOM % count))
+            local nugget=$(jq -r ".nuggets[$idx]" "$json_path" 2>/dev/null)
+            if [ -n "$nugget" ] && [ "$nugget" != "null" ]; then
+                # Max chars for first line (after [Tag] ) - 140 char box
+                # "   [Tag    ]  text..." = 3 + 9 + 2 + text = 14 + text
+                # 138 inner - 14 = 124 chars for text on line 1
+                local max_line1=118
+                local max_line2=128  # Second line has more space (no tag, just 14 space indent)
+                
+                if [ ${#nugget} -le $max_line1 ]; then
+                    # Fits on one line
+                    NUGGET_LINE1="$nugget"
+                    NUGGET_LINE2=""
+                else
+                    # Need to wrap - find a good break point
+                    local break_point=$max_line1
+                    # Try to break at a space
+                    while [ $break_point -gt 60 ] && [ "${nugget:$break_point:1}" != " " ]; do
+                        ((break_point--))
+                    done
+                    if [ $break_point -le 60 ]; then
+                        break_point=$max_line1
+                    fi
+                    
+                    NUGGET_LINE1="${nugget:0:$break_point}"
+                    local remaining="${nugget:$break_point}"
+                    remaining="${remaining# }"  # Trim leading space
+                    
+                    if [ ${#remaining} -gt $max_line2 ]; then
+                        NUGGET_LINE2="${remaining:0:$((max_line2-3))}..."
+                    else
+                        NUGGET_LINE2="$remaining"
+                    fi
+                fi
+                return
+            fi
+        fi
+    fi
+    
+    # Fallback if no nuggets available
+    NUGGET_LINE1="💡 Loading wisdom..."
+    NUGGET_LINE2=""
+}
 
 # Clear screen function
 clear_screen() {
     clear
 }
 
+# ============================================================================
+# Box drawing functions (120-char wide, ANSI-aware)
+# ============================================================================
+
+# Inner width: 138 chars (140 - 2 for ║ borders)
+BOX_INNER_WIDTH=138
+
+# Print a line inside the box with proper padding
+# Usage: print_box_line "content" [center]
+print_box_line() {
+    local content="$1"
+    local align="${2:-left}"  # left or center
+    local padded
+    
+    if [ "$align" = "center" ]; then
+        padded=$(pad_center "$content" $BOX_INNER_WIDTH)
+    else
+        # Left align with 3-char indent
+        local indented="   $content"
+        padded=$(pad_right "$indented" $BOX_INNER_WIDTH)
+    fi
+    
+    printf "${BOLD}${CYAN}║${NC}%s${BOLD}${CYAN}║${NC}\n" "$padded"
+}
+
+# Print empty box line (138 spaces)
+print_box_empty() {
+    printf "${BOLD}${CYAN}║%138s║${NC}\n" ""
+}
+
+# Print box top border
+print_box_top() {
+    printf "${BOLD}${CYAN}╔"
+    printf '═%.0s' {1..138}
+    printf "╗${NC}\n"
+}
+
+# Print box bottom border
+print_box_bottom() {
+    printf "${BOLD}${CYAN}╚"
+    printf '═%.0s' {1..138}
+    printf "╝${NC}\n"
+}
+
+# Print box separator line
+print_box_separator() {
+    printf "${BOLD}${CYAN}╠"
+    printf '═%.0s' {1..138}
+    printf "╣${NC}\n"
+}
+
+# Print menu item with proper ANSI-aware padding
+# Usage: print_menu_item "1" "Menu Label" [color]
+print_menu_item() {
+    local key="$1"
+    local label="$2"
+    local key_color="${3:-$GREEN}"
+    
+    # Build the content: "   [1]  Label"
+    local content="   ${key_color}[${key}]${NC}  ${label}"
+    local padded
+    padded=$(pad_right "$content" $BOX_INNER_WIDTH)
+    
+    printf "${BOLD}${CYAN}║${NC}%s${BOLD}${CYAN}║${NC}\n" "$padded"
+}
+
+# Print nugget line with language tag
+# Usage: print_nugget_line "$TAG" "$COLOR" "$TEXT" [is_continuation]
+print_nugget_line() {
+    local tag="$1"
+    local color="$2"
+    local text="$3"
+    local is_continuation="${4:-false}"
+    
+    if [ "$is_continuation" = "true" ]; then
+        # Continuation line: indent to align with first line text (14 spaces)
+        local content="              ${text}"
+        local padded
+        padded=$(pad_right "$content" $BOX_INNER_WIDTH)
+        printf "${BOLD}${CYAN}║${NC}%s${BOLD}${CYAN}║${NC}\n" "$padded"
+    else
+        # First line with tag: "   [Tag    ]  text"
+        local plain_tag
+        plain_tag=$(printf "[%-7s]" "$tag")
+        local colored_tag="${color}${plain_tag}${NC}"
+        
+        # Build the full content line with colors
+        local content="   ${colored_tag}  ${text}"
+        
+        # Pad to exact width using ANSI-aware function
+        local padded
+        padded=$(pad_right "$content" $BOX_INNER_WIDTH)
+        
+        printf "${BOLD}${CYAN}║${NC}%s${BOLD}${CYAN}║${NC}\n" "$padded"
+    fi
+}
+
 # Show main menu
 show_main_menu() {
     clear_screen
-    echo -e "${BOLD}${CYAN}╔════════════════════════════════════════╗${NC}"
-    echo -e "${BOLD}${CYAN}║     SCRIPT LAUNCHER - MAIN MENU        ║${NC}"
-    echo -e "${BOLD}${CYAN}╚════════════════════════════════════════╝${NC}"
+    local current_date=$(date "+%a %b %d, %Y")
+    local current_time=$(date "+%H:%M:%S")
+    
+    # Get random nugget (sets NUGGET_TAG, NUGGET_COLOR, NUGGET_LINE1, NUGGET_LINE2)
+    get_random_nugget
+    
     echo ""
-    echo -e "${BOLD}Select a script:${NC}"
+    print_box_top
+    print_box_empty
+    # Use >> instead of emoji to avoid display width issues
+    print_box_line ">> YOSI's SCRIPT LAUNCHER - MAIN MENU <<" "center"
+    print_box_line "${current_date}   │   ${current_time}" "center"
+    print_box_empty
+    print_box_separator
+    print_box_empty
+    
+    # Print nugget line(s)
+    print_nugget_line "$NUGGET_TAG" "$NUGGET_COLOR" "$NUGGET_LINE1"
+    if [ -n "$NUGGET_LINE2" ]; then
+        print_nugget_line "" "" "$NUGGET_LINE2" "true"
+    fi
+    
+    print_box_empty
+    print_box_separator
+    print_box_empty
+    print_menu_item "1" "Cursor Tracker"
+    print_menu_item "2" "Remind Champion"
+    print_menu_item "3" "Repo Cleaner"
+    print_menu_item "4" "Context Generator"
+    print_menu_item "5" "Daily Standup Timer"
+    print_menu_item "6" "MCP Health Check"
+    print_box_empty
+    print_box_separator
+    print_box_empty
+    print_menu_item "0" "Exit" "$YELLOW"
+    print_box_empty
+    print_box_bottom
     echo ""
-    echo -e "  ${GREEN}1${NC} - Cursor Tracker"
-    echo -e "  ${GREEN}2${NC} - Remind Champion"
-    echo -e "  ${GREEN}3${NC} - Repo Cleaner"
-    echo -e "  ${GREEN}4${NC} - Context Generator"
-    echo -e "  ${GREEN}5${NC} - Daily Standup Timer"
-    echo ""
-    echo -e "  ${YELLOW}0${NC} - Exit"
-    echo ""
-    echo -n "Enter choice [0-5]: "
+    printf "   ${BOLD}➜ Enter your choice [0-6]: ${NC}"
 }
 
 # Show tracker submenu
 show_tracker_menu() {
     clear_screen
-    echo -e "${BOLD}${CYAN}╔════════════════════════════════════════╗${NC}"
-    echo -e "${BOLD}${CYAN}║        CURSOR TRACKER MENU             ║${NC}"
-    echo -e "${BOLD}${CYAN}╚════════════════════════════════════════╝${NC}"
     echo ""
-    echo -e "${BOLD}Select an action:${NC}"
+    echo -e "${BOLD}${CYAN}╔══════════════════════════════════════════════════╗${NC}"
+    echo -e "${BOLD}${CYAN}║                                                  ║${NC}"
+    echo -e "${BOLD}${CYAN}║            📊 CURSOR TRACKER MENU               ║${NC}"
+    echo -e "${BOLD}${CYAN}║                                                  ║${NC}"
+    echo -e "${BOLD}${CYAN}╠══════════════════════════════════════════════════╣${NC}"
+    echo -e "${BOLD}${CYAN}║                                                  ║${NC}"
+    echo -e "${BOLD}${CYAN}║  ${GREEN}[1]${CYAN}  Show Status                              ║${NC}"
+    echo -e "${BOLD}${CYAN}║  ${GREEN}[2]${CYAN}  Set Usage (Sync with Dashboard)         ║${NC}"
+    echo -e "${BOLD}${CYAN}║  ${GREEN}[3]${CYAN}  Add Usage (Incremental)                 ║${NC}"
+    echo -e "${BOLD}${CYAN}║  ${GREEN}[4]${CYAN}  View History                            ║${NC}"
+    echo -e "${BOLD}${CYAN}║  ${GREEN}[5]${CYAN}  Reset Counter                           ║${NC}"
+    echo -e "${BOLD}${CYAN}║  ${GREEN}[6]${CYAN}  Show Help                                ║${NC}"
+    echo -e "${BOLD}${CYAN}║                                                  ║${NC}"
+    echo -e "${BOLD}${CYAN}╠══════════════════════════════════════════════════╣${NC}"
+    echo -e "${BOLD}${CYAN}║  ${YELLOW}[0]${CYAN}  ← Back to Main Menu                      ║${NC}"
+    echo -e "${BOLD}${CYAN}╚══════════════════════════════════════════════════╝${NC}"
     echo ""
-    echo -e "  ${GREEN}1${NC} - Show Status"
-    echo -e "  ${GREEN}2${NC} - Set Usage (Sync with Dashboard)"
-    echo -e "  ${GREEN}3${NC} - Add Usage (Incremental)"
-    echo -e "  ${GREEN}4${NC} - View History"
-    echo -e "  ${GREEN}5${NC} - Reset Counter"
-    echo -e "  ${GREEN}6${NC} - Show Help"
-    echo ""
-    echo -e "  ${YELLOW}0${NC} - Back to Main Menu"
-    echo ""
-    echo -n "Enter choice [0-6]: "
+    printf "  ${BOLD}➜ Enter your choice [0-6]: ${NC}"
 }
 
 # Show repo cleaner submenu
 show_repo_cleaner_menu() {
     clear_screen
-    echo -e "${BOLD}${CYAN}╔════════════════════════════════════════╗${NC}"
-    echo -e "${BOLD}${CYAN}║        REPO CLEANER MENU               ║${NC}"
-    echo -e "${BOLD}${CYAN}╚════════════════════════════════════════╝${NC}"
     echo ""
-    echo -e "${BOLD}Select an action:${NC}"
+    echo -e "${BOLD}${CYAN}╔══════════════════════════════════════════════════╗${NC}"
+    echo -e "${BOLD}${CYAN}║                                                  ║${NC}"
+    echo -e "${BOLD}${CYAN}║             🧹 REPO CLEANER MENU                ║${NC}"
+    echo -e "${BOLD}${CYAN}║                                                  ║${NC}"
+    echo -e "${BOLD}${CYAN}╠══════════════════════════════════════════════════╣${NC}"
+    echo -e "${BOLD}${CYAN}║                                                  ║${NC}"
+    echo -e "${BOLD}${CYAN}║  ${GREEN}[1]${CYAN}  Current Directory (Dry Run)             ║${NC}"
+    echo -e "${BOLD}${CYAN}║  ${GREEN}[2]${CYAN}  Current Directory (Clean)               ║${NC}"
+    echo -e "${BOLD}${CYAN}║  ${GREEN}[3]${CYAN}  Specific Directory (Dry Run)            ║${NC}"
+    echo -e "${BOLD}${CYAN}║  ${GREEN}[4]${CYAN}  Specific Directory (Clean)              ║${NC}"
+    echo -e "${BOLD}${CYAN}║  ${GREEN}[5]${CYAN}  View Cleanup History                    ║${NC}"
+    echo -e "${BOLD}${CYAN}║  ${GREEN}[6]${CYAN}  List Available Languages                ║${NC}"
+    echo -e "${BOLD}${CYAN}║                                                  ║${NC}"
+    echo -e "${BOLD}${CYAN}╠══════════════════════════════════════════════════╣${NC}"
+    echo -e "${BOLD}${CYAN}║  ${YELLOW}[0]${CYAN}  ← Back to Main Menu                      ║${NC}"
+    echo -e "${BOLD}${CYAN}╚══════════════════════════════════════════════════╝${NC}"
     echo ""
-    echo -e "  ${GREEN}1${NC} - Current Directory (Dry Run)"
-    echo -e "  ${GREEN}2${NC} - Current Directory (Clean)"
-    echo -e "  ${GREEN}3${NC} - Specific Directory (Dry Run)"
-    echo -e "  ${GREEN}4${NC} - Specific Directory (Clean)"
-    echo ""
-    echo -e "  ${GREEN}5${NC} - View Cleanup History"
-    echo -e "  ${GREEN}6${NC} - List Available Languages"
-    echo ""
-    echo -e "  ${YELLOW}0${NC} - Back to Main Menu"
-    echo ""
-    echo -n "Enter choice [0-6]: "
+    printf "  ${BOLD}➜ Enter your choice [0-6]: ${NC}"
 }
 
 # Show context generator submenu
 show_context_generator_menu() {
     clear_screen
-    echo -e "${BOLD}${CYAN}╔════════════════════════════════════════╗${NC}"
-    echo -e "${BOLD}${CYAN}║      CONTEXT GENERATOR MENU            ║${NC}"
-    echo -e "${BOLD}${CYAN}╚════════════════════════════════════════╝${NC}"
     echo ""
-    echo -e "${BOLD}Select an action:${NC}"
+    echo -e "${BOLD}${CYAN}╔══════════════════════════════════════════════════╗${NC}"
+    echo -e "${BOLD}${CYAN}║                                                  ║${NC}"
+    echo -e "${BOLD}${CYAN}║          📄 CONTEXT GENERATOR MENU              ║${NC}"
+    echo -e "${BOLD}${CYAN}║                                                  ║${NC}"
+    echo -e "${BOLD}${CYAN}╠══════════════════════════════════════════════════╣${NC}"
+    echo -e "${BOLD}${CYAN}║                                                  ║${NC}"
+    echo -e "${BOLD}${CYAN}║  ${GREEN}[1]${CYAN}  Generate Next Month's File              ║${NC}"
+    echo -e "${BOLD}${CYAN}║  ${GREEN}[2]${CYAN}  Generate Current Month's File           ║${NC}"
+    echo -e "${BOLD}${CYAN}║  ${GREEN}[3]${CYAN}  Generate Specific Month                 ║${NC}"
+    echo -e "${BOLD}${CYAN}║  ${GREEN}[4]${CYAN}  List Existing Files                     ║${NC}"
+    echo -e "${BOLD}${CYAN}║  ${GREEN}[5]${CYAN}  Show Help                                ║${NC}"
+    echo -e "${BOLD}${CYAN}║                                                  ║${NC}"
+    echo -e "${BOLD}${CYAN}╠══════════════════════════════════════════════════╣${NC}"
+    echo -e "${BOLD}${CYAN}║  ${YELLOW}[0]${CYAN}  ← Back to Main Menu                      ║${NC}"
+    echo -e "${BOLD}${CYAN}╚══════════════════════════════════════════════════╝${NC}"
     echo ""
-    echo -e "  ${GREEN}1${NC} - Generate Next Month's File"
-    echo -e "  ${GREEN}2${NC} - Generate Current Month's File"
-    echo -e "  ${GREEN}3${NC} - Generate Specific Month"
-    echo -e "  ${GREEN}4${NC} - List Existing Files"
-    echo -e "  ${GREEN}5${NC} - Show Help"
-    echo ""
-    echo -e "  ${YELLOW}0${NC} - Back to Main Menu"
-    echo ""
-    echo -n "Enter choice [0-5]: "
+    printf "  ${BOLD}➜ Enter your choice [0-5]: ${NC}"
 }
 
 # Show reminder submenu
 show_reminder_menu() {
     clear_screen
-    echo -e "${BOLD}${CYAN}╔════════════════════════════════════════╗${NC}"
-    echo -e "${BOLD}${CYAN}║      REMIND CHAMPION MENU             ║${NC}"
-    echo -e "${BOLD}${CYAN}╚════════════════════════════════════════╝${NC}"
     echo ""
-    echo -e "${BOLD}Select an action:${NC}"
+    echo -e "${BOLD}${CYAN}╔══════════════════════════════════════════════════╗${NC}"
+    echo -e "${BOLD}${CYAN}║                                                  ║${NC}"
+    echo -e "${BOLD}${CYAN}║           🔔 REMIND CHAMPION MENU               ║${NC}"
+    echo -e "${BOLD}${CYAN}║                                                  ║${NC}"
+    echo -e "${BOLD}${CYAN}╠══════════════════════════════════════════════════╣${NC}"
+    echo -e "${BOLD}${CYAN}║                                                  ║${NC}"
+    echo -e "${BOLD}${CYAN}║  ${GREEN}[1]${CYAN}   Show Release Schedule                   ║${NC}"
+    echo -e "${BOLD}${CYAN}║  ${GREEN}[2]${CYAN}   Show DoD Schedule                       ║${NC}"
+    echo -e "${BOLD}${CYAN}║  ${GREEN}[3]${CYAN}   Show All Schedules                      ║${NC}"
+    echo -e "${BOLD}${CYAN}║  ${GREEN}[4]${CYAN}   Send DoD Reminder                       ║${NC}"
+    echo -e "${BOLD}${CYAN}║  ${GREEN}[5]${CYAN}   Send TL DoD Reminder                    ║${NC}"
+    echo -e "${BOLD}${CYAN}║  ${GREEN}[6]${CYAN}   Cron Mode (Auto-send)                   ║${NC}"
+    echo -e "${BOLD}${CYAN}║  ${GREEN}[7]${CYAN}   Validate Schedules                      ║${NC}"
+    echo -e "${BOLD}${CYAN}║  ${GREEN}[8]${CYAN}   View Reminder Log                       ║${NC}"
+    echo -e "${BOLD}${CYAN}║  ${GREEN}[9]${CYAN}   List Reminder Types                     ║${NC}"
+    echo -e "${BOLD}${CYAN}║  ${GREEN}[10]${CYAN}  List Team Members                       ║${NC}"
+    echo -e "${BOLD}${CYAN}║  ${GREEN}[11]${CYAN}  Check DoD for Date                      ║${NC}"
+    echo -e "${BOLD}${CYAN}║                                                  ║${NC}"
+    echo -e "${BOLD}${CYAN}╠══════════════════════════════════════════════════╣${NC}"
+    echo -e "${BOLD}${CYAN}║  ${GREEN}[12]${CYAN}  Send Release Reminder                   ║${NC}"
+    echo -e "${BOLD}${CYAN}║  ${GREEN}[13]${CYAN}  Dry-Run Release Reminder                ║${NC}"
+    echo -e "${BOLD}${CYAN}║                                                  ║${NC}"
+    echo -e "${BOLD}${CYAN}╠══════════════════════════════════════════════════╣${NC}"
+    echo -e "${BOLD}${CYAN}║  ${YELLOW}[0]${CYAN}   ← Back to Main Menu                     ║${NC}"
+    echo -e "${BOLD}${CYAN}╚══════════════════════════════════════════════════╝${NC}"
     echo ""
-    echo -e "  ${GREEN}1${NC} - Show Release Schedule"
-    echo -e "  ${GREEN}2${NC} - Show DoD Schedule"
-    echo -e "  ${GREEN}3${NC} - Show All Schedules"
-    echo -e "  ${GREEN}4${NC} - Send DoD Reminder"
-    echo -e "  ${GREEN}5${NC} - Send TL DoD Reminder"
-    echo -e "  ${GREEN}6${NC} - Cron Mode (Auto-send)"
-    echo -e "  ${GREEN}7${NC} - Validate Schedules"
-    echo -e "  ${GREEN}8${NC} - View Reminder Log"
-    echo -e "  ${GREEN}9${NC} - List Reminder Types"
-    echo -e "  ${GREEN}10${NC} - List Team Members"
-    echo -e "  ${GREEN}11${NC} - Check DoD for Date"
-    echo ""
-    echo -e "  ${YELLOW}0${NC} - Back to Main Menu"
-    echo ""
-    echo -n "Enter choice [0-11]: "
+    printf "  ${BOLD}➜ Enter your choice [0-13]: ${NC}"
 }
 
 # Show daily timer submenu
 show_daily_timer_menu() {
     clear_screen
-    echo -e "${BOLD}${CYAN}╔════════════════════════════════════════╗${NC}"
-    echo -e "${BOLD}${CYAN}║      DAILY STANDUP TIMER MENU          ║${NC}"
-    echo -e "${BOLD}${CYAN}╚════════════════════════════════════════╝${NC}"
     echo ""
-    echo -e "${BOLD}Select an action:${NC}"
+    echo -e "${BOLD}${CYAN}╔══════════════════════════════════════════════════╗${NC}"
+    echo -e "${BOLD}${CYAN}║                                                  ║${NC}"
+    echo -e "${BOLD}${CYAN}║         ⏱️  DAILY STANDUP TIMER MENU            ║${NC}"
+    echo -e "${BOLD}${CYAN}║                                                  ║${NC}"
+    echo -e "${BOLD}${CYAN}╠══════════════════════════════════════════════════╣${NC}"
+    echo -e "${BOLD}${CYAN}║                                                  ║${NC}"
+    echo -e "${BOLD}${CYAN}║  ${GREEN}[1]${CYAN}  Start Meeting (CLI)                     ║${NC}"
+    echo -e "${BOLD}${CYAN}║  ${GREEN}[2]${CYAN}  Start Meeting (Web UI)                  ║${NC}"
+    echo -e "${BOLD}${CYAN}║  ${GREEN}[3]${CYAN}  View Meeting History                    ║${NC}"
+    echo -e "${BOLD}${CYAN}║  ${GREEN}[4]${CYAN}  View History (Custom Range)            ║${NC}"
+    echo -e "${BOLD}${CYAN}║                                                  ║${NC}"
+    echo -e "${BOLD}${CYAN}╠══════════════════════════════════════════════════╣${NC}"
+    echo -e "${BOLD}${CYAN}║  ${YELLOW}[0]${CYAN}  ← Back to Main Menu                      ║${NC}"
+    echo -e "${BOLD}${CYAN}╚══════════════════════════════════════════════════╝${NC}"
     echo ""
-    echo -e "  ${GREEN}1${NC} - Start Meeting (CLI)"
-    echo -e "  ${GREEN}2${NC} - Start Meeting (Web UI)"
-    echo -e "  ${GREEN}3${NC} - View Meeting History"
-    echo -e "  ${GREEN}4${NC} - View History (Custom Range)"
-    echo ""
-    echo -e "  ${YELLOW}0${NC} - Back to Main Menu"
-    echo ""
-    echo -n "Enter choice [0-4]: "
+    printf "  ${BOLD}➜ Enter your choice [0-4]: ${NC}"
 }
 
 # Tracker menu handler
@@ -242,13 +546,15 @@ handle_tracker_menu() {
 
 # Repo cleaner menu handler
 handle_repo_cleaner_menu() {
-    # Check if repo-cleaner is installed
-    if ! command -v "$REPO_CLEANER_CMD" &> /dev/null; then
+    # Check if venv exists
+    if [ ! -d "$REPO_CLEANER_VENV" ]; then
         clear_screen
-        echo -e "${YELLOW}Warning: repo-cleaner not found in PATH${NC}"
+        echo -e "${YELLOW}Warning: Repo Cleaner venv not found${NC}"
         echo ""
-        echo "To install, run:"
+        echo "To set up, run:"
         echo "  cd $REPO_CLEANER_DIR"
+        echo "  python3 -m venv .venv"
+        echo "  source .venv/bin/activate"
         echo "  pip install -e ."
         echo ""
         echo -n "Press Enter to continue..."
@@ -265,7 +571,11 @@ handle_repo_cleaner_menu() {
                 clear_screen
                 echo -e "${CYAN}Dry run on current directory...${NC}"
                 echo ""
-                "$REPO_CLEANER_CMD" -n
+                cd "$REPO_CLEANER_DIR"
+                source "$REPO_CLEANER_VENV/bin/activate"
+                repo-cleaner -n
+                deactivate
+                cd - > /dev/null
                 echo ""
                 echo -n "Press Enter to continue..."
                 read
@@ -274,7 +584,11 @@ handle_repo_cleaner_menu() {
                 clear_screen
                 echo -e "${GREEN}Cleaning current directory...${NC}"
                 echo ""
-                "$REPO_CLEANER_CMD"
+                cd "$REPO_CLEANER_DIR"
+                source "$REPO_CLEANER_VENV/bin/activate"
+                repo-cleaner
+                deactivate
+                cd - > /dev/null
                 echo ""
                 echo -n "Press Enter to continue..."
                 read
@@ -296,7 +610,11 @@ handle_repo_cleaner_menu() {
                 echo ""
                 echo -e "${CYAN}Dry run on: $target_dir${NC}"
                 echo ""
-                "$REPO_CLEANER_CMD" -t "$target_dir" -n
+                cd "$REPO_CLEANER_DIR"
+                source "$REPO_CLEANER_VENV/bin/activate"
+                repo-cleaner -t "$target_dir" -n
+                deactivate
+                cd - > /dev/null
                 echo ""
                 echo -n "Press Enter to continue..."
                 read
@@ -318,21 +636,33 @@ handle_repo_cleaner_menu() {
                 echo ""
                 echo -e "${GREEN}Cleaning: $target_dir${NC}"
                 echo ""
-                "$REPO_CLEANER_CMD" -t "$target_dir"
+                cd "$REPO_CLEANER_DIR"
+                source "$REPO_CLEANER_VENV/bin/activate"
+                repo-cleaner -t "$target_dir" --force
+                deactivate
+                cd - > /dev/null
                 echo ""
                 echo -n "Press Enter to continue..."
                 read
                 ;;
             5)
                 clear_screen
-                "$REPO_CLEANER_CMD" --history
+                cd "$REPO_CLEANER_DIR"
+                source "$REPO_CLEANER_VENV/bin/activate"
+                repo-cleaner --history
+                deactivate
+                cd - > /dev/null
                 echo ""
                 echo -n "Press Enter to continue..."
                 read
                 ;;
             6)
                 clear_screen
-                "$REPO_CLEANER_CMD" --list-languages
+                cd "$REPO_CLEANER_DIR"
+                source "$REPO_CLEANER_VENV/bin/activate"
+                repo-cleaner --list-languages
+                deactivate
+                cd - > /dev/null
                 echo ""
                 echo -n "Press Enter to continue..."
                 read
@@ -524,6 +854,76 @@ handle_reminder_menu() {
                 echo -n "Press Enter to continue..."
                 read
                 ;;
+            12)
+                clear_screen
+                echo -e "${CYAN}Send Release Reminder${NC}"
+                echo ""
+                echo -e "Reminder Types:"
+                echo -e "  ${GREEN}risk_analysis${NC}       - Risk analysis reminder"
+                echo -e "  ${GREEN}risk_analysis_final${NC} - Final risk analysis reminder"
+                echo -e "  ${GREEN}dr_tomorrow${NC}         - DR is tomorrow reminder"
+                echo -e "  ${GREEN}dr_today${NC}            - DR is today reminder"
+                echo -e "  ${GREEN}prod_tomorrow${NC}       - Production is tomorrow reminder"
+                echo -e "  ${GREEN}prod_today${NC}          - Production is today reminder"
+                echo ""
+                echo -n "Enter sprint (e.g., Q1-S1): "
+                read sprint
+                if [ -z "$sprint" ]; then
+                    echo "Error: No sprint provided"
+                    sleep 2
+                    continue
+                fi
+                echo -n "Enter reminder type: "
+                read reminder_type
+                if [ -z "$reminder_type" ]; then
+                    echo "Error: No reminder type provided"
+                    sleep 2
+                    continue
+                fi
+                echo ""
+                echo -e "${YELLOW}Run in test mode? (y/N): ${NC}"
+                read test_mode
+                if [[ "$test_mode" =~ ^[Yy]$ ]]; then
+                    python3 "$REMINDER_SCRIPT" --test "$sprint" "$reminder_type"
+                else
+                    python3 "$REMINDER_SCRIPT" "$sprint" "$reminder_type"
+                fi
+                echo ""
+                echo -n "Press Enter to continue..."
+                read
+                ;;
+            13)
+                clear_screen
+                echo -e "${CYAN}Dry-Run Release Reminder (Preview Only)${NC}"
+                echo ""
+                echo -e "Reminder Types:"
+                echo -e "  ${GREEN}risk_analysis${NC}       - Risk analysis reminder"
+                echo -e "  ${GREEN}risk_analysis_final${NC} - Final risk analysis reminder"
+                echo -e "  ${GREEN}dr_tomorrow${NC}         - DR is tomorrow reminder"
+                echo -e "  ${GREEN}dr_today${NC}            - DR is today reminder"
+                echo -e "  ${GREEN}prod_tomorrow${NC}       - Production is tomorrow reminder"
+                echo -e "  ${GREEN}prod_today${NC}          - Production is today reminder"
+                echo ""
+                echo -n "Enter sprint (e.g., Q1-S1): "
+                read sprint
+                if [ -z "$sprint" ]; then
+                    echo "Error: No sprint provided"
+                    sleep 2
+                    continue
+                fi
+                echo -n "Enter reminder type: "
+                read reminder_type
+                if [ -z "$reminder_type" ]; then
+                    echo "Error: No reminder type provided"
+                    sleep 2
+                    continue
+                fi
+                echo ""
+                python3 "$REMINDER_SCRIPT" --dry-run "$sprint" "$reminder_type"
+                echo ""
+                echo -n "Press Enter to continue..."
+                read
+                ;;
             0)
                 return
                 ;;
@@ -544,7 +944,7 @@ handle_daily_timer_menu() {
         echo ""
         echo "To set up, run:"
         echo "  cd $DAILY_RUNNER_DIR"
-        echo "  python -m venv .venv"
+        echo "  python3 -m venv .venv"
         echo "  source .venv/bin/activate"
         echo "  pip install -e ."
         echo ""
@@ -626,6 +1026,223 @@ handle_daily_timer_menu() {
     done
 }
 
+# Show MCP health check submenu
+show_mcp_helper_menu() {
+    clear_screen
+    echo ""
+    echo -e "${BOLD}${CYAN}╔══════════════════════════════════════════════════╗${NC}"
+    echo -e "${BOLD}${CYAN}║                                                  ║${NC}"
+    echo -e "${BOLD}${CYAN}║          🔧 MCP HEALTH CHECK MENU               ║${NC}"
+    echo -e "${BOLD}${CYAN}║                                                  ║${NC}"
+    echo -e "${BOLD}${CYAN}╠══════════════════════════════════════════════════╣${NC}"
+    echo -e "${BOLD}${CYAN}║                                                  ║${NC}"
+    echo -e "${BOLD}${CYAN}║  ${GREEN}[1]${CYAN}  Quick Check (Token Validation)          ║${NC}"
+    echo -e "${BOLD}${CYAN}║  ${GREEN}[2]${CYAN}  Full Check (Token + Connection)         ║${NC}"
+    echo -e "${BOLD}${CYAN}║  ${GREEN}[3]${CYAN}  Check Specific Server                   ║${NC}"
+    echo -e "${BOLD}${CYAN}║  ${GREEN}[4]${CYAN}  List Configured Servers                 ║${NC}"
+    echo -e "${BOLD}${CYAN}║  ${GREEN}[5]${CYAN}  Watch Mode (Continuous)                 ║${NC}"
+    echo -e "${BOLD}${CYAN}║  ${GREEN}[6]${CYAN}  Auto-Refresh Atlassian Token            ║${NC}"
+    echo -e "${BOLD}${CYAN}║  ${GREEN}[7]${CYAN}  Re-Authenticate Atlassian (Browser)     ║${NC}"
+    echo -e "${BOLD}${CYAN}║  ${GREEN}[8]${CYAN}  Wipe & Re-Auth (Nuclear Option)         ║${NC}"
+    echo -e "${BOLD}${CYAN}║  ${GREEN}[9]${CYAN}  Cleanup Stale Processes (Auth Spam Fix) ║${NC}"
+    echo -e "${BOLD}${CYAN}║                                                  ║${NC}"
+    echo -e "${BOLD}${CYAN}╠══════════════════════════════════════════════════╣${NC}"
+    echo -e "${BOLD}${CYAN}║  ${YELLOW}[0]${CYAN}  ← Back to Main Menu                      ║${NC}"
+    echo -e "${BOLD}${CYAN}╚══════════════════════════════════════════════════╝${NC}"
+    echo ""
+    echo -e "${BLUE}  ℹ️  Note: Token validation is the default (option 1).${NC}"
+    echo -e "${BLUE}     Connection tests may show false negatives.${NC}"
+    echo ""
+    printf "  ${BOLD}➜ Enter your choice [0-9]: ${NC}"
+}
+
+# MCP helper menu handler
+handle_mcp_helper_menu() {
+    # Check if venv exists
+    if [ ! -d "$MCP_HELPER_VENV" ]; then
+        clear_screen
+        echo -e "${YELLOW}Warning: MCP Helper venv not found${NC}"
+        echo ""
+        echo "To set up, run:"
+        echo "  cd $MCP_HELPER_DIR"
+        echo "  python3 -m venv .venv"
+        echo "  source .venv/bin/activate"
+        echo "  pip install -e ."
+        echo ""
+        echo -n "Press Enter to continue..."
+        read
+        return
+    fi
+
+    while true; do
+        show_mcp_helper_menu
+        read choice
+
+        case "$choice" in
+            1)
+                clear_screen
+                echo -e "${CYAN}Running MCP Health Check (Token Validation)...${NC}"
+                echo ""
+                cd "$MCP_HELPER_DIR"
+                source "$MCP_HELPER_VENV/bin/activate"
+                mcp-health check
+                deactivate
+                cd - > /dev/null
+                echo ""
+                echo -n "Press Enter to continue..."
+                read
+                ;;
+            2)
+                clear_screen
+                echo -e "${CYAN}Running Full MCP Health Check (with Connection Test)...${NC}"
+                echo -e "${YELLOW}(Connection test spawns new processes - may show false negatives)${NC}"
+                echo ""
+                cd "$MCP_HELPER_DIR"
+                source "$MCP_HELPER_VENV/bin/activate"
+                mcp-health check --with-mcp
+                deactivate
+                cd - > /dev/null
+                echo ""
+                echo -n "Press Enter to continue..."
+                read
+                ;;
+            3)
+                clear_screen
+                echo -e "${CYAN}Available servers:${NC}"
+                cd "$MCP_HELPER_DIR"
+                source "$MCP_HELPER_VENV/bin/activate"
+                mcp-health list-servers 2>/dev/null | grep -E "^\s+[a-zA-Z]" || echo "  github, slack, perimeter81-atlassian"
+                deactivate
+                echo ""
+                echo -n "Enter server name: "
+                read server_name
+                if [ -z "$server_name" ]; then
+                    echo "Error: No server name provided"
+                    sleep 2
+                    cd - > /dev/null
+                    continue
+                fi
+                echo ""
+                source "$MCP_HELPER_VENV/bin/activate"
+                mcp-health check --server "$server_name" -v
+                deactivate
+                cd - > /dev/null
+                echo ""
+                echo -n "Press Enter to continue..."
+                read
+                ;;
+            4)
+                clear_screen
+                echo -e "${CYAN}Configured MCP Servers:${NC}"
+                echo ""
+                cd "$MCP_HELPER_DIR"
+                source "$MCP_HELPER_VENV/bin/activate"
+                mcp-health list-servers
+                deactivate
+                cd - > /dev/null
+                echo ""
+                echo -n "Press Enter to continue..."
+                read
+                ;;
+            5)
+                clear_screen
+                echo -n "Enter check interval in seconds (default 60): "
+                read interval
+                interval=${interval:-60}
+                echo ""
+                echo -e "${CYAN}Starting Watch Mode (Ctrl+C to stop)...${NC}"
+                echo ""
+                cd "$MCP_HELPER_DIR"
+                source "$MCP_HELPER_VENV/bin/activate"
+                mcp-health check --watch --interval "$interval"
+                deactivate
+                cd - > /dev/null
+                echo ""
+                echo -n "Press Enter to continue..."
+                read
+                ;;
+            6)
+                clear_screen
+                echo -e "${CYAN}Auto-refreshing Atlassian OAuth token...${NC}"
+                echo ""
+                cd "$MCP_HELPER_DIR"
+                source "$MCP_HELPER_VENV/bin/activate"
+                mcp-health check --server perimeter81-atlassian --auto-refresh
+                deactivate
+                cd - > /dev/null
+                echo ""
+                echo -n "Press Enter to continue..."
+                read
+                ;;
+            7)
+                clear_screen
+                echo -e "${CYAN}Re-authenticating Atlassian (will open browser)...${NC}"
+                echo ""
+                cd "$MCP_HELPER_DIR"
+                source "$MCP_HELPER_VENV/bin/activate"
+                mcp-health check --server perimeter81-atlassian --reauth
+                deactivate
+                cd - > /dev/null
+                echo ""
+                echo -n "Press Enter to continue..."
+                read
+                ;;
+            8)
+                clear_screen
+                echo -e "${YELLOW}⚠️  WIPE & RE-AUTHENTICATE (Nuclear Option)${NC}"
+                echo ""
+                echo -e "${YELLOW}This will completely remove ALL OAuth tokens and force fresh authentication.${NC}"
+                echo -e "${YELLOW}Use this when tokens are corrupted or in a bad state.${NC}"
+                echo ""
+                echo -e "Files that will be removed:"
+                echo -e "  • Token files (*_tokens.json)"
+                echo -e "  • Client registration (*_client_info.json)"
+                echo -e "  • PKCE verifiers (*_code_verifier.txt)"
+                echo -e "  • Lock files (*_lock.json)"
+                echo ""
+                echo -n "Enter server name (or press Enter for all Atlassian servers): "
+                read server_name
+                echo ""
+                cd "$MCP_HELPER_DIR"
+                source "$MCP_HELPER_VENV/bin/activate"
+                if [ -z "$server_name" ]; then
+                    mcp-health wipe-reauth
+                else
+                    mcp-health wipe-reauth -s "$server_name"
+                fi
+                deactivate
+                cd - > /dev/null
+                echo ""
+                echo -n "Press Enter to continue..."
+                read
+                ;;
+            9)
+                clear_screen
+                echo -e "${CYAN}Cleanup Stale MCP Processes${NC}"
+                echo ""
+                echo -e "${YELLOW}This kills stale mcp-remote processes that cause auth popup spam.${NC}"
+                echo -e "${YELLOW}Use when you see multiple browser tabs opening for OAuth.${NC}"
+                echo ""
+                cd "$MCP_HELPER_DIR"
+                source "$MCP_HELPER_VENV/bin/activate"
+                mcp-health cleanup
+                deactivate
+                cd - > /dev/null
+                echo ""
+                echo -n "Press Enter to continue..."
+                read
+                ;;
+            0)
+                return
+                ;;
+            *)
+                echo -e "${YELLOW}Invalid choice. Please try again.${NC}"
+                sleep 1
+                ;;
+        esac
+    done
+}
+
 # Check if scripts exist
 check_scripts() {
     if [ ! -f "$TRACKER_SCRIPT" ]; then
@@ -636,8 +1253,8 @@ check_scripts() {
         echo -e "${YELLOW}Warning: remind_champion.py not found at $REMINDER_SCRIPT${NC}"
     fi
     
-    if ! command -v "$REPO_CLEANER_CMD" &> /dev/null; then
-        echo -e "${YELLOW}Warning: repo-cleaner not installed (install from $REPO_CLEANER_DIR)${NC}"
+    if [ ! -d "$REPO_CLEANER_VENV" ]; then
+        echo -e "${YELLOW}Warning: Repo Cleaner venv not found at $REPO_CLEANER_VENV${NC}"
     fi
 
     if [ ! -f "$CONTEXT_GENERATOR_SCRIPT" ]; then
@@ -646,6 +1263,10 @@ check_scripts() {
 
     if [ ! -d "$DAILY_RUNNER_VENV" ]; then
         echo -e "${YELLOW}Warning: Daily Runner venv not found at $DAILY_RUNNER_VENV${NC}"
+    fi
+
+    if [ ! -d "$MCP_HELPER_VENV" ]; then
+        echo -e "${YELLOW}Warning: MCP Helper venv not found at $MCP_HELPER_VENV${NC}"
     fi
 }
 
@@ -688,6 +1309,9 @@ main() {
             5)
                 handle_daily_timer_menu
                 ;;
+            6)
+                handle_mcp_helper_menu
+                ;;
             0)
                 clear_screen
                 echo -e "${GREEN}Goodbye!${NC}"
@@ -701,6 +1325,8 @@ main() {
     done
 }
 
-# Run main function
-main
+# Run main function only if executed directly (not sourced)
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    main
+fi
 

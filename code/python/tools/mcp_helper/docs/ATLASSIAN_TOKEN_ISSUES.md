@@ -272,6 +272,66 @@ curl -X POST https://auth.atlassian.com/oauth/token \
   }"
 ```
 
+### Stale Processes Causing Auth Popup Spam
+
+**Problem:** Constant Atlassian OAuth authentication popup tabs opening in browser, even though MCP is working.
+
+**Symptoms:**
+- Multiple browser tabs opening for Atlassian OAuth login
+- "localhost refused to connect" errors in OAuth callback pages
+- Slow MCP responses
+- Browser showing authentication prompts repeatedly
+
+**Root Cause:**
+- Stale `mcp-remote` processes accumulating over time (can be 20+ processes from multiple days)
+- Each process independently attempts token refresh, triggering multiple auth popups
+- Processes persist across Cursor sessions and don't auto-terminate
+
+**Diagnosis Commands:**
+
+```bash
+# Check for running mcp-remote processes (expect 1-2, problematic if 10+)
+ps aux | grep -i "mcp-remote" | grep -v grep
+
+# Count how many are running
+ps aux | grep -i "mcp-remote" | grep -v grep | wc -l
+
+# Check token storage directory
+ls -la ~/.mcp-auth/mcp-remote-stable/
+
+# Verify MCP_REMOTE_CONFIG_DIR is set (for token persistence)
+echo $MCP_REMOTE_CONFIG_DIR
+```
+
+**Fix:**
+
+```bash
+# Kill all stale mcp-remote processes
+pkill -f "mcp-remote"
+
+# Verify they're gone
+ps aux | grep -i "mcp-remote" | grep -v grep
+```
+
+**After Cleanup:**
+- Next MCP call from Cursor will spawn fresh processes
+- You'll get a one-time browser auth prompt
+- Subsequent calls will use cached tokens
+
+**Prevention:**
+
+1. **Token persistence:** Ensure `MCP_REMOTE_CONFIG_DIR` is set in your shell config (already done in your Cursor mcp.json):
+   ```bash
+   export MCP_REMOTE_CONFIG_DIR="/Users/yosii/.mcp-auth/mcp-remote-stable"
+   ```
+
+2. **Periodic cleanup:** Run when auth popups become excessive:
+   ```bash
+   pkill -f "mcp-remote"
+   ```
+
+3. **Add to mcp-health helper** (TODO - can add `mcp-health cleanup` command)
+
 ## Best Practices
 
 1. **Use Cursor Toggle for Re-auth**: The most reliable method is toggling the MCP server in Cursor settings

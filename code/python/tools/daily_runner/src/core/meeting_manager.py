@@ -479,6 +479,10 @@ class MeetingManager:
     def _start_transition(self) -> None:
         """Start the transition period before a speaker."""
         transition_seconds = self._config.timer.transition_time_seconds
+        if self._speaker_timer:
+            # Clear previous speaker timer so elapsed doesn't leak into queue display.
+            self._speaker_timer.stop()
+            self._speaker_timer = None
 
         if transition_seconds > 0:
             self._transition_timer = TimerEngine(duration_seconds=transition_seconds)
@@ -801,8 +805,18 @@ class MeetingManager:
         self._recovery_mgr.stop_auto_save()
 
     def _finalize_current_speaker(self) -> None:
-        """Save current speaker's final time."""
+        """Save current speaker's final time.
+
+        Note: Skipped speakers are not finalized with timer values since
+        they never actually spoke. The skip_current_speaker() method
+        resets their time to 0.
+        """
         if self.current_speaker and self._speaker_timer:
+            # Don't overwrite time for skipped speakers - they never spoke
+            record = self._state_manager.get_speaker_record(self.current_speaker.id)
+            if record and record.skipped:
+                return
+
             self._state_manager.update_speaker_time(
                 self.current_speaker.id,
                 self._speaker_timer.elapsed_seconds,

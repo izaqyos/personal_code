@@ -17,6 +17,14 @@
   background: linear-gradient(135deg, #5568d3 0%, #653a8f 100%);
 }
 
+.primary-button.host-btn {
+  background: linear-gradient(135deg, #f5af19 0%, #f12711 100%);
+}
+
+.primary-button.host-btn:hover {
+  background: linear-gradient(135deg, #e09f0e 0%, #d82010 100%);
+}
+
 .error-message {
   color: #e74c3c;
   font-size: 0.875rem;
@@ -24,6 +32,116 @@
   padding: 4px 8px;
   background-color: rgba(231, 76, 60, 0.1);
   border-radius: 4px;
+}
+
+/* Mode Selection Screen */
+.mode-selection {
+  text-align: center;
+}
+
+.mode-selection .subtitle {
+  color: #666;
+  margin-bottom: 24px;
+}
+
+.mode-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.mode-button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 24px;
+  border-radius: 16px;
+  border: 2px solid #e0e0e0;
+  background: #fff;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.mode-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+}
+
+.mode-button.host-mode {
+  background: linear-gradient(135deg, #fff9e6 0%, #fff3cd 100%);
+  border-color: #f5af19;
+}
+
+.mode-button.host-mode:hover {
+  border-color: #f12711;
+  background: linear-gradient(135deg, #fff3cd 0%, #ffe99a 100%);
+}
+
+.mode-button.player-mode {
+  background: linear-gradient(135deg, #f0f4ff 0%, #e8efff 100%);
+  border-color: #667eea;
+}
+
+.mode-button.player-mode:hover {
+  border-color: #764ba2;
+  background: linear-gradient(135deg, #e8efff 0%, #dde5ff 100%);
+}
+
+.mode-icon {
+  font-size: 48px;
+}
+
+.mode-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: #333;
+}
+
+.mode-desc {
+  font-size: 14px;
+  color: #666;
+}
+
+/* Back button */
+.back-button {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  background: transparent;
+  border: none;
+  color: #667eea;
+  font-size: 14px;
+  cursor: pointer;
+  padding: 8px;
+  transition: color 0.2s;
+}
+
+.back-button:hover {
+  color: #764ba2;
+}
+
+/* Role badge */
+.role-badge {
+  display: inline-block;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 16px;
+}
+
+.role-badge.host-badge {
+  background: linear-gradient(135deg, #fff9e6 0%, #fff3cd 100%);
+  color: #b8860b;
+  border: 1px solid #f5af19;
+}
+
+.role-badge.player-badge {
+  background: linear-gradient(135deg, #f0f4ff 0%, #e8efff 100%);
+  color: #4a5fd7;
+  border: 1px solid #667eea;
 }
 
 .host-section {
@@ -51,9 +169,46 @@
   border-color: #667eea;
 }
 
+.reset-section {
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px dashed #e0e0e0;
+  text-align: center;
+}
+
+.text-button {
+  background: transparent;
+  border: none;
+  color: #999;
+  font-size: 13px;
+  cursor: pointer;
+  padding: 8px 16px;
+  transition: color 0.2s;
+}
+
+.text-button:hover {
+  color: #e74c3c;
+}
+
+.text-button.reset-button {
+  opacity: 0.7;
+}
+
+.text-button.reset-button:hover {
+  opacity: 1;
+}
+
 @media (max-width: 768px) {
   .join-screen form {
     gap: 12px;
+  }
+  
+  .mode-icon {
+    font-size: 36px;
+  }
+  
+  .mode-title {
+    font-size: 18px;
   }
 }
 

@@ -63,8 +63,7 @@ class Timer:
     def __enter__(self):
         """Called when entering the 'with' block"""
         # TODO: Record start time
-        self.start_time = time.perf_counter()
-        print(f"⏱️  Starting: {self.name}")
+        pass  # TODO: Implement
         return self  # Return self to be used as 'as' variable
     
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -80,14 +79,7 @@ class Timer:
             False to propagate exceptions, True to suppress them
         """
         # TODO: Record end time and print duration
-        self.end_time = time.perf_counter()
-        duration = self.end_time - self.start_time
-        print(f"⏱️  Finished: {self.name} - {duration:.4f}s")
-        
-        # Handle exceptions if any
-        if exc_type is not None:
-            print(f"❌ Exception occurred: {exc_type.__name__}: {exc_val}")
-        
+        pass  # TODO: Implement
         return False  # Don't suppress exceptions
 
 def test_timer():
@@ -131,22 +123,13 @@ class DatabaseConnection:
     def __enter__(self):
         """Establish database connection"""
         # TODO: Simulate connection
-        print(f"🔌 Connecting to database: {self.db_name}")
-        self.connection = f"Connection to {self.db_name}"
-        self.is_connected = True
+        pass  # TODO: Implement
         return self
     
     def __exit__(self, exc_type, exc_val, exc_tb):
         """Close database connection"""
         # TODO: Simulate cleanup
-        print(f"🔌 Closing connection to: {self.db_name}")
-        self.is_connected = False
-        self.connection = None
-        
-        if exc_type is not None:
-            print(f"❌ Rolling back due to error: {exc_val}")
-            # In real scenario, rollback transaction
-        
+        pass  # TODO: Implement
         return False
     
     def execute(self, query: str):

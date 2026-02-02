@@ -126,6 +126,8 @@
   border-radius: 8px;
   text-align: left;
   transition: all 0.2s;
+  cursor: pointer;
+  color: #333;
 }
 
 .answer-option:hover:not(:disabled) {
@@ -176,6 +178,7 @@
 .option-text {
   flex: 1;
   font-size: 14px;
+  color: #333;
 }
 
 .answer-icon {
@@ -312,6 +315,38 @@
   gap: 24px;
 }
 
+.host-badge-section {
+  text-align: center;
+  padding: 20px;
+  background: linear-gradient(135deg, #fff8e8 0%, #fff0e5 100%);
+  border-radius: 12px;
+  border: 2px solid #f6d365;
+}
+
+.host-controller-badge {
+  display: inline-block;
+  background: linear-gradient(135deg, #f6d365 0%, #fda085 100%);
+  color: white;
+  padding: 8px 20px;
+  border-radius: 20px;
+  font-weight: 700;
+  font-size: 16px;
+  letter-spacing: 1px;
+}
+
+.host-hint {
+  margin-top: 10px;
+  color: #666;
+  font-size: 14px;
+}
+
+.no-players-message {
+  color: #999;
+  font-style: italic;
+  text-align: center;
+  padding: 20px;
+}
+
 .participants-status h3,
 .answer-preview h3 {
   margin-bottom: 12px;
@@ -384,6 +419,30 @@
 .leaderboard-item.current-player {
   border: 2px solid #667eea;
   box-shadow: 0 0 8px rgba(102, 126, 234, 0.3);
+}
+
+/* Host reset section */
+.host-reset-section {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px dashed rgba(255, 255, 255, 0.3);
+  text-align: center;
+}
+
+.danger-button {
+  background: transparent;
+  border: 2px solid #e74c3c;
+  color: #e74c3c;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.danger-button:hover {
+  background: #e74c3c;
+  color: white;
 }
 
 @media (max-width: 768px) {
