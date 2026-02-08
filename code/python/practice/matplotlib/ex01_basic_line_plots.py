@@ -53,8 +53,13 @@ def exercise_1_simple_line():
     
     Expected: A simple line graph showing temperature fluctuation over 30 days
     """
-    # YOUR CODE HERE
-    pass
+
+    plt.figure(figsize=(20,15))
+    plt.xlabel("Day")
+    plt.ylabel("Temerature")
+    plt.title("Daily temp")
+    plt.plot(days, temperature)
+    plt.show()
 
 
 # ============================================================
@@ -81,6 +86,18 @@ def exercise_2_multiple_lines():
     
     Expected: Two overlapping wave patterns with a legend
     """
+
+    plt.figure(figsize=(20,15))
+    plt.xlabel("x radians")
+    plt.ylabel("y")
+    plt.title("basic trigo sin/cos")
+    plt.plot(x, sin_y, color='blue', linestyle='-', label="sin(x)")
+    plt.plot(x, cos_y, color='red', linestyle='-', label="cos(x)")
+    plt.legend()
+    plt.grid(True)
+    plt.show()
+
+
     # YOUR CODE HERE
     pass
 
