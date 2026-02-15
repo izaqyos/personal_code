@@ -43,12 +43,34 @@ npm i -g vercel
 # 2. Deploy
 vercel
 
+# Follow the prompts:
+# - Set up and deploy? yes
+# - Which scope? (select your account)
+# - Link to existing project? no
+# - Project name? quiz-app (or your preferred name)
+# - Code directory? ./
+# - Modify settings? no
+# - Change additional settings? no
+
 # 3. Create KV Database (for persistent game state)
 #    - Go to vercel.com → Your Project → Storage
 #    - Click "Create Database" → Select "KV"
 #    - Name it "quiz-game" → Connect to Project
 
 # 4. Redeploy with KV connected
+vercel --prod
+```
+
+**What to expect after deployment:**
+- ✅ Vercel auto-detects Vite framework and builds automatically
+- ✅ Creates `.vercel` folder (added to `.gitignore`)
+- ✅ Provides 2 URLs:
+  - **Aliased URL** (permanent): `https://quiz-app-xxxxx.vercel.app`
+  - **Production URL** (deployment-specific): `https://quiz-xxxxx-your-projects.vercel.app`
+- ✅ Dashboard link to manage settings and view deployments
+
+**To update your app:**
+```bash
 vercel --prod
 ```
 

@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "emoji-generator"
+version = "1.0.0"
+description = "Find the perfect dev emoji combo using natural language"
+requires-python = ">=3.9"
+dependencies = [
+    "scikit-learn",
+    "pyyaml",
+    "pyperclip",
+    "prompt_toolkit",
+    "rich",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+]
+
+[project.scripts]
+devmoji = "emoji_generator.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["emoji_generator*"]
+
+[tool.setuptools.package-data]
+emoji_generator = ["data/*.yaml"]

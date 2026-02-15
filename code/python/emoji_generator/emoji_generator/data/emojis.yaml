@@ -1,0 +1,556 @@
+# =============================================================================
+# Dev Emoji Registry
+# =============================================================================
+# Each entry maps a natural-language concept to an emoji combo.
+# The engine searches across 'description' + 'aliases' to find the best match.
+#
+# To add your own: copy an entry, change the emoji/name/description/aliases.
+# Then restart the tool (or in REPL mode, use the [a]dd feature to hot-reload).
+# =============================================================================
+
+# ---------------------------------------------------------------------------
+# PR Lifecycle
+# ---------------------------------------------------------------------------
+- emoji: "✅🔀"
+  name: "pr_approved_merged"
+  description: "pull request approved and merged"
+  aliases:
+    - "pr merged"
+    - "mr approved and merged"
+    - "change landed"
+    - "code merged to main"
+    - "lgtm merged"
+    - "pr got approved"
+
+- emoji: "✅👀"
+  name: "pr_approved"
+  description: "pull request approved"
+  aliases:
+    - "pr approved"
+    - "mr approved"
+    - "lgtm"
+    - "looks good to me"
+    - "approved the pr"
+    - "thumbs up on pr"
+
+- emoji: "🔄📝"
+  name: "changes_requested"
+  description: "changes requested on pull request"
+  aliases:
+    - "changes requested"
+    - "cr feedback"
+    - "needs changes"
+    - "request changes"
+    - "pr needs work"
+    - "revisions needed"
+
+- emoji: "📝🚧"
+  name: "pr_draft"
+  description: "draft pull request work in progress"
+  aliases:
+    - "draft pr"
+    - "draft pull request"
+    - "wip pr"
+    - "not ready for review"
+    - "work in progress pr"
+
+- emoji: "👀📬"
+  name: "pr_ready_for_review"
+  description: "pull request ready for review"
+  aliases:
+    - "ready for review"
+    - "please review"
+    - "pr ready"
+    - "needs review"
+    - "review requested"
+    - "can you review this"
+
+- emoji: "💥⚠️"
+  name: "merge_conflicts"
+  description: "merge conflicts need resolution"
+  aliases:
+    - "merge conflicts"
+    - "conflicts"
+    - "conflict resolution"
+    - "rebase needed"
+    - "branch conflicts"
+
+# ---------------------------------------------------------------------------
+# Merge Queue
+# ---------------------------------------------------------------------------
+- emoji: "🚦⏳"
+  name: "in_merge_queue"
+  description: "in the merge queue waiting"
+  aliases:
+    - "merge queue"
+    - "queued for merge"
+    - "waiting to merge"
+    - "in line to land"
+    - "merge pending"
+
+- emoji: "🛬✅"
+  name: "landed"
+  description: "change landed in main branch"
+  aliases:
+    - "landed"
+    - "merged to main"
+    - "shipped to main"
+    - "in main now"
+    - "reached main branch"
+
+- emoji: "🚫🔀"
+  name: "merge_blocked"
+  description: "merge blocked cannot proceed"
+  aliases:
+    - "merge blocked"
+    - "blocked from merging"
+    - "cannot merge"
+    - "merge gate failed"
+    - "blocked by checks"
+
+- emoji: "❌🧪"
+  name: "checks_failed"
+  description: "CI checks failed pipeline broken"
+  aliases:
+    - "checks failed"
+    - "ci failed"
+    - "pipeline failed"
+    - "build broken"
+    - "tests failing"
+    - "red build"
+
+# ---------------------------------------------------------------------------
+# Code Review
+# ---------------------------------------------------------------------------
+- emoji: "👀🔍"
+  name: "looking_at_it"
+  description: "looking at this issue investigating"
+  aliases:
+    - "looking at it"
+    - "looking into this"
+    - "investigating"
+    - "checking this out"
+    - "taking a look"
+    - "reviewing now"
+    - "on it looking"
+
+- emoji: "💬📝"
+  name: "left_comments"
+  description: "left comments on code review"
+  aliases:
+    - "left comments"
+    - "added review comments"
+    - "commented on pr"
+    - "feedback given"
+    - "review comments added"
+
+- emoji: "🤏💅"
+  name: "nit"
+  description: "minor nit small suggestion"
+  aliases:
+    - "nit"
+    - "nitpick"
+    - "small suggestion"
+    - "minor comment"
+    - "cosmetic change"
+    - "style suggestion"
+
+- emoji: "🗣️🤔"
+  name: "needs_discussion"
+  description: "needs discussion before proceeding"
+  aliases:
+    - "needs discussion"
+    - "lets discuss"
+    - "need to talk about this"
+    - "requires alignment"
+    - "design discussion needed"
+    - "lets sync on this"
+
+# ---------------------------------------------------------------------------
+# Async Communication
+# ---------------------------------------------------------------------------
+- emoji: "🔙⏰"
+  name: "will_get_back"
+  description: "will get back to you soon"
+  aliases:
+    - "will get back to you"
+    - "get back to you asap"
+    - "brb on this"
+    - "will follow up"
+    - "circle back later"
+    - "will respond soon"
+
+- emoji: "👍📨"
+  name: "acknowledged"
+  description: "acknowledged message received"
+  aliases:
+    - "ack"
+    - "acknowledged"
+    - "got it"
+    - "received"
+    - "noted"
+    - "roger that"
+    - "understood"
+
+- emoji: "🏃💨"
+  name: "on_it"
+  description: "on it working on this now"
+  aliases:
+    - "on it"
+    - "working on it"
+    - "handling this"
+    - "taking care of it"
+    - "im on this"
+
+- emoji: "🚧⛔"
+  name: "blocked"
+  description: "blocked waiting on something"
+  aliases:
+    - "blocked"
+    - "blocked on"
+    - "waiting on"
+    - "dependent on"
+    - "stuck"
+    - "cant proceed"
+
+- emoji: "🏖️🚫"
+  name: "out_of_office"
+  description: "out of office not available"
+  aliases:
+    - "ooo"
+    - "out of office"
+    - "on vacation"
+    - "day off"
+    - "not available"
+    - "afk"
+    - "away"
+
+- emoji: "⏰🔜"
+  name: "eta_soon"
+  description: "estimated time of arrival coming soon"
+  aliases:
+    - "eta"
+    - "coming soon"
+    - "almost done"
+    - "nearly there"
+    - "wrapping up"
+    - "finishing up"
+
+# ---------------------------------------------------------------------------
+# Deployment
+# ---------------------------------------------------------------------------
+- emoji: "🚀📦"
+  name: "deploying"
+  description: "deploying to environment"
+  aliases:
+    - "deploying"
+    - "deployment in progress"
+    - "pushing to production"
+    - "releasing"
+    - "shipping"
+    - "deploy started"
+
+- emoji: "🚀✅"
+  name: "deployed"
+  description: "successfully deployed live"
+  aliases:
+    - "deployed"
+    - "deployed successfully"
+    - "live in production"
+    - "release complete"
+    - "shipped"
+    - "gone live"
+
+- emoji: "⏪🔙"
+  name: "rollback"
+  description: "rolling back reverting deployment"
+  aliases:
+    - "rollback"
+    - "rolling back"
+    - "reverting"
+    - "revert deployment"
+    - "undo deploy"
+    - "backing out"
+
+- emoji: "🔥🩹"
+  name: "hotfix"
+  description: "hotfix urgent production fix"
+  aliases:
+    - "hotfix"
+    - "hot fix"
+    - "emergency fix"
+    - "urgent fix"
+    - "production fix"
+    - "critical patch"
+
+- emoji: "🏁🔀"
+  name: "feature_flag"
+  description: "feature flag toggle"
+  aliases:
+    - "feature flag"
+    - "feature toggle"
+    - "flag enabled"
+    - "flag disabled"
+    - "behind a flag"
+    - "ff on"
+    - "ff off"
+
+# ---------------------------------------------------------------------------
+# Incidents
+# ---------------------------------------------------------------------------
+- emoji: "🔍🚨"
+  name: "investigating_incident"
+  description: "investigating incident actively looking"
+  aliases:
+    - "investigating incident"
+    - "incident investigation"
+    - "looking into outage"
+    - "debugging production issue"
+    - "production incident"
+
+- emoji: "🛡️⚠️"
+  name: "mitigated"
+  description: "incident mitigated but not fully resolved"
+  aliases:
+    - "mitigated"
+    - "incident mitigated"
+    - "workaround in place"
+    - "partially resolved"
+    - "impact reduced"
+
+- emoji: "✅🛡️"
+  name: "incident_resolved"
+  description: "incident resolved all clear"
+  aliases:
+    - "incident resolved"
+    - "all clear"
+    - "issue resolved"
+    - "back to normal"
+    - "crisis over"
+
+- emoji: "📋🔬"
+  name: "postmortem"
+  description: "postmortem retrospective analysis"
+  aliases:
+    - "postmortem"
+    - "post mortem"
+    - "retro"
+    - "retrospective"
+    - "incident review"
+    - "root cause analysis"
+    - "rca"
+
+# ---------------------------------------------------------------------------
+# General Development
+# ---------------------------------------------------------------------------
+- emoji: "🚧👷"
+  name: "work_in_progress"
+  description: "work in progress not done yet"
+  aliases:
+    - "wip"
+    - "work in progress"
+    - "still working on it"
+    - "not done yet"
+    - "in progress"
+
+- emoji: "🎉🚀"
+  name: "shipped"
+  description: "feature shipped delivered to users"
+  aliases:
+    - "shipped"
+    - "feature shipped"
+    - "delivered"
+    - "released to users"
+    - "gone live"
+    - "launched"
+
+- emoji: "🧹💳"
+  name: "tech_debt"
+  description: "technical debt cleanup needed"
+  aliases:
+    - "tech debt"
+    - "technical debt"
+    - "cleanup needed"
+    - "code smell"
+    - "needs refactoring"
+
+- emoji: "♻️🔧"
+  name: "refactoring"
+  description: "refactoring restructuring code"
+  aliases:
+    - "refactoring"
+    - "refactor"
+    - "restructuring"
+    - "code cleanup"
+    - "improving code quality"
+
+- emoji: "🐛🔍"
+  name: "bug_found"
+  description: "bug found discovered issue"
+  aliases:
+    - "bug found"
+    - "found a bug"
+    - "discovered issue"
+    - "defect found"
+    - "regression found"
+
+- emoji: "🐛✅"
+  name: "bug_fixed"
+  description: "bug fixed resolved"
+  aliases:
+    - "bug fixed"
+    - "fixed the bug"
+    - "defect resolved"
+    - "issue fixed"
+    - "squashed the bug"
+
+- emoji: "✅🧪"
+  name: "tests_passing"
+  description: "all tests passing green build"
+  aliases:
+    - "tests passing"
+    - "all green"
+    - "green build"
+    - "ci passing"
+    - "pipeline green"
+    - "tests pass"
+
+- emoji: "📚🔗"
+  name: "documentation"
+  description: "documentation update docs"
+  aliases:
+    - "documentation"
+    - "docs update"
+    - "updated docs"
+    - "readme update"
+    - "added documentation"
+    - "wrote docs"
+
+- emoji: "🤷❓"
+  name: "question"
+  description: "question need help clarification"
+  aliases:
+    - "question"
+    - "need help"
+    - "confused"
+    - "clarification needed"
+    - "can someone explain"
+    - "what does this do"
+
+# ---------------------------------------------------------------------------
+# Feedback & Recognition
+# ---------------------------------------------------------------------------
+- emoji: "👏🌟"
+  name: "great_job"
+  description: "great job well done excellent work"
+  aliases:
+    - "great job"
+    - "well done"
+    - "excellent work"
+    - "awesome work"
+    - "nice job"
+    - "amazing work"
+    - "fantastic"
+
+- emoji: "🏆👏"
+  name: "kudos"
+  description: "kudos recognition shoutout"
+  aliases:
+    - "kudos"
+    - "props"
+    - "shoutout"
+    - "hat tip"
+    - "big thanks"
+    - "appreciation"
+    - "you rock"
+
+- emoji: "💪🔥"
+  name: "crushed_it"
+  description: "crushed it nailed it killed it"
+  aliases:
+    - "crushed it"
+    - "nailed it"
+    - "killed it"
+    - "smashed it"
+    - "knocked it out of the park"
+    - "on fire"
+
+- emoji: "🙏💯"
+  name: "thank_you"
+  description: "thank you so much appreciate it"
+  aliases:
+    - "thank you"
+    - "thanks"
+    - "appreciate it"
+    - "grateful"
+    - "thanks a lot"
+    - "ty"
+    - "thx"
+
+- emoji: "⭐📈"
+  name: "above_and_beyond"
+  description: "above and beyond went the extra mile"
+  aliases:
+    - "above and beyond"
+    - "extra mile"
+    - "went beyond"
+    - "exceeded expectations"
+    - "outstanding effort"
+    - "superstar"
+
+- emoji: "🎯💯"
+  name: "spot_on"
+  description: "spot on perfect exactly right"
+  aliases:
+    - "spot on"
+    - "perfect"
+    - "exactly right"
+    - "on point"
+    - "nailed the implementation"
+    - "clean solution"
+
+- emoji: "🧠💡"
+  name: "clever_solution"
+  description: "clever solution smart approach brilliant idea"
+  aliases:
+    - "clever solution"
+    - "smart approach"
+    - "brilliant"
+    - "elegant code"
+    - "nice thinking"
+    - "creative solution"
+    - "big brain"
+
+- emoji: "🤝✨"
+  name: "great_collaboration"
+  description: "great collaboration teamwork"
+  aliases:
+    - "great collaboration"
+    - "teamwork"
+    - "great pairing"
+    - "good team effort"
+    - "worked well together"
+    - "solid collab"
+
+- emoji: "🚀⭐"
+  name: "impressive_speed"
+  description: "impressive speed fast turnaround quick delivery"
+  aliases:
+    - "fast turnaround"
+    - "quick delivery"
+    - "impressive speed"
+    - "shipped fast"
+    - "blazing fast"
+    - "rapid delivery"
+
+- emoji: "📐✅"
+  name: "clean_code"
+  description: "clean code well structured readable"
+  aliases:
+    - "clean code"
+    - "well structured"
+    - "readable code"
+    - "good code quality"
+    - "nicely written"
+    - "solid code"
+    - "clean pr"
