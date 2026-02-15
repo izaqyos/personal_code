@@ -3,3 +3,4 @@ pyyaml
 pyperclip
 prompt_toolkit
 rich
+rapidfuzz

@@ -13,6 +13,7 @@ dependencies = [
     "pyperclip",
     "prompt_toolkit",
     "rich",
+    "rapidfuzz",
 ]
 
 [project.optional-dependencies]
