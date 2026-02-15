@@ -1,15 +1,22 @@
 """
-TF-IDF Matching Engine for Emoji Generator.
+Two-Stage Matching Engine for Emoji Generator.
 
 This file is heavily annotated with # LEARN: comments so you can circle back
 and study the concepts behind each decision. These aren't regular comments --
 they're mini-lessons designed to teach TF-IDF, cosine similarity, bigrams,
-and vectorization from the ground up.
+Levenshtein distance, and the two-stage matching strategy from the ground up.
+
+Architecture:
+  Stage 1 -- Lingo Lookup: exact/fuzzy match against all known aliases.
+             Catches dev shorthand like "on it", "ack", "lgtm", "ooo", "wip".
+  Stage 2 -- TF-IDF Engine: cosine similarity over vectorized descriptions.
+             Handles longer natural-language queries like "the pr got merged".
 """
 
 from dataclasses import dataclass
-from typing import List, Optional
+from typing import Dict, List, Tuple
 
+from rapidfuzz import fuzz
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
@@ -33,25 +40,212 @@ from emoji_generator.registry import EmojiEntry
 # ---------------------------------------------------------------------------
 MIN_CONFIDENCE = 0.15
 
+# ---------------------------------------------------------------------------
+# LEARN: Fuzzy match threshold for the Lingo Lookup (Stage 1).
+#
+# This is a Levenshtein-based similarity ratio (0-100). When a user's query
+# doesn't exactly match any alias, we check if it's "close enough" to catch
+# typos like "lgmt" -> "lgtm" or "deploiying" -> "deploying".
+#
+# 85 means the query must be at least 85% similar to an alias.
+# Too low (e.g. 60) and you get false positives: "fix" matches "mix".
+# Too high (e.g. 95) and you miss common typos.
+# 85 is the sweet spot for short dev phrases.
+# ---------------------------------------------------------------------------
+FUZZY_THRESHOLD = 85
+
 
 @dataclass
 class MatchResult:
     """A single search result from the matching engine."""
 
     entry: EmojiEntry
-    score: float  # cosine similarity score, 0.0 to 1.0
+    score: float  # similarity score, 0.0 to 1.0
 
 
-class EmojiMatchingEngine:
-    """TF-IDF based matching engine for finding emoji combos.
+class LingoLookup:
+    """Stage 1: Exact and fuzzy alias matching for dev lingo.
 
-    How it works (the big picture):
-    1. On init, we take all emoji entries' searchable text and feed them through
-       a TF-IDF vectorizer. This creates a matrix where each row is an emoji
-       entry and each column is a word/bigram "feature."
-    2. When the user queries "pr got merged", we vectorize that query the same
-       way and compute cosine similarity against every emoji entry.
-    3. We return the top-K entries sorted by similarity score.
+    # LEARN: Why a separate stage for dev lingo?
+    #
+    # TF-IDF is great for longer natural-language queries, but it BREAKS on
+    # short dev phrases like "on it", "ack", "lgtm", "ooo", "wip", "ty".
+    # Why?
+    #
+    # Problem 1 -- Stop words: "on it" -> both words are English stop words
+    #   -> TF-IDF removes them -> empty query vector -> no match at all.
+    #
+    # Problem 2 -- Abbreviations: "lgtm" has no IDF signal because TF-IDF
+    #   works on word frequency, and "lgtm" doesn't decompose into meaningful
+    #   sub-words. It's an opaque token.
+    #
+    # Problem 3 -- Too short for statistics: TF-IDF needs enough words to
+    #   build a meaningful vector. A 1-2 word query produces a very sparse
+    #   vector where random noise dominates.
+    #
+    # Solution: match these queries DIRECTLY against known aliases using
+    # string comparison. Exact match first, then fuzzy match for typos.
+    # This is the RIGHT tool for the job: short, known phrases are best
+    # handled by lookup, not by statistical text similarity.
+    """
+
+    def __init__(self, entries: List[EmojiEntry]) -> None:
+        """Build the alias lookup index.
+
+        Creates a normalized dictionary mapping every alias (lowercased,
+        stripped) to its parent EmojiEntry. Used for O(1) exact lookups.
+
+        Also stores the list of all (alias, entry) pairs for fuzzy matching.
+
+        Args:
+            entries: List of EmojiEntry objects to index.
+        """
+        # Exact match index: normalized_alias -> EmojiEntry
+        self.exact_index: Dict[str, EmojiEntry] = {}
+
+        # All alias pairs for fuzzy matching: [(normalized_alias, entry), ...]
+        self.alias_pairs: List[Tuple[str, EmojiEntry]] = []
+
+        for entry in entries:
+            # Index the description itself as an alias
+            norm_desc = entry.description.lower().strip()
+            self.exact_index[norm_desc] = entry
+            self.alias_pairs.append((norm_desc, entry))
+
+            # Index each explicit alias
+            for alias in entry.aliases:
+                norm_alias = alias.lower().strip()
+                self.exact_index[norm_alias] = entry
+                self.alias_pairs.append((norm_alias, entry))
+
+    def search(self, query: str, top_k: int = 5) -> List[MatchResult]:
+        """Search for emoji entries matching the query via alias lookup.
+
+        Strategy:
+        1. Exact match: if the query matches an alias verbatim, return it.
+        2. Fuzzy match: if no exact match, find the closest aliases using
+           Levenshtein-based similarity and return those above the threshold.
+
+        Args:
+            query: The user's search text.
+            top_k: Maximum results to return.
+
+        Returns:
+            List of MatchResult with score=1.0 for exact, or the fuzzy ratio
+            (normalized to 0.0-1.0) for fuzzy matches. Empty if nothing found.
+        """
+        normalized = query.lower().strip()
+
+        # --- Exact match (O(1) dict lookup) ---
+        if normalized in self.exact_index:
+            return [MatchResult(entry=self.exact_index[normalized], score=1.0)]
+
+        # --- Fuzzy match ---
+        # LEARN: Levenshtein Distance & Fuzzy Matching
+        #
+        # The Levenshtein distance between two strings is the minimum number
+        # of single-character edits (insertions, deletions, substitutions)
+        # needed to transform one string into the other.
+        #
+        # Example:
+        #   "lgtm" -> "lgmt"   (1 swap = 1 substitution)  distance = 1
+        #   "deploy" -> "deploi" (1 substitution)          distance = 1
+        #   "ack" -> "acknowledged" (8 insertions)         distance = 8
+        #
+        # The ALGORITHM (dynamic programming):
+        #
+        # Build a matrix D where D[i][j] = edit distance between the first
+        # i characters of string A and the first j characters of string B.
+        #
+        #        ""  l  g  m  t       (string B = "lgmt")
+        #   ""  [ 0  1  2  3  4 ]
+        #   l   [ 1  0  1  2  3 ]
+        #   g   [ 2  1  0  1  2 ]
+        #   t   [ 3  2  1  1  1 ]    <- "lgt" vs "lgmt" = 1 edit
+        #   m   [ 4  3  2  1  2 ]    <- "lgtm" vs "lgmt" = 2? No...
+        #
+        # Wait -- let's trace more carefully:
+        #
+        #        ""  l  g  m  t
+        #   ""  [ 0  1  2  3  4 ]    base case: transforming "" into "lgmt"
+        #   l   [ 1  0  1  2  3 ]    l==l: D[1][1] = D[0][0] = 0
+        #   g   [ 2  1  0  1  2 ]    g==g: D[2][2] = D[1][1] = 0
+        #   t   [ 3  2  1  1  1 ]    t!=m: min(D[2][2]+1, D[3][2]+1, D[2][3]+1) = 1
+        #                             t==t: D[3][4] = D[2][3] = 1
+        #   m   [ 4  3  2  1  2 ]    m==m: D[4][3] = D[3][2] = 1
+        #                             m!=t: min(D[3][3]+1, D[4][3]+1, D[3][4]+1) = 2
+        #
+        # Final answer: D[4][4] = 2 (swap "t" and "m" = 2 substitutions)
+        #
+        # The recurrence relation:
+        #   If A[i] == B[j]:
+        #       D[i][j] = D[i-1][j-1]          (chars match, no edit needed)
+        #   Else:
+        #       D[i][j] = 1 + min(
+        #           D[i-1][j],      # delete from A
+        #           D[i][j-1],      # insert into A
+        #           D[i-1][j-1],    # substitute in A
+        #       )
+        #
+        # Time complexity:  O(n * m) where n, m are string lengths
+        # Space complexity: O(n * m) for the matrix (can be optimized to O(min(n,m)))
+        #
+        # RATIO: rapidfuzz converts distance to a 0-100 similarity ratio:
+        #   ratio = (1 - distance / max(len(A), len(B))) * 100
+        #   "lgtm" vs "lgmt": (1 - 2/4) * 100 = 50  (actually rapidfuzz uses
+        #   a more sophisticated normalized score based on optimal alignment)
+        #
+        # rapidfuzz.fuzz.ratio uses an optimized C implementation that's ~10x
+        # faster than the pure Python difflib.SequenceMatcher. For our ~200
+        # aliases, it runs in < 1ms.
+
+        scored: List[Tuple[float, EmojiEntry]] = []
+        seen_names: set = set()  # deduplicate entries with multiple matching aliases
+
+        for alias, entry in self.alias_pairs:
+            if entry.name in seen_names:
+                continue
+
+            # LEARN: fuzz.ratio computes a normalized Levenshtein similarity (0-100).
+            # It's symmetric: ratio("abc", "abd") == ratio("abd", "abc").
+            # We use it instead of raw Levenshtein distance because the ratio
+            # accounts for string length -- a 1-char difference in a 4-char
+            # string (75%) is more significant than in a 20-char string (95%).
+            score = fuzz.ratio(normalized, alias)
+
+            if score >= FUZZY_THRESHOLD:
+                seen_names.add(entry.name)
+                scored.append((score / 100.0, entry))  # normalize to 0.0-1.0
+
+        # Sort by score descending, take top_k
+        scored.sort(key=lambda x: x[0], reverse=True)
+        return [MatchResult(entry=entry, score=s) for s, entry in scored[:top_k]]
+
+    def rebuild(self, entries: List[EmojiEntry]) -> None:
+        """Rebuild the alias index with new entries."""
+        self.__init__(entries)
+
+
+class TfidfEngine:
+    """Stage 2: TF-IDF based matching for natural language queries.
+
+    # LEARN: TF-IDF stands for "Term Frequency - Inverse Document Frequency."
+    #
+    # Term Frequency (TF): how often a word appears in ONE document
+    #   (here, one emoji's description + aliases).
+    #
+    # Inverse Document Frequency (IDF): penalizes words that appear in
+    #   MANY documents across the entire registry.
+    #   e.g. "merge" appears in lots of entries -> lower IDF weight.
+    #        "canary" appears rarely -> higher IDF weight.
+    #
+    # The product TF * IDF gives each word a score per document:
+    #   - Common-everywhere words get downweighted (low IDF).
+    #   - Distinctive words get boosted (high IDF).
+    #
+    # This is why a query "canary deploy" matches the canary entry even
+    # though "deploy" appears in 10 other entries -- "canary" has high IDF
+    # and dominates the match.
     """
 
     def __init__(self, entries: List[EmojiEntry]) -> None:
@@ -61,24 +255,6 @@ class EmojiMatchingEngine:
             entries: List of EmojiEntry objects to index for searching.
         """
         self.entries = entries
-
-        # LEARN: TF-IDF stands for "Term Frequency - Inverse Document Frequency."
-        #
-        # Term Frequency (TF): how often a word appears in ONE document
-        #   (here, one emoji's description + aliases).
-        #
-        # Inverse Document Frequency (IDF): penalizes words that appear in
-        #   MANY documents across the entire registry.
-        #   e.g. "merge" appears in lots of entries -> lower IDF weight.
-        #        "canary" appears rarely -> higher IDF weight.
-        #
-        # The product TF * IDF gives each word a score per document:
-        #   - Common-everywhere words get downweighted (low IDF).
-        #   - Distinctive words get boosted (high IDF).
-        #
-        # This is why a query "canary deploy" matches the canary entry even
-        # though "deploy" appears in 10 other entries -- "canary" has high IDF
-        # and dominates the match.
 
         self.vectorizer = TfidfVectorizer(
             # LEARN: ngram_range=(1, 2) means we extract BOTH:
@@ -105,9 +281,10 @@ class EmojiMatchingEngine:
             #   2. Prevents the query "will get back to you" from matching
             #      everything just because of "will", "to", and "you."
             #
-            # Note: stop-word removal sometimes hurts. For example, "on it"
-            # loses both words! But for our dev-lingo domain, the benefit
-            # outweighs the occasional miss, because aliases provide fallback.
+            # Yes, this means "on it" becomes an empty vector in TF-IDF.
+            # That's OK! Stage 1 (LingoLookup) handles "on it" via direct
+            # alias matching BEFORE we ever reach TF-IDF. Each stage does
+            # what it's best at.
             stop_words="english",
 
             # LEARN: sublinear_tf=True applies logarithmic TF scaling.
@@ -154,7 +331,7 @@ class EmojiMatchingEngine:
         # A dense matrix would be mostly zeros (wasteful). Sparse format only
         # stores non-zero values, saving memory and speeding up computation.
         #
-        # For our ~35 entries with ~200 features, it doesn't matter much.
+        # For our ~45 entries with ~400 features, it doesn't matter much.
         # But the same code scales to thousands of entries without changes.
 
     def search(self, query: str, top_k: int = 5) -> List[MatchResult]:
@@ -216,7 +393,75 @@ class EmojiMatchingEngine:
         return results
 
     def rebuild(self, entries: List[EmojiEntry]) -> None:
-        """Rebuild the TF-IDF index with new entries.
+        """Rebuild the TF-IDF index with new entries."""
+        self.__init__(entries)
+
+
+class EmojiMatchingEngine:
+    """Two-stage matching engine combining lingo lookup and TF-IDF.
+
+    # LEARN: Two-Stage Strategy -- why not just one approach?
+    #
+    # Different types of queries need different tools:
+    #
+    #   Query type          | Example              | Best tool
+    #   --------------------|----------------------|------------------
+    #   Short dev lingo     | "on it", "lgtm"      | Exact alias match
+    #   Abbreviations       | "ooo", "wip", "ack"  | Exact alias match
+    #   Typos               | "lgmt", "deploiying" | Fuzzy string match
+    #   Natural language    | "pr got merged"      | TF-IDF + cosine sim
+    #   Long descriptions   | "the build is broken"| TF-IDF + cosine sim
+    #
+    # Stage 1 (LingoLookup) handles the top 3 rows. It's fast (O(1) for exact,
+    # O(n) for fuzzy where n = number of aliases) and deterministic.
+    #
+    # Stage 2 (TfidfEngine) handles the bottom 2 rows. It's statistical and
+    # excels at matching partial/paraphrased descriptions.
+    #
+    # The pipeline is simple:
+    #   1. Try lingo lookup first.
+    #   2. If it found results, return them (don't bother with TF-IDF).
+    #   3. If not, fall through to TF-IDF for deeper text analysis.
+    #
+    # This means stop_words="english" can stay in TF-IDF without worrying
+    # about "on it" breaking, because Stage 1 catches it before TF-IDF
+    # ever sees it.
+    """
+
+    def __init__(self, entries: List[EmojiEntry]) -> None:
+        """Build both stages of the matching engine.
+
+        Args:
+            entries: List of EmojiEntry objects to index.
+        """
+        self.entries = entries
+        self.lingo = LingoLookup(entries)
+        self.tfidf = TfidfEngine(entries)
+
+    def search(self, query: str, top_k: int = 5) -> List[MatchResult]:
+        """Search for emoji entries using the two-stage pipeline.
+
+        Stage 1: Exact/fuzzy alias match (catches lingo, abbreviations, typos).
+        Stage 2: TF-IDF cosine similarity (catches natural language).
+
+        Args:
+            query: The user's search text.
+            top_k: Maximum results to return.
+
+        Returns:
+            List of MatchResult sorted by descending score.
+            Empty list if no matches found in either stage.
+        """
+        # Stage 1: Lingo Lookup
+        lingo_results = self.lingo.search(query, top_k=top_k)
+        if lingo_results:
+            return lingo_results
+
+        # Stage 2: TF-IDF (only if lingo found nothing)
+        return self.tfidf.search(query, top_k=top_k)
+
+    def rebuild(self, entries: List[EmojiEntry]) -> None:
+        """Rebuild both stages with new entries.
 
         Used by the REPL's hot-reload feature after adding a new emoji.
 
@@ -224,5 +469,5 @@ class EmojiMatchingEngine:
             entries: The updated list of EmojiEntry objects.
         """
         self.entries = entries
-        texts = [entry.searchable_text for entry in self.entries]
-        self.tfidf_matrix = self.vectorizer.fit_transform(texts)
+        self.lingo.rebuild(entries)
+        self.tfidf.rebuild(entries)

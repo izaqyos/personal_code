@@ -292,70 +292,171 @@ class TestRunSingleQuery:
 
 
 class TestRunRepl:
+    """Tests for the interactive REPL.
+
+    NOTE: Since prompt_toolkit IS installed in the test environment,
+    PromptSession.prompt() is used (not builtins.input). We must mock
+    PromptSession to control the REPL flow. For tests that exercise
+    the prompt_toolkit-unavailable fallback, we mock the import to fail.
+    """
+
+    @staticmethod
+    def _make_session(responses):
+        """Create a mock PromptSession that yields responses in order."""
+        mock_session = MagicMock()
+        mock_session.prompt.side_effect = list(responses)
+        return mock_session
+
     def test_repl_quit(self, engine, yaml_path):
         """Typing 'quit' should exit the REPL."""
-        mock_session = MagicMock()
-        mock_session.prompt.return_value = "quit"
+        mock_session = self._make_session(["quit"])
         with patch("prompt_toolkit.PromptSession", return_value=mock_session):
             run_repl(engine, top_k=5, no_copy=True, yaml_path=yaml_path)
 
     def test_repl_exit(self, engine, yaml_path):
         """Typing 'exit' should exit the REPL."""
-        mock_session = MagicMock()
-        mock_session.prompt.return_value = "exit"
+        mock_session = self._make_session(["exit"])
+        with patch("prompt_toolkit.PromptSession", return_value=mock_session):
+            run_repl(engine, top_k=5, no_copy=True, yaml_path=yaml_path)
+
+    def test_repl_q_shortcut(self, engine, yaml_path):
+        """Typing 'q' should also exit the REPL."""
+        mock_session = self._make_session(["q"])
         with patch("prompt_toolkit.PromptSession", return_value=mock_session):
             run_repl(engine, top_k=5, no_copy=True, yaml_path=yaml_path)
 
     def test_repl_eof(self, engine, yaml_path):
-        """EOFError should exit the REPL gracefully."""
-        with patch("builtins.input", side_effect=EOFError):
+        """EOFError from prompt should exit gracefully."""
+        mock_session = MagicMock()
+        mock_session.prompt.side_effect = EOFError
+        with patch("prompt_toolkit.PromptSession", return_value=mock_session):
+            run_repl(engine, top_k=5, no_copy=True, yaml_path=yaml_path)
+
+    def test_repl_keyboard_interrupt(self, engine, yaml_path):
+        """KeyboardInterrupt from prompt should exit gracefully."""
+        mock_session = MagicMock()
+        mock_session.prompt.side_effect = KeyboardInterrupt
+        with patch("prompt_toolkit.PromptSession", return_value=mock_session):
             run_repl(engine, top_k=5, no_copy=True, yaml_path=yaml_path)
 
     def test_repl_empty_input_continues(self, engine, yaml_path):
-        """Empty input should continue the loop."""
-        inputs = iter(["", "quit"])
-        with patch("builtins.input", side_effect=inputs):
+        """Empty input should continue the loop (line 246)."""
+        mock_session = self._make_session(["", "   ", "quit"])
+        with patch("prompt_toolkit.PromptSession", return_value=mock_session):
             run_repl(engine, top_k=5, no_copy=True, yaml_path=yaml_path)
 
     def test_repl_list_command(self, engine, yaml_path):
         """'list' should show all emojis then continue."""
-        inputs = iter(["list", "quit"])
-        with patch("builtins.input", side_effect=inputs):
+        mock_session = self._make_session(["list", "quit"])
+        with patch("prompt_toolkit.PromptSession", return_value=mock_session):
             run_repl(engine, top_k=5, no_copy=True, yaml_path=yaml_path)
 
     def test_repl_help_command(self, engine, yaml_path):
         """'help' should show help then continue."""
-        inputs = iter(["help", "quit"])
-        with patch("builtins.input", side_effect=inputs):
+        mock_session = self._make_session(["help", "quit"])
+        with patch("prompt_toolkit.PromptSession", return_value=mock_session):
             run_repl(engine, top_k=5, no_copy=True, yaml_path=yaml_path)
 
     def test_repl_search_with_results(self, engine, yaml_path):
-        """A valid search should display results and prompt."""
-        # "pr merged" -> results, then "q" to skip selection, then "quit"
-        inputs = iter(["pr merged", "q", "quit"])
-        with patch("builtins.input", side_effect=inputs):
-            run_repl(engine, top_k=5, no_copy=True, yaml_path=yaml_path)
+        """A valid search should display results and prompt selection."""
+        mock_session = self._make_session(["pr merged", "quit"])
+        with patch("prompt_toolkit.PromptSession", return_value=mock_session):
+            # prompt_selection calls builtins.input, not session.prompt
+            with patch("builtins.input", return_value="q"):
+                run_repl(engine, top_k=5, no_copy=True, yaml_path=yaml_path)
+
+    def test_repl_search_select_and_copy(self, engine, yaml_path):
+        """Selecting a result in REPL should copy to clipboard."""
+        mock_session = self._make_session(["pr merged", "quit"])
+        with patch("prompt_toolkit.PromptSession", return_value=mock_session):
+            with patch("builtins.input", return_value="1"):
+                with patch("emoji_generator.cli.copy_to_clipboard", return_value=True):
+                    run_repl(engine, top_k=5, no_copy=False, yaml_path=yaml_path)
 
     def test_repl_no_match_skip_add(self, engine, yaml_path):
         """No match + declining to add should continue."""
-        inputs = iter(["xyzzy foobar bazzle", "n", "quit"])
-        with patch("builtins.input", side_effect=inputs):
-            run_repl(engine, top_k=5, no_copy=True, yaml_path=yaml_path)
+        mock_session = self._make_session(["xyzzy foobar bazzle", "quit"])
+        with patch("prompt_toolkit.PromptSession", return_value=mock_session):
+            # First input() call is the [a]dd prompt, decline with "n"
+            # Second input() call doesn't happen since we quit via session
+            with patch("builtins.input", return_value="n"):
+                run_repl(engine, top_k=5, no_copy=True, yaml_path=yaml_path)
+
+    def test_repl_no_match_add_flow(self, engine, yaml_path, tmp_path):
+        """No match + accepting add should add entry and continue."""
+        yaml_file = tmp_path / "emojis.yaml"
+        yaml_file.write_text(
+            '- emoji: "✅🔀"\n'
+            '  name: "test"\n'
+            '  description: "test entry"\n'
+            '  aliases:\n'
+            '    - "test"\n'
+        )
+        test_engine = EmojiMatchingEngine(load_registry(yaml_file))
+
+        mock_session = self._make_session(["xyzzy foobar bazzle", "quit"])
+        # input() calls: 1) [a]dd prompt -> "a", 2) emoji input -> "🎯"
+        input_responses = iter(["a", "🎯"])
+        with patch("prompt_toolkit.PromptSession", return_value=mock_session):
+            with patch("builtins.input", side_effect=input_responses):
+                run_repl(test_engine, top_k=5, no_copy=True, yaml_path=yaml_file)
+
+        content = yaml_file.read_text()
+        assert "🎯" in content
 
     def test_repl_no_match_eof_on_add_prompt(self, engine, yaml_path):
-        """EOFError on the add prompt should continue."""
-        call_count = [0]
-        def mock_input(*args, **kwargs):
-            call_count[0] += 1
-            if call_count[0] == 1:
-                return "xyzzy foobar bazzle"  # no-match query
-            elif call_count[0] == 2:
-                raise EOFError  # on the [a]dd prompt
-            else:
-                return "quit"
+        """EOFError on the [a]dd prompt should continue the loop."""
+        mock_session = self._make_session(["xyzzy foobar bazzle", "quit"])
+        with patch("prompt_toolkit.PromptSession", return_value=mock_session):
+            with patch("builtins.input", side_effect=EOFError):
+                run_repl(engine, top_k=5, no_copy=True, yaml_path=yaml_path)
 
-        with patch("builtins.input", side_effect=mock_input):
-            run_repl(engine, top_k=5, no_copy=True, yaml_path=yaml_path)
+
+class TestRunReplFallback:
+    """Tests for the REPL when prompt_toolkit is NOT available.
+
+    Covers lines 222-223 (except ImportError) and 239-240 (fallback input).
+    """
+
+    def test_fallback_quit(self, engine, yaml_path):
+        """REPL should work with plain input() when prompt_toolkit is absent."""
+        with patch.dict("sys.modules", {"prompt_toolkit": None}):
+            with patch("builtins.input", return_value="quit"):
+                run_repl(engine, top_k=5, no_copy=True, yaml_path=yaml_path)
+
+    def test_fallback_eof(self, engine, yaml_path):
+        """EOFError from input() fallback should exit gracefully."""
+        with patch.dict("sys.modules", {"prompt_toolkit": None}):
+            with patch("builtins.input", side_effect=EOFError):
+                run_repl(engine, top_k=5, no_copy=True, yaml_path=yaml_path)
+
+    def test_fallback_search_and_list(self, engine, yaml_path):
+        """Fallback REPL should handle search and list commands."""
+        responses = iter(["list", "pr merged", "q", "quit"])
+        with patch.dict("sys.modules", {"prompt_toolkit": None}):
+            with patch("builtins.input", side_effect=responses):
+                run_repl(engine, top_k=5, no_copy=True, yaml_path=yaml_path)
+
+    def test_fallback_empty_input_continues(self, engine, yaml_path):
+        """Empty input in fallback mode should continue the loop."""
+        responses = iter(["", "quit"])
+        with patch.dict("sys.modules", {"prompt_toolkit": None}):
+            with patch("builtins.input", side_effect=responses):
+                run_repl(engine, top_k=5, no_copy=True, yaml_path=yaml_path)
+
+    def test_fallback_help_command(self, engine, yaml_path):
+        """Help command should work in fallback mode."""
+        responses = iter(["help", "quit"])
+        with patch.dict("sys.modules", {"prompt_toolkit": None}):
+            with patch("builtins.input", side_effect=responses):
+                run_repl(engine, top_k=5, no_copy=True, yaml_path=yaml_path)
+
+    def test_fallback_no_match(self, engine, yaml_path):
+        """No match flow in fallback mode."""
+        responses = iter(["xyzzy foobar bazzle", "n", "quit"])
+        with patch.dict("sys.modules", {"prompt_toolkit": None}):
+            with patch("builtins.input", side_effect=responses):
+                run_repl(engine, top_k=5, no_copy=True, yaml_path=yaml_path)
 
 
 # ---------------------------------------------------------------------------
@@ -487,3 +588,12 @@ class TestMain:
         )
         with patch("sys.argv", ["devmoji", "--yaml", str(custom_yaml), "-1", "--no-copy", "test"]):
             main()
+
+    def test_main_generic_exception(self, tmp_path):
+        """main() should handle generic exceptions from load_registry."""
+        bad_yaml = tmp_path / "bad.yaml"
+        bad_yaml.write_text("not: valid: yaml: [[[")
+        with patch("sys.argv", ["devmoji", "--yaml", str(bad_yaml), "query"]):
+            with pytest.raises(SystemExit) as exc_info:
+                main()
+            assert exc_info.value.code == 1

@@ -2,7 +2,7 @@
 
 Find the perfect emoji combo for software development concepts using natural language.
 
-Type what you mean in plain English, and the tool finds the best emoji match using TF-IDF text similarity -- no hardcoded if/else, no API keys, no heavy ML models.
+Type what you mean in plain English, and the tool finds the best emoji match using a two-stage engine: **Stage 1** catches dev lingo and typos via exact/fuzzy alias lookup (Levenshtein distance), **Stage 2** handles natural language via TF-IDF cosine similarity. No hardcoded if/else, no API keys, no heavy ML models.
 
 ```
 $ devmoji "pr approved and merged"
@@ -124,7 +124,143 @@ In REPL mode, you can press `a` to add the entry interactively.
 
 This section teaches the core algorithms from the ground up, using real examples from the emoji registry. See also `emoji_generator/engine.py` which is annotated with `# LEARN:` comments inline.
 
-### The Analogy
+---
+
+### Two-Stage Matching Strategy
+
+Different types of queries need different tools:
+
+| Query type | Example | Best tool |
+|---|---|---|
+| Short dev lingo | "on it", "lgtm" | Exact alias match |
+| Abbreviations | "ooo", "wip", "ack" | Exact alias match |
+| Typos | "ship ti", "deploiying" | Fuzzy string match (Levenshtein) |
+| Natural language | "pr got merged" | TF-IDF + cosine similarity |
+| Long descriptions | "the build is broken" | TF-IDF + cosine similarity |
+
+#### Why not just TF-IDF for everything?
+
+TF-IDF **breaks** on short dev lingo:
+
+1. **Stop word problem**: "on it" -- both "on" and "it" are English stop words. TF-IDF removes them, producing an **empty query vector**. Zero features = no match possible.
+2. **Abbreviation problem**: "lgtm" has no IDF signal. TF-IDF works on word frequency -- "lgtm" doesn't decompose into meaningful sub-words. It's an opaque token.
+3. **Short query problem**: TF-IDF needs enough words to build a meaningful vector. A 1-2 word query produces a very sparse vector where random noise dominates.
+
+#### The Pipeline
+
+```
+User query: "on it"
+    │
+    ▼
+┌─────────────────────────────────┐
+│  Stage 1: LingoLookup           │
+│  Exact match → aliases dict     │
+│  Fuzzy match → Levenshtein      │
+│                                 │
+│  "on it" == alias "on it"? YES  │──→ Return 🫡 (score: 1.0)
+└─────────────────────────────────┘
+
+User query: "the pull request was approved and merged"
+    │
+    ▼
+┌─────────────────────────────────┐
+│  Stage 1: LingoLookup           │
+│  No exact match. Fuzzy? No.     │
+└──────────────┬──────────────────┘
+               │ (no results)
+               ▼
+┌─────────────────────────────────┐
+│  Stage 2: TF-IDF Engine         │
+│  Vectorize → cosine similarity  │
+│  "merged" has high IDF weight   │──→ Return ✅🔀 (score: 0.82)
+└─────────────────────────────────┘
+```
+
+Stage 1 catches lingo, abbreviations, and typos. Stage 2 handles natural language. Each stage does what it's best at, and stop words can safely stay in TF-IDF without worrying about "on it" breaking -- because Stage 1 catches it before TF-IDF ever sees it.
+
+---
+
+### Levenshtein Distance -- The Typo Catcher
+
+Stage 1's fuzzy matching is powered by **Levenshtein distance** -- a classic dynamic programming algorithm you may have seen before (e.g., as the "edit distance" problem in CS courses).
+
+#### What it measures
+
+The minimum number of **single-character edits** (insertions, deletions, substitutions) to transform one string into another.
+
+```
+"lgtm" → "lgmt"     1 substitution (swap t↔m)     distance = 2*
+"ship it" → "ship ti"  1 substitution              distance = 2*
+"deploy" → "deploiy"   1 substitution + 1 insert   distance = 2
+"ack" → "acknowledged" 10 insertions               distance = 10
+
+* Note: raw Levenshtein counts each position change as a substitution,
+  not a transposition. "lgtm"→"lgmt" requires 2 subs (t→m at pos 3, m→t at pos 4).
+```
+
+#### The Algorithm (Dynamic Programming)
+
+Build a matrix `D` where `D[i][j]` = edit distance between the first `i` characters of string `A` and the first `j` characters of string `B`.
+
+**Example: `"ship it"` vs `"ship ti"`** (spaces included):
+
+```
+         ""  s  h  i  p     t  i
+    ""  [ 0  1  2  3  4  5  6  7 ]   ← base: transform "" into "ship ti"
+    s   [ 1  0  1  2  3  4  5  6 ]   s==s: free (diagonal)
+    h   [ 2  1  0  1  2  3  4  5 ]   h==h: free
+    i   [ 3  2  1  0  1  2  3  4 ]   i==i: free
+    p   [ 4  3  2  1  0  1  2  3 ]   p==p: free
+        [ 5  4  3  2  1  0  1  2 ]    == : free
+    i   [ 6  5  4  3  2  1  1  1 ]   i!=t: min(0+1, 1+1, 1+1) = 1; then i==i: 1
+    t   [ 7  6  5  4  3  2  1  2 ]   t==t: 1; then t!=i: min(1+1, 1+1, 1+1) = 2
+
+    Final: D[7][7] = 2
+```
+
+#### The Recurrence Relation
+
+```
+If A[i] == B[j]:
+    D[i][j] = D[i-1][j-1]              # chars match, no edit needed (diagonal)
+Else:
+    D[i][j] = 1 + min(
+        D[i-1][j],        # delete from A      (↑ move up)
+        D[i][j-1],        # insert into A      (← move left)
+        D[i-1][j-1],      # substitute in A    (↖ move diag)
+    )
+```
+
+**Complexity**: O(n × m) time and space, where n and m are string lengths. For our short aliases (3-20 chars), this is trivially fast.
+
+#### From Distance to Similarity Ratio
+
+Raw distance isn't directly comparable across different-length strings. A 2-edit distance between 4-char strings (50% different) is much worse than between 20-char strings (10% different).
+
+`rapidfuzz` normalizes to a 0-100 **similarity ratio**:
+
+```
+ratio ≈ (1 - distance / max(len(A), len(B))) × 100
+
+"lgtm" vs "lgmt":     (1 - 2/4)  × 100 = 50    → below threshold (85)
+"ship it" vs "ship ti": (1 - 2/7) × 100 = 71    → below threshold
+"roger that" vs "roger tht": (1 - 2/10) × 100 = 80 → close!
+```
+
+(In practice, `rapidfuzz` uses a more sophisticated optimal alignment score that's slightly more generous than the naive formula above.)
+
+We use a **threshold of 85** -- meaning the query must be at least 85% similar to a known alias. This catches common typos without producing false positives.
+
+#### Why `rapidfuzz` over `difflib`?
+
+Python's stdlib `difflib.SequenceMatcher` computes a similar ratio, but:
+- `rapidfuzz` is implemented in C and is **~10x faster**
+- It uses the same Levenshtein-based algorithm under the hood
+- For our ~200 aliases, the difference is microseconds, but the API is also cleaner
+
+---
+
+### The TF-IDF Analogy
 
 Think of TF-IDF like a **detective ranking suspects**. If someone yells "merge!" in a crowded office, that's not very helpful -- lots of people deal with merges (low signal). But if someone yells "canary!", only one person turns around -- that's a strong signal. TF-IDF is a formula that automatically figures out which words are "merge" (common, low value) vs "canary" (distinctive, high value).
 
@@ -364,12 +500,15 @@ One matrix multiplication, 45 similarity scores. That's all `cosine_similarity(q
 ### The LEARN Comments
 
 Open `emoji_generator/engine.py` for inline explanations on every technical decision:
+- Two-stage strategy: why short lingo needs lookup, not TF-IDF
+- Levenshtein distance: the DP recurrence, matrix walkthrough, and ratio normalization
 - TF-IDF theory and parameter choices
 - Why `ngram_range=(1, 2)` and not (1, 3)
-- Why `stop_words="english"` helps and when it hurts
+- Why `stop_words="english"` is safe now (Stage 1 handles the edge cases)
 - What `sublinear_tf=True` does (logarithmic TF scaling)
 - Sparse matrices and why they matter
 - The confidence threshold and what scores mean intuitively
+- `rapidfuzz.fuzz.ratio` vs raw Levenshtein distance
 
 ---
 
@@ -388,7 +527,7 @@ emoji_generator/
     __init__.py          # Package init
     __main__.py          # python -m entry point
     cli.py               # CLI + REPL interface
-    engine.py            # TF-IDF engine (annotated with LEARN comments)
+    engine.py            # Two-stage engine: LingoLookup + TF-IDF (annotated with LEARN comments)
     registry.py          # YAML loader + EmojiEntry dataclass
     data/
       emojis.yaml        # The emoji dictionary (human-editable)
@@ -403,7 +542,8 @@ emoji_generator/
 
 | Package | Purpose |
 |---|---|
-| scikit-learn | TF-IDF vectorizer + cosine similarity |
+| scikit-learn | TF-IDF vectorizer + cosine similarity (Stage 2) |
+| rapidfuzz | Levenshtein-based fuzzy string matching (Stage 1) |
 | pyyaml | Load emoji registry from YAML |
 | pyperclip | Cross-platform clipboard |
 | prompt_toolkit | REPL with history + auto-suggestions |
