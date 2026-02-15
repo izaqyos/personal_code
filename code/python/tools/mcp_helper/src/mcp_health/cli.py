@@ -13,6 +13,7 @@ from rich.console import Console
 from mcp_health.config import ConfigError, ConfigLoader
 from mcp_health.config.models import MCPServerConfig
 from mcp_health.mcp.client import MCPClient
+from mcp_health.refresh.cooldown import ReauthCooldown
 from mcp_health.refresh.notifier import ServiceType, UserNotifier
 from mcp_health.refresh.oauth import OAuthRefresher
 from mcp_health.reporting.report import (
@@ -111,6 +112,22 @@ def main() -> None:
     help="Re-authenticate via OAuth if tokens are invalid (opens browser)",
 )
 @click.option(
+    "--force",
+    is_flag=True,
+    help="Bypass cooldown restrictions for --reauth",
+)
+@click.option(
+    "--cooldown-status",
+    is_flag=True,
+    help="Show re-auth cooldown status",
+)
+@click.option(
+    "--reset-cooldown",
+    "reset_cooldown_server",
+    default=None,
+    help="Reset cooldown for a server (or 'all' for all servers)",
+)
+@click.option(
     "--server",
     "-s",
     "servers",
@@ -137,11 +154,31 @@ def check(
     skip_mcp: bool,
     auto_refresh: bool,
     reauth: bool,
+    force: bool,
+    cooldown_status: bool,
+    reset_cooldown_server: str | None,
     servers: tuple[str, ...],
     watch: bool,
     interval: int,
 ) -> None:
     """Run health check on all MCP servers."""
+    cooldown = ReauthCooldown()
+
+    # Handle cooldown status display
+    if cooldown_status:
+        console.print(cooldown.status_summary())
+        return
+
+    # Handle cooldown reset
+    if reset_cooldown_server:
+        server_to_reset = None if reset_cooldown_server.lower() == "all" else reset_cooldown_server
+        reset_servers = cooldown.reset(server_to_reset)
+        if reset_servers:
+            console.print(f"[green]✓ Reset cooldown for:[/] {', '.join(reset_servers)}")
+        else:
+            console.print("[yellow]No cooldown data to reset.[/]")
+        return
+
     asyncio.run(
         run_health_check(
             config_path=config,
@@ -150,6 +187,7 @@ def check(
             skip_mcp=skip_mcp,
             auto_refresh=auto_refresh,
             reauth=reauth,
+            force_reauth=force,
             filter_servers=list(servers) if servers else None,
             watch=watch,
             interval=interval,
@@ -164,6 +202,7 @@ async def run_health_check(
     skip_mcp: bool,
     auto_refresh: bool,
     reauth: bool = False,
+    force_reauth: bool = False,
     filter_servers: list[str] | None = None,
     watch: bool = False,
     interval: int = 60,
@@ -177,6 +216,7 @@ async def run_health_check(
         skip_mcp: Skip MCP connection tests
         auto_refresh: Auto-refresh OAuth tokens
         reauth: Re-authenticate via OAuth if tokens are invalid
+        force_reauth: Bypass cooldown restrictions for reauth
         filter_servers: Optional list of server names to check
         watch: Enable continuous monitoring
         interval: Interval between checks in watch mode
@@ -210,6 +250,7 @@ async def run_health_check(
             skip_mcp,
             auto_refresh,
             reauth,
+            force_reauth,
             interval,
         )
     else:
@@ -219,6 +260,7 @@ async def run_health_check(
             skip_mcp,
             auto_refresh,
             reauth,
+            force_reauth,
         )
         # Generate output
         if output_format == "json":
@@ -237,6 +279,7 @@ async def _run_single_check(
     skip_mcp: bool,
     auto_refresh: bool,
     reauth: bool = False,
+    force_reauth: bool = False,
 ) -> HealthReport:
     """Run a single health check on all servers (in parallel).
 
@@ -246,6 +289,7 @@ async def _run_single_check(
         skip_mcp: Skip MCP connection tests
         auto_refresh: Auto-refresh OAuth tokens
         reauth: Re-authenticate via OAuth if tokens are invalid
+        force_reauth: Bypass cooldown restrictions for reauth
 
     Returns:
         HealthReport with all results
@@ -255,7 +299,7 @@ async def _run_single_check(
     # Validate tokens in parallel
     logger.debug("Starting parallel token validation for %d servers", len(servers))
     validation_tasks = [
-        _validate_server(name, config, skip_mcp, auto_refresh, reauth)
+        _validate_server(name, config, skip_mcp, auto_refresh, reauth, force_reauth)
         for name, config in servers
     ]
     results = await asyncio.gather(*validation_tasks, return_exceptions=True)
@@ -276,6 +320,7 @@ async def _validate_server(
     skip_mcp: bool,
     auto_refresh: bool,
     reauth: bool = False,
+    force_reauth: bool = False,
 ) -> ServerHealth:
     """Validate a single server.
 
@@ -285,6 +330,7 @@ async def _validate_server(
         skip_mcp: Skip MCP connection tests
         auto_refresh: Auto-refresh OAuth tokens
         reauth: Re-authenticate via OAuth if tokens are invalid
+        force_reauth: Bypass cooldown restrictions for reauth
 
     Returns:
         ServerHealth with validation results
@@ -292,6 +338,7 @@ async def _validate_server(
     health = ServerHealth(name=server_name)
     refresher = OAuthRefresher()
     notifier = UserNotifier()
+    cooldown = ReauthCooldown()
 
     # Validate token
     validator = get_validator_for_server(server_name)
@@ -312,25 +359,35 @@ async def _validate_server(
                     # Re-validate with new token
                     health.token_result = await validator.validate(server_config)
                 elif refresh_result.needs_reauth() and reauth and config_dir:
-                    # Refresh failed due to invalid token, try re-auth
-                    reauth_result = await refresher.reauth_atlassian(Path(config_dir))
-                    if reauth_result.is_success():
-                        health.token_result = await validator.validate(server_config)
-                        health.refresh_success = True
+                    # Refresh failed due to invalid token, try re-auth with cooldown check
+                    can_reauth, cooldown_reason = cooldown.can_reauth(server_name)
+                    if can_reauth or force_reauth:
+                        cooldown.record_attempt(server_name)
+                        reauth_result = await refresher.reauth_atlassian(Path(config_dir))
+                        if reauth_result.is_success():
+                            health.token_result = await validator.validate(server_config)
+                            health.refresh_success = True
+                        else:
+                            health.action_required = reauth_result.message
                     else:
-                        health.action_required = reauth_result.message
+                        health.action_required = f"Cooldown active: {cooldown_reason}"
                 else:
                     health.action_required = refresh_result.message
 
             elif reauth and config_dir and "atlassian" in server_name.lower():
-                # Direct reauth requested for Atlassian
-                reauth_result = await refresher.reauth_atlassian(Path(config_dir))
-                if reauth_result.is_success():
-                    health.token_result = await validator.validate(server_config)
-                    health.refresh_attempted = True
-                    health.refresh_success = True
+                # Direct reauth requested for Atlassian - check cooldown
+                can_reauth, cooldown_reason = cooldown.can_reauth(server_name)
+                if can_reauth or force_reauth:
+                    cooldown.record_attempt(server_name)
+                    reauth_result = await refresher.reauth_atlassian(Path(config_dir))
+                    if reauth_result.is_success():
+                        health.token_result = await validator.validate(server_config)
+                        health.refresh_attempted = True
+                        health.refresh_success = True
+                    else:
+                        health.action_required = reauth_result.message
                 else:
-                    health.action_required = reauth_result.message
+                    health.action_required = f"Cooldown active: {cooldown_reason}"
             else:
                 # Notify user for manual refresh
                 service_type = get_service_type(server_name)
@@ -353,6 +410,7 @@ async def _run_watch_mode(
     skip_mcp: bool,
     auto_refresh: bool,
     reauth: bool,
+    force_reauth: bool,
     interval: int,
 ) -> None:
     """Run continuous monitoring mode.
@@ -365,6 +423,7 @@ async def _run_watch_mode(
         skip_mcp: Skip MCP connection tests
         auto_refresh: Auto-refresh OAuth tokens
         reauth: Re-authenticate via OAuth if tokens are invalid
+        force_reauth: Bypass cooldown restrictions for reauth
         interval: Seconds between checks
     """
     console.print(f"[bold]Watch mode enabled[/] - checking every {interval}s")
@@ -383,6 +442,7 @@ async def _run_watch_mode(
                 skip_mcp,
                 auto_refresh,
                 reauth,
+                force_reauth,
             )
             generator.generate_console(report, verbose=verbose)
 
@@ -493,7 +553,7 @@ async def run_refresh(server_name: str, config_path: Path | None) -> None:
     "--force",
     "-f",
     is_flag=True,
-    help="Skip confirmation prompt",
+    help="Skip confirmation prompt AND bypass cooldown",
 )
 def wipe_reauth(config: Path | None, server_name: str | None, force: bool) -> None:
     """Completely wipe OAuth tokens and re-authenticate via browser.
@@ -501,8 +561,11 @@ def wipe_reauth(config: Path | None, server_name: str | None, force: bool) -> No
     This is a nuclear option for when tokens are corrupted or in a bad state.
     It removes ALL OAuth-related files and triggers a fresh authentication.
 
+    Note: Subject to cooldown restrictions unless --force is used.
+
     Example:
         mcp-health wipe-reauth -s perimeter81-atlassian
+        mcp-health wipe-reauth -s perimeter81-atlassian --force
     """
     asyncio.run(run_wipe_reauth(config, server_name, force))
 
@@ -517,10 +580,19 @@ async def run_wipe_reauth(
     Args:
         config_path: Path to config file
         server_name: Specific server name or None for all Atlassian servers
-        force: Skip confirmation prompt
+        force: Skip confirmation prompt AND bypass cooldown
     """
     loader = ConfigLoader()
     refresher = OAuthRefresher()
+    cooldown = ReauthCooldown()
+
+    # Check cooldown unless force is used
+    if not force and server_name:
+        can_reauth, cooldown_reason = cooldown.can_reauth(server_name)
+        if not can_reauth:
+            console.print(f"[red]Cooldown active:[/] {cooldown_reason}")
+            console.print("[dim]Use --force to bypass cooldown restrictions.[/]")
+            raise SystemExit(1)
 
     try:
         mcp_config = loader.load(config_path)
@@ -587,6 +659,8 @@ async def run_wipe_reauth(
 
     for name, config_dir in atlassian_servers:
         console.print(f"[bold cyan]Re-authenticating {name}...[/]")
+        # Record the reauth attempt
+        cooldown.record_attempt(name)
         result = await refresher.reauth_atlassian(config_dir)
 
         if result.is_success():
@@ -713,6 +787,108 @@ def cleanup(dry_run: bool, force: bool) -> None:
     console.print("  2. You'll get a one-time browser auth prompt")
     console.print("  3. Subsequent calls will use cached tokens")
     console.print("\n[dim]Tip: Run 'mcp-health check' to verify MCP servers are working.[/]")
+
+
+@main.command()
+@click.option(
+    "--config",
+    "-c",
+    type=click.Path(exists=True, path_type=Path),
+    help="Path to MCP config file",
+)
+@click.option(
+    "--json",
+    "output_json",
+    is_flag=True,
+    help="Output as JSON",
+)
+def status(config: Path | None, output_json: bool) -> None:
+    """Quick one-liner status: server health + cooldown state.
+
+    Designed for agents to call frequently without side effects.
+
+    Example:
+        mcp-health status
+        mcp-health status --json
+    """
+    asyncio.run(run_status(config, output_json))
+
+
+async def run_status(config_path: Path | None, output_json: bool) -> None:
+    """Run the quick status check.
+
+    Args:
+        config_path: Path to config file
+        output_json: Output as JSON
+    """
+    import json as json_module
+
+    loader = ConfigLoader()
+    cooldown = ReauthCooldown()
+
+    try:
+        mcp_config = loader.load(config_path)
+    except ConfigError as e:
+        if output_json:
+            console.print(json_module.dumps({"error": str(e)}))
+        else:
+            console.print(f"[red]Error loading config:[/] {e}")
+        raise SystemExit(1) from e
+
+    # Quick health check - just token validation, no MCP spawn
+    results: dict[str, dict] = {}
+    for server_name, server_config in mcp_config:
+        validator = get_validator_for_server(server_name)
+        if validator:
+            token_result = await validator.validate(server_config)
+            results[server_name] = {
+                "token_status": token_result.status.value,
+                "healthy": token_result.is_healthy(),
+            }
+        else:
+            results[server_name] = {
+                "token_status": "unknown",
+                "healthy": None,
+            }
+
+    # Get cooldown status
+    cooldown_data = cooldown.status()
+    cooldown_results: dict[str, dict] = {}
+    for server, cd_status in cooldown_data.items():
+        cooldown_results[server] = {
+            "can_reauth": cd_status.can_reauth,
+            "attempts_in_window": cd_status.attempts_in_window,
+            "seconds_until_allowed": cd_status.seconds_until_allowed,
+        }
+
+    if output_json:
+        output = {
+            "servers": results,
+            "cooldown": cooldown_results,
+        }
+        console.print(json_module.dumps(output, indent=2))
+    else:
+        # One-liner format
+        parts = []
+        all_healthy = True
+        for name, data in results.items():
+            status_icon = "✓" if data["healthy"] else "✗"
+            parts.append(f"{name}: {status_icon}")
+            if not data["healthy"]:
+                all_healthy = False
+
+        overall = "[green]HEALTHY[/]" if all_healthy else "[red]UNHEALTHY[/]"
+        console.print(f"MCP Status: {overall} | " + " | ".join(parts))
+
+        # Show cooldown if any
+        if cooldown_results:
+            cd_parts = []
+            for server, cd in cooldown_results.items():
+                if cd["can_reauth"]:
+                    cd_parts.append(f"{server}: ok")
+                else:
+                    cd_parts.append(f"{server}: wait {cd['seconds_until_allowed']}s")
+            console.print(f"[dim]Cooldown: {' | '.join(cd_parts)}[/]")
 
 
 if __name__ == "__main__":

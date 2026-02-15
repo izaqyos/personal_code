@@ -14,6 +14,8 @@ DAILY_RUNNER_DIR="/Users/yosii/work/git/personal_code/code/python/tools/daily_ru
 DAILY_RUNNER_VENV="$DAILY_RUNNER_DIR/.venv"
 MCP_HELPER_DIR="/Users/yosii/work/git/personal_code/code/python/tools/mcp_helper"
 MCP_HELPER_VENV="$MCP_HELPER_DIR/.venv"
+EMOJI_GENERATOR_DIR="/Users/yosii/work/git/personal_code/code/python/emoji_generator"
+EMOJI_GENERATOR_VENV="$EMOJI_GENERATOR_DIR/.venv"
 NUGGETS_DIR="/Users/yosii/work/git/personal_code/code/python/knowledge/oneliners"
 
 # Colors for output (using $'...' for proper escape interpretation)
@@ -322,6 +324,7 @@ show_main_menu() {
 	print_menu_item "4" "Context Generator"
 	print_menu_item "5" "Daily Standup Timer"
 	print_menu_item "6" "MCP Health Check"
+	print_menu_item "7" "Emoji Generator"
 	print_box_empty
 	print_box_separator
 	print_box_empty
@@ -329,7 +332,7 @@ show_main_menu() {
 	print_box_empty
 	print_box_bottom
 	echo ""
-	printf "   ${BOLD}➜ Enter your choice [0-6]: ${NC}"
+	printf "   ${BOLD}➜ Enter your choice [0-7]: ${NC}"
 }
 
 # Show tracker submenu
@@ -1285,6 +1288,115 @@ handle_mcp_helper_menu() {
 	done
 }
 
+# Show emoji generator submenu
+show_emoji_generator_menu() {
+	clear_screen
+	echo ""
+	echo -e "${BOLD}${CYAN}╔══════════════════════════════════════════════════╗${NC}"
+	echo -e "${BOLD}${CYAN}║                                                  ║${NC}"
+	echo -e "${BOLD}${CYAN}║          🎨 EMOJI GENERATOR MENU                ║${NC}"
+	echo -e "${BOLD}${CYAN}║                                                  ║${NC}"
+	echo -e "${BOLD}${CYAN}╠══════════════════════════════════════════════════╣${NC}"
+	echo -e "${BOLD}${CYAN}║                                                  ║${NC}"
+	echo -e "${BOLD}${CYAN}║  ${GREEN}[1]${CYAN}  Search Emoji (One-shot Query)           ║${NC}"
+	echo -e "${BOLD}${CYAN}║  ${GREEN}[2]${CYAN}  Interactive Mode (REPL)                 ║${NC}"
+	echo -e "${BOLD}${CYAN}║  ${GREEN}[3]${CYAN}  List All Emojis                         ║${NC}"
+	echo -e "${BOLD}${CYAN}║  ${GREEN}[4]${CYAN}  Add New Emoji (Edit YAML)               ║${NC}"
+	echo -e "${BOLD}${CYAN}║                                                  ║${NC}"
+	echo -e "${BOLD}${CYAN}╠══════════════════════════════════════════════════╣${NC}"
+	echo -e "${BOLD}${CYAN}║  ${YELLOW}[0]${CYAN}  ← Back to Main Menu                      ║${NC}"
+	echo -e "${BOLD}${CYAN}╚══════════════════════════════════════════════════╝${NC}"
+	echo ""
+	printf "  ${BOLD}➜ Enter your choice [0-4]: ${NC}"
+}
+
+# Emoji generator menu handler
+handle_emoji_generator_menu() {
+	# Check if venv exists
+	if [ ! -d "$EMOJI_GENERATOR_VENV" ]; then
+		clear_screen
+		echo -e "${YELLOW}Warning: Emoji Generator venv not found${NC}"
+		echo ""
+		echo "To set up, run:"
+		echo "  cd $EMOJI_GENERATOR_DIR"
+		echo "  python3 -m venv .venv"
+		echo "  source .venv/bin/activate"
+		echo "  pip install -e ."
+		echo ""
+		echo -n "Press Enter to continue..."
+		read
+		return
+	fi
+
+	while true; do
+		show_emoji_generator_menu
+		read choice
+
+		case "$choice" in
+		1)
+			clear_screen
+			echo -n "Enter search query: "
+			read query
+			if [ -z "$query" ]; then
+				echo "Error: No query provided"
+				sleep 2
+				continue
+			fi
+			echo ""
+			cd "$EMOJI_GENERATOR_DIR"
+			source "$EMOJI_GENERATOR_VENV/bin/activate"
+			devmoji "$query"
+			deactivate
+			cd - >/dev/null
+			echo ""
+			echo -n "Press Enter to continue..."
+			read
+			;;
+		2)
+			clear_screen
+			echo -e "${CYAN}Starting Emoji Generator (Interactive Mode)...${NC}"
+			echo ""
+			cd "$EMOJI_GENERATOR_DIR"
+			source "$EMOJI_GENERATOR_VENV/bin/activate"
+			devmoji --repl
+			deactivate
+			cd - >/dev/null
+			echo ""
+			echo -n "Press Enter to continue..."
+			read
+			;;
+		3)
+			clear_screen
+			cd "$EMOJI_GENERATOR_DIR"
+			source "$EMOJI_GENERATOR_VENV/bin/activate"
+			devmoji --list
+			deactivate
+			cd - >/dev/null
+			echo ""
+			echo -n "Press Enter to continue..."
+			read
+			;;
+		4)
+			clear_screen
+			local yaml_file="$EMOJI_GENERATOR_DIR/emoji_generator/data/emojis.yaml"
+			echo -e "${CYAN}Opening emojis.yaml in editor...${NC}"
+			echo ""
+			${EDITOR:-vim} "$yaml_file"
+			echo ""
+			echo -n "Press Enter to continue..."
+			read
+			;;
+		0)
+			return
+			;;
+		*)
+			echo -e "${YELLOW}Invalid choice. Please try again.${NC}"
+			sleep 1
+			;;
+		esac
+	done
+}
+
 # Check if scripts exist
 check_scripts() {
 	if [ ! -f "$TRACKER_SCRIPT" ]; then
@@ -1309,6 +1421,10 @@ check_scripts() {
 
 	if [ ! -d "$MCP_HELPER_VENV" ]; then
 		echo -e "${YELLOW}Warning: MCP Helper venv not found at $MCP_HELPER_VENV${NC}"
+	fi
+
+	if [ ! -d "$EMOJI_GENERATOR_VENV" ]; then
+		echo -e "${YELLOW}Warning: Emoji Generator venv not found at $EMOJI_GENERATOR_VENV${NC}"
 	fi
 }
 
@@ -1353,6 +1469,9 @@ main() {
 			;;
 		6)
 			handle_mcp_helper_menu
+			;;
+		7)
+			handle_emoji_generator_menu
 			;;
 		0)
 			clear_screen
