@@ -9,6 +9,7 @@ import argparse
 import logging
 import signal
 import sys
+import time
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
@@ -86,6 +87,7 @@ class CLIApp:
         self._team_id: str | None = None
         self._in_absent_picker = False
         self._in_recovery_prompt = False
+        self._last_interaction_time: float = 0.0
 
     def run(self, team_id: str | None = None) -> int:
         """
@@ -269,6 +271,7 @@ class CLIApp:
             return 1
 
         self._running = True
+        self._reset_interaction_time()
         last_state = self._meeting_manager.state
 
         with Live(
@@ -282,6 +285,16 @@ class CLIApp:
                 result = self._keyboard.process_input(timeout=REFRESH_INTERVAL)
                 if result is not None:
                     self._handle_command(result.command)
+                    self._reset_interaction_time()
+
+                # Check inactivity timeout
+                if self._check_inactivity():
+                    logger.info(
+                        "Inactivity timeout reached (%ds), auto-closing meeting",
+                        self._config.timer.inactivity_timeout_seconds,
+                    )
+                    self._quit_meeting()
+                    continue
 
                 # Check for state transitions
                 current_state = self._meeting_manager.state
@@ -459,6 +472,17 @@ class CLIApp:
         if self._meeting_manager is not None and self._meeting_manager.is_active:
             self._meeting_manager.end_meeting(save_history=True)
         self._running = False
+
+    def _reset_interaction_time(self) -> None:
+        """Reset the inactivity timer to now."""
+        self._last_interaction_time = time.monotonic()
+
+    def _check_inactivity(self) -> bool:
+        """Check if the inactivity timeout has been exceeded."""
+        if self._last_interaction_time == 0.0:
+            return False
+        elapsed = time.monotonic() - self._last_interaction_time
+        return elapsed > self._config.timer.inactivity_timeout_seconds
 
     def _handle_interrupt(self, _signum: int, _frame: object) -> None:
         """Handle interrupt signal."""

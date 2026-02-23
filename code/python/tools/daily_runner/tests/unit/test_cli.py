@@ -12,6 +12,7 @@ Test coverage for Phase 8:
 - 8.T8: Quit saves history and clears recovery
 """
 
+import time
 from io import StringIO
 from pathlib import Path
 
@@ -1761,7 +1762,7 @@ class TestCurrentSpeakerTimeDisplay:
             SpeakerRecord(member=sample_speakers[1], elapsed_seconds=0.0),  # Current
             SpeakerRecord(member=sample_speakers[2], elapsed_seconds=0.0),
         ]
-        
+
         panel = display.render_queue(
             speakers=sample_speakers,
             current_index=1,  # Bob is current
@@ -1772,3 +1773,66 @@ class TestCurrentSpeakerTimeDisplay:
         # Just verify it renders without error
         # (Red styling is in Rich markup, hard to test directly)
         assert panel is not None
+
+
+# =============================================================================
+# Test: Inactivity Timeout
+# =============================================================================
+
+
+class TestInactivityTimeout:
+    """Tests for inactivity timeout in CLIApp."""
+
+    def _create_app(self, tmp_path: Path, timeout_seconds: int = 300):
+        """Helper to create CLIApp with configurable inactivity timeout."""
+        from src.cli.app import CLIApp
+        from src.core.models import AppConfig, TimerConfig
+        from src.data.team_repository import TeamRepository
+
+        timer_config = TimerConfig(inactivity_timeout_seconds=timeout_seconds)
+        config = AppConfig(timer=timer_config)
+
+        teams_dir = tmp_path / "teams"
+        teams_dir.mkdir()
+        team_repo = TeamRepository(teams_dir=teams_dir)
+
+        console = Console(file=StringIO(), force_terminal=True, width=80)
+        keyboard = MockKeyboardHandler()
+        app = CLIApp(
+            config=config,
+            team_repo=team_repo,
+            keyboard=keyboard,
+            console=console,
+        )
+        return app, keyboard
+
+    def test_last_interaction_time_initialized(self, tmp_path: Path) -> None:
+        """CLIApp should initialize _last_interaction_time to 0."""
+        app, _ = self._create_app(tmp_path)
+        assert app._last_interaction_time == 0.0
+
+    def test_check_inactivity_returns_false_when_active(self, tmp_path: Path) -> None:
+        """_check_inactivity should return False when recently active."""
+        app, _ = self._create_app(tmp_path)
+        app._last_interaction_time = time.monotonic()
+        assert app._check_inactivity() is False
+
+    def test_check_inactivity_returns_true_when_idle(self, tmp_path: Path) -> None:
+        """_check_inactivity should return True when idle beyond threshold."""
+        app, _ = self._create_app(tmp_path, timeout_seconds=60)
+        app._last_interaction_time = time.monotonic() - 61
+        assert app._check_inactivity() is True
+
+    def test_check_inactivity_returns_false_before_timeout(self, tmp_path: Path) -> None:
+        """_check_inactivity should return False when within threshold."""
+        app, _ = self._create_app(tmp_path, timeout_seconds=60)
+        app._last_interaction_time = time.monotonic() - 30
+        assert app._check_inactivity() is False
+
+    def test_reset_interaction_time(self, tmp_path: Path) -> None:
+        """_reset_interaction_time should update to current monotonic time."""
+        app, _ = self._create_app(tmp_path)
+        before = time.monotonic()
+        app._reset_interaction_time()
+        after = time.monotonic()
+        assert before <= app._last_interaction_time <= after
