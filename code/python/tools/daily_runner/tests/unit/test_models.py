@@ -646,3 +646,32 @@ class TestEnums:
         assert MeetingState.GRACE.value == "grace"
         assert MeetingState.OVERFLOW.value == "overflow"
         assert MeetingState.COMPLETED.value == "completed"
+
+
+# =============================================================================
+# Inactivity Timeout Config Tests
+# =============================================================================
+
+
+class TestInactivityTimeoutConfig:
+    """Tests for inactivity_timeout_seconds in TimerConfig."""
+
+    def test_timer_config_default_inactivity_timeout(self) -> None:
+        """TimerConfig should default to 300s inactivity timeout."""
+        config = TimerConfig()
+        assert config.inactivity_timeout_seconds == 300
+
+    def test_timer_config_custom_inactivity_timeout(self) -> None:
+        """TimerConfig should accept custom inactivity timeout."""
+        config = TimerConfig(inactivity_timeout_seconds=600)
+        assert config.inactivity_timeout_seconds == 600
+
+    def test_timer_config_inactivity_timeout_minimum(self) -> None:
+        """TimerConfig should reject inactivity timeout below 60s."""
+        with pytest.raises(ValidationError):
+            TimerConfig(inactivity_timeout_seconds=30)
+
+    def test_timer_config_inactivity_timeout_maximum(self) -> None:
+        """TimerConfig should reject inactivity timeout above 1800s."""
+        with pytest.raises(ValidationError):
+            TimerConfig(inactivity_timeout_seconds=3600)
