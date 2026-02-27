@@ -1,4 +1,4 @@
-import { kv } from '@vercel/kv'
+import Redis from 'ioredis'
 
 const GAME_KEY = 'quiz_game_state'
 
@@ -13,22 +13,47 @@ const defaultState = {
   lastUpdated: Date.now()
 }
 
+let redis = null
+
+function getRedis() {
+  if (!process.env.REDIS_URL) {
+    return null
+  }
+  if (!redis) {
+    redis = new Redis(process.env.REDIS_URL, {
+      maxRetriesPerRequest: 3,
+      connectTimeout: 5000,
+      lazyConnect: true
+    })
+  }
+  return redis
+}
+
 async function getGameState() {
+  const client = getRedis()
+  if (!client) {
+    console.error('Redis not configured - missing REDIS_URL')
+    return { ...defaultState, error: 'Database not configured.' }
+  }
+
   try {
-    const state = await kv.get(GAME_KEY)
-    return state || { ...defaultState }
+    const data = await client.get(GAME_KEY)
+    return data ? JSON.parse(data) : { ...defaultState }
   } catch (error) {
-    console.error('KV get error:', error)
-    return { ...defaultState }
+    console.error('Redis get error:', error.message)
+    return { ...defaultState, error: `Database error: ${error.message}` }
   }
 }
 
 async function setGameState(state) {
+  const client = getRedis()
+  if (!client) return false
+
   try {
-    await kv.set(GAME_KEY, state)
+    await client.set(GAME_KEY, JSON.stringify(state))
     return true
   } catch (error) {
-    console.error('KV set error:', error)
+    console.error('Redis set error:', error.message)
     return false
   }
 }

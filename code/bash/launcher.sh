@@ -17,6 +17,8 @@ MCP_HELPER_VENV="$MCP_HELPER_DIR/.venv"
 EMOJI_GENERATOR_DIR="/Users/yosii/work/git/personal_code/code/python/emoji_generator"
 EMOJI_GENERATOR_VENV="$EMOJI_GENERATOR_DIR/.venv"
 NUGGETS_DIR="/Users/yosii/work/git/personal_code/code/python/knowledge/oneliners"
+BACKUP_AGENT_SCRIPT="/Users/yosii/work/git/personal_code/agents/backup/backup_agent.py"
+BACKUP_VENV="/Users/yosii/work/git/git_backup/yosi_general_venv"
 
 # Colors for output (using $'...' for proper escape interpretation)
 GREEN=$'\033[0;32m'
@@ -325,6 +327,7 @@ show_main_menu() {
 	print_menu_item "5" "Daily Standup Timer"
 	print_menu_item "6" "MCP Health Check"
 	print_menu_item "7" "Emoji Generator"
+	print_menu_item "8" "Backup Manager"
 	print_box_empty
 	print_box_separator
 	print_box_empty
@@ -332,7 +335,7 @@ show_main_menu() {
 	print_box_empty
 	print_box_bottom
 	echo ""
-	printf "   ${BOLD}➜ Enter your choice [0-7]: ${NC}"
+	printf "   ${BOLD}➜ Enter your choice [0-8]: ${NC}"
 }
 
 # Show tracker submenu
@@ -432,12 +435,13 @@ show_reminder_menu() {
 	echo -e "${BOLD}${CYAN}║  ${GREEN}[12]${CYAN}  Send Release Reminder                   ║${NC}"
 	echo -e "${BOLD}${CYAN}║  ${GREEN}[13]${CYAN}  Dry-Run Release Reminder                ║${NC}"
 	echo -e "${BOLD}${CYAN}║  ${GREEN}[14]${CYAN}  Send Execution Report                   ║${NC}"
+	echo -e "${BOLD}${CYAN}║  ${GREEN}[15]${CYAN}  Send Team Message (Unicast DMs)          ║${NC}"
 	echo -e "${BOLD}${CYAN}║                                                  ║${NC}"
 	echo -e "${BOLD}${CYAN}╠══════════════════════════════════════════════════╣${NC}"
 	echo -e "${BOLD}${CYAN}║  ${YELLOW}[0]${CYAN}   ← Back to Main Menu                     ║${NC}"
 	echo -e "${BOLD}${CYAN}╚══════════════════════════════════════════════════╝${NC}"
 	echo ""
-	printf "  ${BOLD}➜ Enter your choice [0-14]: ${NC}"
+	printf "  ${BOLD}➜ Enter your choice [0-15]: ${NC}"
 }
 
 # Show daily timer submenu
@@ -928,6 +932,67 @@ handle_reminder_menu() {
 			echo -n "Press Enter to continue..."
 			read
 			;;
+		15)
+			clear_screen
+			echo -e "${CYAN}Send Team Message (Unicast DMs)${NC}"
+			echo ""
+			echo -e "${BOLD}Sends a message as individual DMs to each team member.${NC}"
+			echo ""
+			echo -n "Enter message: "
+			read team_msg
+			if [ -z "$team_msg" ]; then
+				echo "Error: No message provided"
+				sleep 2
+				continue
+			fi
+			echo ""
+			echo -e "Recipients:"
+			echo -e "  ${GREEN}[1]${NC}  Team members only (default)"
+			echo -e "  ${GREEN}[2]${NC}  Team members + Tech Leads (Yocheved, Guy)"
+			echo -e "  ${GREEN}[3]${NC}  Cherry-pick specific people"
+			echo ""
+			echo -n "Choose [1-3]: "
+			read recipient_choice
+			recipient_choice=${recipient_choice:-1}
+
+			local extra_flags=""
+			case "$recipient_choice" in
+			2)
+				extra_flags="--include-tls"
+				;;
+			3)
+				echo -n "Enter names (comma-separated, e.g. chen,muhe): "
+				read only_names
+				if [ -z "$only_names" ]; then
+					echo "Error: No names provided"
+					sleep 2
+					continue
+				fi
+				extra_flags="--only $only_names"
+				;;
+			esac
+
+			echo ""
+			echo -e "${YELLOW}Dry-run first? (Y/n): ${NC}"
+			read dry_first
+			if [[ ! "$dry_first" =~ ^[Nn]$ ]]; then
+				python3 "$REMINDER_SCRIPT" --dry-run --send-team "$team_msg" $extra_flags
+				echo ""
+				echo -e "${YELLOW}Send for real now? (y/N): ${NC}"
+				read confirm_send
+				if [[ "$confirm_send" =~ ^[Yy]$ ]]; then
+					echo ""
+					python3 "$REMINDER_SCRIPT" --send-team "$team_msg" $extra_flags
+				else
+					echo "Send cancelled."
+				fi
+			else
+				python3 "$REMINDER_SCRIPT" --send-team "$team_msg" $extra_flags
+			fi
+			echo ""
+			echo -n "Press Enter to continue..."
+			read
+			;;
 		14)
 			clear_screen
 			echo -e "${CYAN}Send Execution Report${NC}"
@@ -1397,6 +1462,172 @@ handle_emoji_generator_menu() {
 	done
 }
 
+# Show backup manager submenu
+show_backup_menu() {
+	clear_screen
+	echo ""
+	echo -e "${BOLD}${CYAN}╔══════════════════════════════════════════════════╗${NC}"
+	echo -e "${BOLD}${CYAN}║                                                  ║${NC}"
+	echo -e "${BOLD}${CYAN}║           💾 BACKUP MANAGER MENU                ║${NC}"
+	echo -e "${BOLD}${CYAN}║                                                  ║${NC}"
+	echo -e "${BOLD}${CYAN}╠══════════════════════════════════════════════════╣${NC}"
+	echo -e "${BOLD}${CYAN}║                                                  ║${NC}"
+	echo -e "${BOLD}${CYAN}║  ${GREEN}[1]${CYAN}  System Status (Health Check)            ║${NC}"
+	echo -e "${BOLD}${CYAN}║  ${GREEN}[2]${CYAN}  Run Git Backup (dotfiles + repos)       ║${NC}"
+	echo -e "${BOLD}${CYAN}║  ${GREEN}[3]${CYAN}  Run OneDrive Backup                     ║${NC}"
+	echo -e "${BOLD}${CYAN}║  ${GREEN}[4]${CYAN}  Run Obsidian Checkpoint                 ║${NC}"
+	echo -e "${BOLD}${CYAN}║  ${GREEN}[5]${CYAN}  Run All Backups                         ║${NC}"
+	echo -e "${BOLD}${CYAN}║  ${GREEN}[6]${CYAN}  LaunchAgent Status                      ║${NC}"
+	echo -e "${BOLD}${CYAN}║  ${GREEN}[7]${CYAN}  View Backup Logs                        ║${NC}"
+	echo -e "${BOLD}${CYAN}║  ${GREEN}[8]${CYAN}  Show Config Summary                     ║${NC}"
+	echo -e "${BOLD}${CYAN}║  ${GREEN}[9]${CYAN}  Validate Config Paths                   ║${NC}"
+	echo -e "${BOLD}${CYAN}║                                                  ║${NC}"
+	echo -e "${BOLD}${CYAN}╠══════════════════════════════════════════════════╣${NC}"
+	echo -e "${BOLD}${CYAN}║  ${YELLOW}[0]${CYAN}  ← Back to Main Menu                      ║${NC}"
+	echo -e "${BOLD}${CYAN}╚══════════════════════════════════════════════════╝${NC}"
+	echo ""
+	printf "  ${BOLD}➜ Enter your choice [0-9]: ${NC}"
+}
+
+# Backup manager menu handler
+handle_backup_menu() {
+	if [ ! -f "$BACKUP_AGENT_SCRIPT" ]; then
+		clear_screen
+		echo -e "${YELLOW}Warning: Backup agent not found at $BACKUP_AGENT_SCRIPT${NC}"
+		echo ""
+		echo -n "Press Enter to continue..."
+		read
+		return
+	fi
+
+	local backup_python="$BACKUP_VENV/bin/python"
+	if [ ! -f "$backup_python" ]; then
+		clear_screen
+		echo -e "${YELLOW}Warning: Backup venv not found at $BACKUP_VENV${NC}"
+		echo ""
+		echo -n "Press Enter to continue..."
+		read
+		return
+	fi
+
+	while true; do
+		show_backup_menu
+		read choice
+
+		case "$choice" in
+		1)
+			clear_screen
+			"$backup_python" "$BACKUP_AGENT_SCRIPT" status
+			echo ""
+			echo -n "Press Enter to continue..."
+			read
+			;;
+		2)
+			clear_screen
+			echo -e "${YELLOW}Run as dry-run first? (Y/n): ${NC}"
+			read dry_first
+			if [[ ! "$dry_first" =~ ^[Nn]$ ]]; then
+				"$backup_python" "$BACKUP_AGENT_SCRIPT" run git --dry-run
+				echo ""
+				echo -e "${YELLOW}Run for real now? (y/N): ${NC}"
+				read confirm
+				if [[ "$confirm" =~ ^[Yy]$ ]]; then
+					echo ""
+					"$backup_python" "$BACKUP_AGENT_SCRIPT" run git
+				fi
+			else
+				"$backup_python" "$BACKUP_AGENT_SCRIPT" run git
+			fi
+			echo ""
+			echo -n "Press Enter to continue..."
+			read
+			;;
+		3)
+			clear_screen
+			"$backup_python" "$BACKUP_AGENT_SCRIPT" run onedrive
+			echo ""
+			echo -n "Press Enter to continue..."
+			read
+			;;
+		4)
+			clear_screen
+			"$backup_python" "$BACKUP_AGENT_SCRIPT" run checkpoint
+			echo ""
+			echo -n "Press Enter to continue..."
+			read
+			;;
+		5)
+			clear_screen
+			echo -e "${YELLOW}This will run ALL backups. Continue? (y/N): ${NC}"
+			read confirm
+			if [[ "$confirm" =~ ^[Yy]$ ]]; then
+				"$backup_python" "$BACKUP_AGENT_SCRIPT" run all
+			else
+				echo "Cancelled."
+			fi
+			echo ""
+			echo -n "Press Enter to continue..."
+			read
+			;;
+		6)
+			clear_screen
+			"$backup_python" "$BACKUP_AGENT_SCRIPT" launchctl status
+			echo ""
+			echo -n "Press Enter to continue..."
+			read
+			;;
+		7)
+			clear_screen
+			echo -e "${CYAN}Which job logs to view?${NC}"
+			echo ""
+			echo -e "  ${GREEN}[1]${NC}  Git Backup"
+			echo -e "  ${GREEN}[2]${NC}  OneDrive Backup"
+			echo -e "  ${GREEN}[3]${NC}  Obsidian Checkpoint"
+			echo ""
+			echo -n "Choice [1-3]: "
+			read log_choice
+			local job_name=""
+			case "$log_choice" in
+			1) job_name="gitbackup" ;;
+			2) job_name="onedrive" ;;
+			3) job_name="checkpoint" ;;
+			*)
+				echo "Invalid choice."
+				sleep 1
+				continue
+				;;
+			esac
+			echo ""
+			"$backup_python" "$BACKUP_AGENT_SCRIPT" launchctl logs "$job_name"
+			echo ""
+			echo -n "Press Enter to continue..."
+			read
+			;;
+		8)
+			clear_screen
+			"$backup_python" "$BACKUP_AGENT_SCRIPT" config show
+			echo ""
+			echo -n "Press Enter to continue..."
+			read
+			;;
+		9)
+			clear_screen
+			"$backup_python" "$BACKUP_AGENT_SCRIPT" config validate
+			echo ""
+			echo -n "Press Enter to continue..."
+			read
+			;;
+		0)
+			return
+			;;
+		*)
+			echo -e "${YELLOW}Invalid choice. Please try again.${NC}"
+			sleep 1
+			;;
+		esac
+	done
+}
+
 # Check if scripts exist
 check_scripts() {
 	if [ ! -f "$TRACKER_SCRIPT" ]; then
@@ -1425,6 +1656,10 @@ check_scripts() {
 
 	if [ ! -d "$EMOJI_GENERATOR_VENV" ]; then
 		echo -e "${YELLOW}Warning: Emoji Generator venv not found at $EMOJI_GENERATOR_VENV${NC}"
+	fi
+
+	if [ ! -f "$BACKUP_AGENT_SCRIPT" ]; then
+		echo -e "${YELLOW}Warning: Backup agent not found at $BACKUP_AGENT_SCRIPT${NC}"
 	fi
 }
 
@@ -1472,6 +1707,9 @@ main() {
 			;;
 		7)
 			handle_emoji_generator_menu
+			;;
+		8)
+			handle_backup_menu
 			;;
 		0)
 			clear_screen
