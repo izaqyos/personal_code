@@ -29,6 +29,7 @@ def sample_config() -> dict[str, Any]:
             "grace_period_seconds": 3,
             "warning_threshold_seconds": 5,
             "overflow_period_seconds": 10,
+            "inactivity_timeout_seconds": 30,
         },
         "alerts": {
             "warning_color": "#FFA500",
