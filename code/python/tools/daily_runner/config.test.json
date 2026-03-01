@@ -1,0 +1,34 @@
+{
+  "version": "1.0",
+  "timer": {
+    "default_speaker_time_seconds": 30,
+    "transition_time_seconds": 3,
+    "grace_period_seconds": 10,
+    "warning_threshold_seconds": 10,
+    "overflow_period_seconds": 15,
+    "inactivity_timeout_seconds": 30
+  },
+  "alerts": {
+    "warning_color": "#FFA500",
+    "overtime_color": "#FF0000",
+    "flash_on_overtime": true
+  },
+  "history": {
+    "file_path": "data/history_{team_id}.json",
+    "max_entries": 100
+  },
+  "recovery": {
+    "enabled": true,
+    "auto_save_interval_seconds": 1,
+    "file_path": "data/.session_recovery.json"
+  },
+  "ui": {
+    "theme": "light",
+    "show_avatars": false
+  },
+  "teams": {
+    "directory": "teams",
+    "default_team": "imagine_dragons"
+  },
+  "default_order": "alphabetical"
+}
