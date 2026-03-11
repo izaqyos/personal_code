@@ -1,0 +1,126 @@
+.riddle-slide {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 1rem;
+}
+
+.riddle-label {
+  background: #f3e5f5;
+  color: #7b1fa2;
+  padding: 0.3rem 1rem;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  font-weight: bold;
+}
+
+.riddle-number {
+  font-size: 1.8rem;
+  color: #7b1fa2;
+  margin: 0;
+}
+
+.riddle-text {
+  font-size: 1.2rem;
+  line-height: 2;
+  color: #333;
+  max-width: 600px;
+}
+
+.riddle-hint {
+  background: #fff3e0;
+  color: #e65100;
+  padding: 0.8rem 1.5rem;
+  border-radius: 12px;
+  font-size: 1rem;
+  animation: fadeIn 0.3s ease;
+}
+
+.riddle-form {
+  display: flex;
+  gap: 0.8rem;
+  align-items: center;
+  width: 100%;
+  max-width: 400px;
+}
+
+.riddle-input {
+  flex: 1;
+  padding: 0.8rem 1.2rem;
+  font-size: 1.2rem;
+  border: 2px solid #ce93d8;
+  border-radius: 12px;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  font-family: inherit;
+}
+
+.riddle-input:focus {
+  border-color: #9c27b0;
+  box-shadow: 0 0 0 3px rgba(156, 39, 176, 0.2);
+}
+
+.riddle-input.shake {
+  animation: shake 0.4s ease;
+  border-color: #f44336;
+}
+
+.riddle-input.solved {
+  border-color: #4caf50;
+  background: #e8f5e9;
+}
+
+.riddle-submit {
+  background: #9c27b0;
+  color: white;
+  border: none;
+  padding: 0.8rem 1.5rem;
+  font-size: 1.1rem;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.2s;
+  font-family: inherit;
+}
+
+.riddle-submit:hover:not(:disabled) {
+  background: #7b1fa2;
+  transform: scale(1.05);
+}
+
+.riddle-submit:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.riddle-submit.solved {
+  background: #4caf50;
+  opacity: 1;
+}
+
+.riddle-message {
+  font-size: 1.2rem;
+  font-weight: bold;
+  animation: fadeIn 0.3s ease;
+}
+
+.riddle-message.success {
+  color: #4caf50;
+}
+
+.riddle-message.error {
+  color: #f44336;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-10px); }
+  40% { transform: translateX(10px); }
+  60% { transform: translateX(-10px); }
+  80% { transform: translateX(10px); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}

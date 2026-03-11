@@ -1,0 +1,44 @@
+.video-slide {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 1.5rem;
+}
+
+.video-title {
+  font-size: 2rem;
+  color: #e91e63;
+  margin: 0;
+}
+
+.video-container {
+  width: 100%;
+  max-width: 600px;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+.video-player {
+  width: 100%;
+  display: block;
+}
+
+.video-button {
+  background: linear-gradient(135deg, #e91e63, #9c27b0);
+  color: white;
+  border: none;
+  padding: 1rem 3rem;
+  font-size: 1.4rem;
+  border-radius: 50px;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+  box-shadow: 0 4px 15px rgba(233, 30, 99, 0.4);
+  font-family: inherit;
+}
+
+.video-button:hover {
+  transform: scale(1.05);
+  box-shadow: 0 6px 20px rgba(233, 30, 99, 0.5);
+}

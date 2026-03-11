@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "daily-standup-timer"
-version = "1.0.0"
+version = "1.1.0"
 description = "A timer application for managing daily standup meetings"
 readme = "README.md"
 license = {text = "MIT"}

@@ -10,6 +10,7 @@ A Python application for managing daily standup meetings with configurable timer
 - **Overflow period** (90s after grace) with bold red display for hard time limits
 - **Two interface modes**: Streamlit UI and Interactive CLI
 - **Meeting history** tracking with analytics
+- **Inactivity timeout** auto-closes forgotten meetings after 5 minutes of no input (configurable)
 - **Session recovery** for crash resilience
 - **Multi-team support** with separate configurations
 
@@ -105,6 +106,7 @@ Configuration is stored in `config.json`. A test configuration (`config.test.jso
 | Grace period | 15s | 3s |
 | Warning threshold | 30s | 5s |
 | Overflow period | 90s | 10s |
+| Inactivity timeout | 600s (10m) | 30s |
 | Auto-save interval | 5s | 1s |
 | Max history entries | 2000 | 100 |
 
@@ -117,7 +119,8 @@ Configuration is stored in `config.json`. A test configuration (`config.test.jso
     "transition_time_seconds": 30,
     "grace_period_seconds": 15,
     "warning_threshold_seconds": 30,
-    "overflow_period_seconds": 90
+    "overflow_period_seconds": 90,
+    "inactivity_timeout_seconds": 600
   },
   "teams": {
     "directory": "teams",
@@ -225,6 +228,10 @@ daily_runner/
 ├── config.json         # Application configuration
 └── main.py             # Entry point
 ```
+
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for a detailed version history.
 
 ## License
 

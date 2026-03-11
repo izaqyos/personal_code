@@ -226,7 +226,7 @@ class TimerConfig(BaseModel):
         description="Overflow period after grace (5-300 seconds)",
     )
     inactivity_timeout_seconds: int = Field(
-        default=300,
+        default=600,
         ge=60,
         le=1800,
         description="Auto-close meeting after this many seconds of no keyboard input (60-1800)",

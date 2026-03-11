@@ -436,12 +436,13 @@ show_reminder_menu() {
 	echo -e "${BOLD}${CYAN}║  ${GREEN}[13]${CYAN}  Dry-Run Release Reminder                ║${NC}"
 	echo -e "${BOLD}${CYAN}║  ${GREEN}[14]${CYAN}  Send Execution Report                   ║${NC}"
 	echo -e "${BOLD}${CYAN}║  ${GREEN}[15]${CYAN}  Send Team Message (Unicast DMs)          ║${NC}"
+	echo -e "${BOLD}${CYAN}║  ${GREEN}[16]${CYAN}  Send Heads-Up (26.Q2.1)                  ║${NC}"
 	echo -e "${BOLD}${CYAN}║                                                  ║${NC}"
 	echo -e "${BOLD}${CYAN}╠══════════════════════════════════════════════════╣${NC}"
 	echo -e "${BOLD}${CYAN}║  ${YELLOW}[0]${CYAN}   ← Back to Main Menu                     ║${NC}"
 	echo -e "${BOLD}${CYAN}╚══════════════════════════════════════════════════╝${NC}"
 	echo ""
-	printf "  ${BOLD}➜ Enter your choice [0-15]: ${NC}"
+	printf "  ${BOLD}➜ Enter your choice [0-16]: ${NC}"
 }
 
 # Show daily timer submenu
@@ -1029,6 +1030,32 @@ handle_reminder_menu() {
 				fi
 			else
 				python3 "$REMINDER_SCRIPT" --send-report "$report_path"
+			fi
+			echo ""
+			echo -n "Press Enter to continue..."
+			read
+			;;
+		16)
+			clear_screen
+			echo -e "${CYAN}Send Heads-Up Reminder — Sprint 26.Q2.1${NC}"
+			echo ""
+			echo -e "Command: ${BOLD}python3 remind_champion.py 26.Q2.1 heads_up${NC}"
+			echo ""
+			echo -e "${YELLOW}Dry-run first? (Y/n): ${NC}"
+			read dry_first
+			if [[ ! "$dry_first" =~ ^[Nn]$ ]]; then
+				python3 "$REMINDER_SCRIPT" --dry-run 26.Q2.1 heads_up
+				echo ""
+				echo -e "${YELLOW}Send for real now? (y/N): ${NC}"
+				read confirm_send
+				if [[ "$confirm_send" =~ ^[Yy]$ ]]; then
+					echo ""
+					python3 "$REMINDER_SCRIPT" 26.Q2.1 heads_up
+				else
+					echo "Send cancelled."
+				fi
+			else
+				python3 "$REMINDER_SCRIPT" 26.Q2.1 heads_up
 			fi
 			echo ""
 			echo -n "Press Enter to continue..."

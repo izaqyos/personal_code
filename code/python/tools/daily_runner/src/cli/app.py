@@ -497,9 +497,17 @@ class CLIApp:
 
 def parse_args() -> argparse.Namespace:
     """Parse command line arguments."""
+    from src import __version__
+
     parser = argparse.ArgumentParser(
         description="Daily Standup Timer - CLI Interface",
         prog="daily-timer",
+    )
+    parser.add_argument(
+        "--version",
+        "-V",
+        action="version",
+        version=f"%(prog)s {__version__}",
     )
     parser.add_argument(
         "--team",
