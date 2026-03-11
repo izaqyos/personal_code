@@ -1,0 +1,43 @@
+.intro-slide {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 1.5rem;
+}
+
+.intro-title {
+  font-size: 2.5rem;
+  color: #e91e63;
+  margin: 0;
+}
+
+.intro-body {
+  font-size: 1.3rem;
+  line-height: 2;
+  white-space: pre-line;
+  color: #333;
+  max-width: 600px;
+}
+
+.intro-emojis {
+  font-size: 3rem;
+  letter-spacing: 1rem;
+}
+
+.intro-button {
+  background: linear-gradient(135deg, #e91e63, #9c27b0);
+  color: white;
+  border: none;
+  padding: 1rem 3rem;
+  font-size: 1.5rem;
+  border-radius: 50px;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+  box-shadow: 0 4px 15px rgba(233, 30, 99, 0.4);
+}
+
+.intro-button:hover {
+  transform: scale(1.05);
+  box-shadow: 0 6px 20px rgba(233, 30, 99, 0.5);
+}

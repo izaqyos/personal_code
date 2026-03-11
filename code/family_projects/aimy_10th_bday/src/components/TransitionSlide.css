@@ -1,0 +1,59 @@
+.transition-slide {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 1.5rem;
+}
+
+.transition-title {
+  font-size: 2.2rem;
+  color: #4caf50;
+  margin: 0;
+}
+
+.transition-body {
+  font-size: 1.2rem;
+  line-height: 1.8;
+  white-space: pre-line;
+  color: #333;
+}
+
+.transition-challenge {
+  background: linear-gradient(135deg, #fff8e1, #fff3e0);
+  border: 2px solid #ffb74d;
+  border-radius: 16px;
+  padding: 1.5rem 2rem;
+  max-width: 400px;
+}
+
+.challenge-icon {
+  font-size: 2.5rem;
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+.challenge-text {
+  font-size: 1.3rem;
+  font-weight: bold;
+  color: #e65100;
+  margin: 0;
+}
+
+.transition-button {
+  background: linear-gradient(135deg, #4caf50, #388e3c);
+  color: white;
+  border: none;
+  padding: 1rem 3rem;
+  font-size: 1.4rem;
+  border-radius: 50px;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+  box-shadow: 0 4px 15px rgba(76, 175, 80, 0.4);
+  font-family: inherit;
+}
+
+.transition-button:hover {
+  transform: scale(1.05);
+  box-shadow: 0 6px 20px rgba(76, 175, 80, 0.5);
+}

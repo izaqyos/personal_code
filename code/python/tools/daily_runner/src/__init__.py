@@ -6,5 +6,11 @@ timed daily standup meetings with configurable speaker times, transition
 periods, and meeting history tracking.
 """
 
-__version__ = "1.0.0"
+from importlib.metadata import PackageNotFoundError, version
+
+try:
+    __version__ = version("daily-standup-timer")
+except PackageNotFoundError:
+    __version__ = "0.0.0-dev"
+
 __author__ = "Yosi Izaq"

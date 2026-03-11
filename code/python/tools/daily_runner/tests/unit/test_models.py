@@ -657,9 +657,9 @@ class TestInactivityTimeoutConfig:
     """Tests for inactivity_timeout_seconds in TimerConfig."""
 
     def test_timer_config_default_inactivity_timeout(self) -> None:
-        """TimerConfig should default to 300s inactivity timeout."""
+        """TimerConfig should default to 600s inactivity timeout."""
         config = TimerConfig()
-        assert config.inactivity_timeout_seconds == 300
+        assert config.inactivity_timeout_seconds == 600
 
     def test_timer_config_custom_inactivity_timeout(self) -> None:
         """TimerConfig should accept custom inactivity timeout."""

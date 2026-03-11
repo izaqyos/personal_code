@@ -166,9 +166,17 @@ def show_history(team_id: str | None, days: int, limit: int) -> int:
 
 def main() -> int:
     """Main entry point with mode selection."""
+    from src import __version__
+
     parser = argparse.ArgumentParser(
         description="Daily Standup Timer",
         prog="daily-timer",
+    )
+    parser.add_argument(
+        "--version",
+        "-V",
+        action="version",
+        version=f"%(prog)s {__version__}",
     )
     parser.add_argument(
         "--mode",

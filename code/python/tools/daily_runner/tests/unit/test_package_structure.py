@@ -13,7 +13,7 @@ class TestPackageImports:
         import src
 
         assert hasattr(src, "__version__")
-        assert src.__version__ == "1.0.0"
+        assert src.__version__ != "0.0.0-dev"
 
     def test_import_core_package(self) -> None:
         """Test that the core package can be imported."""
