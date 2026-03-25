@@ -13,7 +13,7 @@ A coaching agent that guides Yosi through LeetCode practice sessions. It manages
 **Core principle:** The agent never gives solutions. It guides, hints, and reviews. If the user asks for a solution directly, the agent refuses and offers a hint instead.
 
 **Invocation:**
-- Claude Code: `/leetcode` (via Skill tool, name `leetcode`)
+- Claude Code: `/leetcode-coach` (via Skill tool, name `leetcode-coach`)
 - Cursor: `@leetcode_coach` (attaches `SKILL.md` as context)
 
 ---
@@ -36,20 +36,72 @@ A coaching agent that guides Yosi through LeetCode practice sessions. It manages
 
 ---
 
+## Canonical Paths
+
+| Resource | Absolute Path |
+|----------|--------------|
+| tracks.yaml | `/Users/yosii/work/git/personal_KB/learning/config/tracks.yaml` |
+| schedule.yaml | `/Users/yosii/work/git/personal_KB/learning/config/schedule.yaml` |
+| Solution & topic files | `/Users/yosii/work/git/personal_code/code/interviewQs/leetcode/` |
+| LeetCode export (read-only ref) | `/Users/yosii/work/git/personal_code/code/interviewQs/full_leetcode_export/` |
+| Agent files | `/Users/yosii/work/git/personal_code/agents/leetcode_coach/` |
+
+---
+
+## Topic Name to Filename Mapping
+
+Topic names in `tracks.yaml` map to filenames using this slug rule:
+- Lowercase
+- Replace ` & ` and ` / ` with `_`
+- Replace remaining spaces with `_`
+- Strip consecutive underscores
+
+| tracks.yaml name | Filename |
+|-----------------|----------|
+| Arrays & Strings | `arrays_and_strings.md` |
+| Hash Maps | `hash_maps.md` |
+| Two Pointers | `two_pointers.md` |
+| Sliding Window | `sliding_window.md` |
+| Binary Search | `binary_search.md` |
+| Linked Lists | `linked_lists.md` |
+| Stacks & Queues | `stacks_and_queues.md` |
+| Trees & BST | `trees_and_bst.md` |
+| Graphs & BFS/DFS | `graphs_and_bfs_dfs.md` |
+| Dynamic Programming | `dynamic_programming.md` |
+| Greedy | `greedy.md` |
+| Backtracking | `backtracking.md` |
+| Heap / Priority Queue | `heap_priority_queue.md` |
+| Tries | `tries.md` |
+| Union Find | `union_find.md` |
+| Intervals | `intervals.md` |
+
+This mapping is defined in `AGENT_CONTEXT.md` as a lookup table.
+
+---
+
 ## Session Lifecycle
 
 ### 1. Pick
 
-Agent reads `tracks.yaml` to find the current in-progress LeetCode topic, then reads the topic's problem bank file. It checks the solve log for already-solved problems and suggests 2-3 unsolved problems at different difficulty levels. The user picks one.
+**Topic selection logic:**
+1. Read `tracks.yaml`, find LeetCode track items
+2. Pick the first item with `status: in_progress`. If none, pick the first `not_started` item. If all `done`, inform the user ("All topics complete! Want to revisit one?")
+3. Optionally read `schedule.yaml` to check if it's a LeetCode week — if not, mention it ("Note: this week's focus is ML Models, but we can still practice LeetCode if you'd like")
+
+**Problem selection:**
+1. Map the topic name to its filename (see mapping table above)
+2. Read the topic file. If it doesn't exist, create it from the bootstrap template (see Bootstrapping section)
+3. Check the solve log for already-solved problems
+4. Suggest 2-3 unsolved problems at different difficulty levels
 
 ### 2. Scaffold
 
-Agent creates a solution file in `interviewQs/leetcode/` with:
+Agent creates a solution file in the leetcode directory with:
 - Problem description as a docstring (including constraints and examples)
 - Function signature with type hints
-- Test cases in a `__main__` block
+- Test cases in a `__main__` block using `assert` statements with a print summary
 
-Naming convention: `camelCase.py` matching existing files (e.g., `twoSum.py`, `productOfArrayExceptSelf.py`).
+**Naming convention:** `camelCase.py` for new files (e.g., `containerWithMostWater.py`). If a file with that name already exists (e.g., an earlier solve), skip scaffolding and tell the user: "You already have `twoSum.py` — want to re-solve in a new file (`twoSum_v2.py`) or use the existing one?"
 
 ### 3. Solve (Hints)
 
@@ -69,7 +121,9 @@ User works on the problem. When stuck, the agent provides hints using a context-
 
 ### 4. Review
 
-Triggered after the user's tests pass. Four parts, always in this order:
+**Trigger:** The user says "tests pass", "I'm done", "check", "review", or similar. The agent reads the solution file and runs the tests (`python <file>`) to confirm. If tests fail, the agent hints at the bug instead of reviewing.
+
+Four review parts, always in this order:
 
 1. **Correctness** — confirm all test cases pass, flag edge cases not covered (empty input, negatives, duplicates, overflow).
 2. **Python style** — point out un-Pythonic patterns as they come up naturally (e.g., `while` loop where `for range` is cleaner, manual index tracking vs `enumerate`). Keep it light.
@@ -90,7 +144,7 @@ After review, the agent appends a solve log entry and asks if the user wants ano
 
 ## Problem Bank & Solve Log
 
-One markdown file per topic in `interviewQs/leetcode/`, e.g., `arrays_and_strings.md`.
+One markdown file per topic in the leetcode directory, e.g., `arrays_and_strings.md`.
 
 ### Problem Bank Format
 
@@ -111,23 +165,46 @@ One markdown file per topic in `interviewQs/leetcode/`, e.g., `arrays_and_string
 
 ### Solve Log Format
 
-Appended to the same file:
+Appended to the same file. If `## Solve Log` doesn't exist yet, the agent creates the section header and table header before appending the first row.
 
 ```markdown
 ## Solve Log
 
-| Date | Problem | Difficulty | Result | Hints | Time-Space | Notes |
-|------|---------|------------|--------|-------|------------|-------|
-| 2026-03-25 | Product of Array Except Self | Medium | PASS | 1 (layered) | O(n)/O(n) | prefix/suffix pattern, could optimize to O(1) space |
+| Date | Problem | LC# | Difficulty | Result | Hints | Time-Space | Notes |
+|------|---------|-----|------------|--------|-------|------------|-------|
+| 2026-03-25 | Product of Array Except Self | 238 | Medium | PASS | 1 (layered) | O(n)/O(n) | prefix/suffix pattern, could optimize to O(1) space |
 ```
 
 **Fields:**
-- **Result:** `PASS` / `PASS-SUBOPTIMAL` (correct but not optimal complexity)
+- **LC#:** LeetCode problem number for cross-referencing
+- **Result:** `PASS` / `PASS-SUBOPTIMAL` (correct but not optimal complexity) / `SKIP` (user moved on without solving)
 - **Hints:** count and type used (e.g., "2 (socratic, layered)")
 - **Time-Space:** the user's solution complexity
 - **Notes:** brief takeaway — weak spots, patterns learned
 
-The agent reads the log to spot patterns over time (e.g., "You've needed hints on sliding window 3 times — want to do an extra problem on that?").
+### Pattern Spotting
+
+The agent reads the solve log during the Pick step. If it detects a pattern (e.g., 3+ hints on problems in the same category, or multiple `PASS-SUBOPTIMAL` results for a technique), it proactively suggests: "You've needed hints on sliding window 3 times — want to do an extra problem on that?"
+
+---
+
+## Bootstrapping
+
+Topic files don't exist yet. On first invocation for a topic, if the file is missing, the agent creates it with:
+1. The problem bank header (`# {Topic Name} — Problem Bank`)
+2. Curated problems organized by difficulty (Easy / Medium / Hard)
+3. No solve log section yet (created on first solve)
+
+The agent uses its knowledge of common LeetCode problems per topic to populate the initial bank. The user can edit these files to add or remove problems.
+
+---
+
+## Session Recovery
+
+The agent is stateless between conversations. On each invocation:
+1. If the user says `/leetcode-coach` with no context, start fresh from the Pick step
+2. If the user says "I'm working on X" or "continue", the agent checks for a recently-created `.py` file matching that problem and resumes from the Solve step
+3. Hint count for the current problem resets between sessions (not persisted outside the solve log)
 
 ---
 
@@ -136,26 +213,13 @@ The agent reads the log to spot patterns over time (e.g., "You've needed hints o
 ```
 agents/leetcode_coach/
 ├── SKILL.md              # Behavior: session lifecycle, hint engine, review protocol
-├── AGENT_CONTEXT.md      # Problem bank paths, solve log schema, topic list
+├── AGENT_CONTEXT.md      # Canonical paths, topic-to-filename mapping, solve log schema
 └── README.md             # Invocation docs
 
-interviewQs/leetcode/
-├── arrays_and_strings.md          # Problem bank + solve log
-├── hash_maps.md                   # Problem bank + solve log
-├── two_pointers.md                # ...one per topic from tracks.yaml
-├── sliding_window.md
-├── binary_search.md
-├── linked_lists.md
-├── stacks_and_queues.md
-├── trees_and_bst.md
-├── graphs_and_bfs_dfs.md
-├── dynamic_programming.md
-├── greedy.md
-├── backtracking.md
-├── heap_priority_queue.md
-├── tries.md
-├── union_find.md
-├── intervals.md
+/Users/yosii/work/git/personal_code/code/interviewQs/leetcode/
+├── arrays_and_strings.md          # Problem bank + solve log (created on first use)
+├── hash_maps.md                   # ...one per topic
+├── ...
 ├── productOfArrayExceptSelf.py    # Solution files (created by agent per session)
 ├── twoSum.py                      # Existing solutions
 └── BestTimeToBuySellStocks.py     # Existing solutions
@@ -168,7 +232,7 @@ interviewQs/leetcode/
 - `leetcode_coach` owns the session (pick → scaffold → hints → review)
 - `yosi_learn_helper` owns the schedule and track-level progress in `tracks.yaml`
 - They don't call each other. The user updates progress manually via `/learn` (e.g., "mark Arrays & Strings done") after completing a topic's problems.
-- The solve log in `interviewQs/leetcode/` is the source of truth for problem-level detail; `tracks.yaml` tracks topic-level status.
+- The solve log in the leetcode directory is the source of truth for problem-level detail; `tracks.yaml` tracks topic-level status.
 - `leetcode_coach` reads `tracks.yaml` to know which topics exist and their status (to suggest the current topic) but never writes to it.
 
 ---
@@ -177,26 +241,30 @@ interviewQs/leetcode/
 
 | File | Access |
 |------|--------|
-| `interviewQs/leetcode/*.md` (topic files) | Read + Write (append solve log entries) |
-| `interviewQs/leetcode/*.py` (solution files) | Write (create scaffold only) |
+| `interviewQs/leetcode/*.md` (topic files) | Read + Write (create on bootstrap, append solve log entries) |
+| `interviewQs/leetcode/*.py` (solution files) | Write (create scaffold only, never modify existing) |
 | `tracks.yaml` | Read only |
+| `schedule.yaml` | Read only |
 
 ## Never Touch
 
-- `tracks.yaml` (owned by `yosi_learn_helper`)
+- `tracks.yaml` — owned by `yosi_learn_helper`, never write
+- `schedule.yaml` — owned by `yosi_learn_helper`, never write
 - `MASTER_LEARNING_ROADMAP.md`
-- Existing solution files (user's code, never modify)
-- `full_leetcode_export/` (reference data, read-only)
+- Existing solution `.py` files (user's code, never modify)
+- `full_leetcode_export/` — reference data, may read for problem descriptions but never write
 
 ---
 
 ## Success Criteria
 
-- `/leetcode` starts a session with problem suggestions for the current topic
+- `/leetcode-coach` starts a session with problem suggestions for the current topic
 - Agent never gives code solutions, only hints
 - Hints use the right strategy for the context (Socratic/pattern/layered)
 - Post-solve review covers all four areas (correctness, style, complexity, alternatives)
 - Solve log is appended correctly after each problem
 - Agent spots weak patterns from solve log data
 - Python style tips are delivered naturally, not as lectures
-- Works from both Claude Code (`/leetcode`) and Cursor (`@leetcode_coach`)
+- Topic files are bootstrapped correctly on first use
+- Existing solution files are never overwritten
+- Works from both Claude Code (`/leetcode-coach`) and Cursor (`@leetcode_coach`)
