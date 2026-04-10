@@ -37,7 +37,7 @@ if __name__ == "__main__":
         ([1, 1], True),                  # minimal duplicate
         ([-1, -1], True),                # negative duplicates
         ([-1, 1], False),                # negative vs positive
-        (list(range(100000)), False),     # large array, no dups
+        (list(range(100000)), False),     # large array, no dupure
         (list(range(99999)) + [0], True), # large array, one dup at end
     ]
     for i, (nums, expected) in enumerate(tests):

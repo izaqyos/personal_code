@@ -29,3 +29,5 @@
 | 2026-03-29 | Group Anagrams | 49 | Medium | PASS | 0 | O(n·k)/O(n·k) | prime product sieve approach (creative), then added sorted-key O(n·k log k) and char-count tuple O(n·k) alternatives |
 | 2026-03-30 | Valid Anagram | 242 | Easy | PASS | 0 | O(n)/O(1) | char-count single array with increment/decrement; early exit on length mismatch |
 | 2026-03-31 | Contains Duplicate | 217 | Easy | PASS | 0 | O(n)/O(n) | set with early return; also know sort+scan O(n log n)/O(1) and brute force O(n²)/O(1) |
+| 2026-04-06 | Longest Consecutive Sequence | 128 | Medium | PASS | 1 | O(n)/O(n) | set + only start counting from sequence heads (n-1 not in set); 1 hint: nudge away from DP toward set approach |
+| 2026-04-09 | Container With Most Water | 11 | Medium | PASS | 1 | O(n)/O(1) | two pointers from edges; always move shorter side — moving taller can never improve min(h[l],h[r]) |
