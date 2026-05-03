@@ -113,3 +113,29 @@ class TestRenderErrorBanner:
             width=100,
         )
         assert "welcome back" in out
+
+    def test_empty_reason_no_double_blank_line(self) -> None:
+        """When reason is empty, the panel must not contain two consecutive blank body lines."""
+        out = render_error_banner(
+            schedule_path="/tmp/x.json",
+            reason="",
+            free_text=None,
+            width=100,
+        )
+        # Strip rich panel chrome and check internal body lines.
+        # Approximation: count consecutive blank lines (after stripping panel borders).
+        # We check that the literal string "│\n│" or "│  \n│" patterns don't show
+        # two whitespace-only lines back-to-back. Easier: check that the body has
+        # only ONE blank-line gap between the path and the "Fix:" header.
+        # Find the "Fix:" line index; the line just before it should be blank,
+        # but two-before should not also be blank.
+        lines = [ln.strip("│ \n\r") for ln in out.splitlines()]
+        # Count blank lines between schedule_path and "Fix:"
+        try:
+            path_idx = next(i for i, ln in enumerate(lines) if "/tmp/x.json" in ln)
+            fix_idx = next(i for i, ln in enumerate(lines) if ln == "Fix:")
+        except StopIteration:
+            raise AssertionError(f"missing markers in:\n{out}")
+        between = lines[path_idx + 1:fix_idx]
+        blanks = [ln for ln in between if ln == ""]
+        assert len(blanks) == 1, f"expected exactly 1 blank line between path and Fix:, got {len(blanks)} in {between!r}"
