@@ -11,7 +11,7 @@ from src.banner.cadence import (
     next_event,
     sprint_week,
 )
-from src.banner.models import RotationEntry, Schedules
+from src.banner.models import Schedules
 
 
 def make_schedules() -> Schedules:
