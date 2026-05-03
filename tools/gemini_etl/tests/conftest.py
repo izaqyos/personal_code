@@ -1,4 +1,5 @@
 """Shared pytest fixtures for gemini_etl tests."""
+from collections.abc import Callable
 from pathlib import Path
 
 import pytest
@@ -10,7 +11,7 @@ def fixtures_dir() -> Path:
 
 
 @pytest.fixture
-def fake_count_tokens():
+def fake_count_tokens() -> Callable[[str], int]:
     """Deterministic stand-in for Gemini's count_tokens API."""
     def _count(text: str) -> int:
         # Roughly char/4 — matches Gemini's order-of-magnitude.
