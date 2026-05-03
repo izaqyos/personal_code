@@ -42,6 +42,7 @@ class TestLoadSchedules:
         assert str(path) in exc_info.value.path
 
     def test_empty_path_raises(self) -> None:
+        """Path("") normalizes to Path(".") which is not a file → MissingScheduleError."""
         with pytest.raises(MissingScheduleError):
             load_schedules(Path(""))
 
@@ -60,6 +61,18 @@ class TestLoadSchedules:
 
         with pytest.raises(MalformedScheduleError):
             load_schedules(path)
+
+    def test_validation_error_is_compact(self, tmp_path: Path) -> None:
+        """ValidationError reason should be a one-liner, not pydantic's full multi-line output."""
+        path = tmp_path / "schedules.json"
+        # Missing rotation_schedule + bad dod_schedule key shape (multiple errors).
+        path.write_text(json.dumps({"team_members": {}, "dod_schedule": {"not-a-date": "x"}}))
+
+        with pytest.raises(MalformedScheduleError) as exc_info:
+            load_schedules(path)
+
+        assert "\n" not in exc_info.value.reason
+        assert "https://" not in exc_info.value.reason  # no pydantic doc URL
 
     def test_path_with_tilde_expands(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setenv("HOME", str(tmp_path))
