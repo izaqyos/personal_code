@@ -52,7 +52,8 @@ def sprint_week(sched: Schedules, sprint_id: str, today: date) -> int:
 
 
 def _sunday_of(d: date) -> date:
-    """Return the Sunday on or before `d` (Python: weekday() Sunday = 6)."""
+    """Return the Sunday on or before `d`."""
+    # weekday(): Mon=0..Sat=5, Sun=6 → days since Sunday: Mon=1..Sat=6, Sun=0
     days_since_sunday = (d.weekday() + 1) % 7
     return d - timedelta(days=days_since_sunday)
 
