@@ -111,7 +111,7 @@ def _render_narrow(data: BannerData, width: int) -> str:
     return _capture(panel, width)
 
 
-def _render_tiny(data: BannerData, width: int) -> str:
+def _render_tiny(data: BannerData) -> str:
     parts: list[str] = []
     if data.sprint_id:
         sp = data.sprint_id
@@ -132,7 +132,7 @@ def _render_tiny(data: BannerData, width: int) -> str:
 
 def render_banner_text(data: BannerData, width: int) -> str:
     if width < TINY_THRESHOLD:
-        return _render_tiny(data, width)
+        return _render_tiny(data)
     if width < WIDE_THRESHOLD:
         return _render_narrow(data, width)
     return _render_wide(data, width)
@@ -147,7 +147,7 @@ def render_error_banner(
     body_lines = [
         "schedules.json not found at:",
         f"  {schedule_path}",
-        f"  ({reason})" if reason else "",
+        f"  ({reason})" if reason else None,
         "",
         "Fix:",
         "  1. Set banner.schedules_path in config.json",
