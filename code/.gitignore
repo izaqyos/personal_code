@@ -189,6 +189,7 @@ build/
 # Large Data Files
 *.csv
 *.json
+!python/tools/daily_runner/config/schedules.example.json
 
 # Generated Files
 *.js.map
