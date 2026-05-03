@@ -1,0 +1,51 @@
+{
+  "_meta": {
+    "description": "Example schedules.json — anonymized template anchored at 2026-01-01.",
+    "instructions": [
+      "Copy this file to your real schedules.json location and edit.",
+      "Set banner.schedules_path in config.json to point at your file.",
+      "Sprint keys follow YY.QN.S where N=quarter, S=sprint within quarter.",
+      "DR is dry-run, go_nogo is the release decision date, prod is shipping date.",
+      "dod_schedule maps the Sunday of each week to the Developer on Duty."
+    ]
+  },
+  "team_members": {
+    "alice": "UEXAMPLE001",
+    "bob": "UEXAMPLE002",
+    "carol": "UEXAMPLE003",
+    "dave": "UEXAMPLE004"
+  },
+  "rotation_schedule": {
+    "26.Q1.1": {
+      "champion": "alice",
+      "dr": "2026-01-18",
+      "go_nogo": "2026-01-22",
+      "prod": "2026-01-25",
+      "release_title": "26.Q1.1.0"
+    },
+    "26.Q1.2": {
+      "champion": "bob",
+      "dr": "2026-02-08",
+      "go_nogo": "2026-02-12",
+      "prod": "2026-02-15",
+      "release_title": "26.Q1.2.0"
+    },
+    "26.Q1.3": {
+      "champion": "carol",
+      "dr": "2026-03-01",
+      "go_nogo": "2026-03-05",
+      "prod": "2026-03-08",
+      "release_title": "26.Q1.3.0"
+    }
+  },
+  "dod_schedule": {
+    "2026-01-04": "alice",
+    "2026-01-11": "bob",
+    "2026-01-18": "carol",
+    "2026-01-25": "dave",
+    "2026-02-01": "alice",
+    "2026-02-08": "bob",
+    "2026-02-15": "carol",
+    "2026-02-22": "dave"
+  }
+}
