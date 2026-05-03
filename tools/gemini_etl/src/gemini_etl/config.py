@@ -45,6 +45,16 @@ _DEFAULT_SOURCES = (
 )
 
 
+def _env_int(name: str, default: int) -> int:
+    raw = os.environ.get(name)
+    if raw is None:
+        return default
+    try:
+        return int(raw)
+    except ValueError:
+        raise ValueError(f"Env var {name}={raw!r} must be an integer") from None
+
+
 def get_config() -> Config:
     """Build the runtime config, applying env-var overrides."""
     state_dir = Path(
@@ -53,8 +63,8 @@ def get_config() -> Config:
     return Config(
         sources=_DEFAULT_SOURCES,
         store_name=os.environ.get("GEMINI_ETL_STORE_NAME", "yosi-personal-kb"),
-        chunk_token_limit=int(os.environ.get("GEMINI_ETL_CHUNK_TOKEN_LIMIT", 10_000)),
-        max_file_size_bytes=int(os.environ.get("GEMINI_ETL_MAX_FILE_SIZE", 2 * 1024**3)),
-        max_concurrency=int(os.environ.get("GEMINI_ETL_MAX_CONCURRENCY", 4)),
+        chunk_token_limit=_env_int("GEMINI_ETL_CHUNK_TOKEN_LIMIT", 10_000),
+        max_file_size_bytes=_env_int("GEMINI_ETL_MAX_FILE_SIZE", 2 * 1024**3),
+        max_concurrency=_env_int("GEMINI_ETL_MAX_CONCURRENCY", 4),
         state_dir=state_dir,
     )
