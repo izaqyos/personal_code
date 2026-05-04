@@ -64,13 +64,16 @@ def render_banner(
 
     fields = override_fields if override_fields is not None else list(config.default_fields)
 
-    # Free-text-only: skip the loader entirely.
-    # Triggered when (a) user explicitly passed an empty --banner-fields list, or
-    # (b) user has free_text but config.enabled=False (banner-on driven by -t alone
-    # or bare -b + -t without opting into cadence in config).
-    text_only = free_text and (
-        (override_fields is not None and not override_fields)
-        or not getattr(config, "enabled", False)
+    # Free-text-only: skip the loader when the user supplied free text AND
+    # did not explicitly opt into cadence — neither via --banner-fields nor
+    # via config.enabled. This covers `--banner-text "hi"` alone, or `-b
+    # --banner-text "hi"` with config disabled. If override_fields is set
+    # (even to []), the user made an explicit choice and we honor it; if
+    # config.enabled is True, the user opted in via config and we honor that too.
+    text_only = (
+        free_text is not None
+        and override_fields is None
+        and not getattr(config, "enabled", False)
     )
     if text_only:
         data = BannerData(
