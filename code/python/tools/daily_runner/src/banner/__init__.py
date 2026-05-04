@@ -98,8 +98,10 @@ def render_banner(
             kind = "malformed"
             reason = exc.reason
         else:
+            # MissingScheduleError's str(exc) restates the headline + path,
+            # which the renderer already prints. Skip the reason line.
             kind = "missing"
-            reason = str(exc)
+            reason = ""
         return render_error_banner(
             schedule_path=schedules_path or "(not configured)",
             reason=reason,
