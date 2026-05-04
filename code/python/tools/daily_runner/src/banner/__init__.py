@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import date
 from pathlib import Path
-from typing import Any, Protocol
+from typing import Any
 
 from src.banner.cadence import current_sprint, dod_for, next_event, sprint_week
 from src.banner.errors import BannerError, MalformedScheduleError, MissingScheduleError
@@ -12,14 +12,7 @@ from src.banner.renderer import BannerData, render_banner_text, render_error_ban
 from src.banner.schedule_loader import load_schedules
 
 
-class _Args(Protocol):
-    banner_value: str | None
-    banner_fields: list[str] | None
-    banner_text: str | None
-    no_banner: bool
-
-
-def _resolve_intent(args: _Args, config_enabled: bool) -> tuple[bool, list[str] | None, str | None]:
+def _resolve_intent(args: Any, config_enabled: bool) -> tuple[bool, list[str] | None, str | None]:
     """Return (banner_on, fields_or_None_for_default, free_text_or_None).
 
     Banner is ON if any banner-* CLI flag was passed OR config.enabled is True.
@@ -38,7 +31,7 @@ def _resolve_intent(args: _Args, config_enabled: bool) -> tuple[bool, list[str] 
 
 
 def render_banner(
-    args: _Args,
+    args: Any,
     config: Any,
     today: date | None = None,
     width: int | None = None,
