@@ -132,3 +132,37 @@ class TestTeamFileLoading:
         # Yosi is first as team leader, followed by team members
         expected_order = ["Yosi", "Chen", "Guy", "Miri", "Muhe", "Osher", "Yair", "Yocheved"]
         assert display_names == expected_order
+
+
+class TestBannerConfig:
+    """Tests for the new BannerConfig section."""
+
+    def test_default_banner_config(self) -> None:
+        from src.core.models import AppConfig
+
+        cfg = AppConfig()
+        assert cfg.banner.enabled is False
+        assert cfg.banner.schedules_path == ""
+        assert "sprint" in cfg.banner.default_fields
+
+    def test_banner_config_round_trip(self) -> None:
+        from src.core.models import AppConfig
+
+        cfg = AppConfig.model_validate(
+            {
+                "banner": {
+                    "enabled": True,
+                    "schedules_path": "/tmp/schedules.json",
+                    "default_fields": ["sprint", "dod"],
+                },
+            }
+        )
+        assert cfg.banner.enabled is True
+        assert cfg.banner.schedules_path == "/tmp/schedules.json"
+        assert cfg.banner.default_fields == ["sprint", "dod"]
+
+    def test_banner_config_omitted_uses_defaults(self) -> None:
+        from src.core.models import AppConfig
+
+        cfg = AppConfig.model_validate({"version": "1.0"})
+        assert cfg.banner.enabled is False

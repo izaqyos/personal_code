@@ -324,6 +324,25 @@ class TeamsConfig(BaseModel):
     )
 
 
+class BannerConfig(BaseModel):
+    """Banner configuration (cadence info shown before standup starts)."""
+
+    model_config = ConfigDict(strict=True)
+
+    enabled: bool = Field(
+        default=False,
+        description="Whether banner is shown by default; CLI flags override.",
+    )
+    schedules_path: str = Field(
+        default="",
+        description="Absolute path to schedules.json (empty = banner disabled).",
+    )
+    default_fields: list[str] = Field(
+        default_factory=lambda: ["sprint", "sprint_week", "champion", "dod", "next_event"],
+        description="Cadence fields shown when -b is bare.",
+    )
+
+
 class AppConfig(BaseModel):
     """Root application configuration model."""
 
@@ -356,6 +375,10 @@ class AppConfig(BaseModel):
     teams: TeamsConfig = Field(
         default_factory=TeamsConfig,
         description="Teams settings",
+    )
+    banner: BannerConfig = Field(
+        default_factory=BannerConfig,
+        description="Banner settings",
     )
     default_order: str = Field(
         default="alphabetical",
