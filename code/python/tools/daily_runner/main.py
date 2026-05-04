@@ -164,8 +164,31 @@ def show_history(team_id: str | None, days: int, limit: int) -> int:
     return 0
 
 
-def main() -> int:
-    """Main entry point with mode selection."""
+KNOWN_BANNER_FIELDS: frozenset[str] = frozenset(
+    {"sprint", "sprint_week", "champion", "dod", "next_event"}
+)
+
+
+def _parse_banner_value(
+    value: str | None,
+    known: frozenset[str] | set[str] = KNOWN_BANNER_FIELDS,
+) -> tuple[list[str] | None, str | None]:
+    """Disambiguate the value passed to bare `-b VALUE`.
+
+    Returns (fields_list, free_text). Exactly one is non-None, or both None
+    when no value is given.
+    """
+    if value is None or value == "":
+        return (None, None)
+    if " " in value:
+        return (None, value)
+    tokens = value.split(",")
+    if all(tok in known for tok in tokens):
+        return (tokens, None)
+    return (None, value)
+
+
+def _build_parser() -> argparse.ArgumentParser:
     from src import __version__
 
     parser = argparse.ArgumentParser(
@@ -218,8 +241,45 @@ def main() -> int:
         default=20,
         help="Maximum entries to show in history mode (default: 20)",
     )
+    parser.add_argument(
+        "-b",
+        dest="banner_value",
+        nargs="?",
+        const="",
+        default=None,
+        help="Show banner; optional VALUE is fields-csv (sprint,dod) or free text.",
+    )
+    parser.add_argument(
+        "--banner-fields",
+        type=lambda s: [t.strip() for t in s.split(",") if t.strip()],
+        default=None,
+        help="Explicit comma-separated cadence fields to show.",
+    )
+    parser.add_argument(
+        "--banner-text",
+        type=str,
+        default=None,
+        help="Free text line shown under the cadence banner.",
+    )
+    parser.add_argument(
+        "--no-banner",
+        action="store_true",
+        help="Force banner off, overriding -b and config.",
+    )
+    return parser
 
+
+def main() -> int:
+    """Main entry point with mode selection."""
+    parser = _build_parser()
     args = parser.parse_args()
+
+    # Disambiguate bare `-b VALUE` into fields or text if not already explicit.
+    derived_fields, derived_text = _parse_banner_value(args.banner_value, KNOWN_BANNER_FIELDS)
+    if args.banner_fields is None:
+        args.banner_fields = derived_fields
+    if args.banner_text is None:
+        args.banner_text = derived_text
 
     if args.mode == "history":
         return show_history(args.team, args.days, args.limit)
