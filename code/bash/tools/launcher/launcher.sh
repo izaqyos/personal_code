@@ -4,6 +4,8 @@
 # Interactive menu for frequently used scripts
 #
 
+LAUNCHER_VERSION="1.1.0"
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 TRACKER_SCRIPT="/Users/yosii/work/git/personal_code/code/AI/cursor/tracking/cursor_tracker.py"
 REMINDER_SCRIPT="/Users/yosii/work/CheckPoint/Jira/release/reminder_app/remind_champion.py"
@@ -28,6 +30,34 @@ CYAN=$'\033[0;36m'
 MAGENTA=$'\033[0;35m'
 NC=$'\033[0m' # No Color
 BOLD=$'\033[1m'
+
+# Sprint-scoped reminder types: read from remind_champion.py (REMINDER_TEMPLATES minus DoD).
+print_release_reminder_types_for_prompt() {
+	echo -e "${BOLD}Reminder Types:${NC}"
+	if [ ! -f "$REMINDER_SCRIPT" ]; then
+		echo -e "  ${YELLOW}(remind_champion.py not found)${NC}"
+		echo ""
+		return 1
+	fi
+	local tsv ec
+	tsv=$(python3 "$REMINDER_SCRIPT" --list-release-reminder-types-tsv 2>/dev/null)
+	ec=$?
+	if [ "$ec" -ne 0 ] || [ -z "$tsv" ]; then
+		echo -e "  ${YELLOW}(Could not load types — try: python3 \"\$REMINDER_SCRIPT\" --list-release-reminder-types-tsv)${NC}"
+		echo ""
+		return 1
+	fi
+	local line key summary
+	while IFS= read -r line || [ -n "$line" ]; do
+		[ -z "$line" ] && continue
+		key="${line%%$'\t'*}"
+		summary="${line#*$'\t'}"
+		printf "  ${GREEN}%-22s${NC} - %s\n" "$key" "$summary"
+	done <<< "$tsv"
+	echo ""
+	echo -e "  ${BOLD}(DoD:${NC} menu ${GREEN}[4]${NC} / ${GREEN}[5]${NC}; full templates: ${GREEN}python3${NC} \"\$REMINDER_SCRIPT\" --list-types)"
+	echo ""
+}
 
 # Box width constants for 140-char layout
 BOX_WIDTH=140
@@ -436,13 +466,14 @@ show_reminder_menu() {
 	echo -e "${BOLD}${CYAN}║  ${GREEN}[13]${CYAN}  Dry-Run Release Reminder                ║${NC}"
 	echo -e "${BOLD}${CYAN}║  ${GREEN}[14]${CYAN}  Send Execution Report                   ║${NC}"
 	echo -e "${BOLD}${CYAN}║  ${GREEN}[15]${CYAN}  Send Team Message (Unicast DMs)          ║${NC}"
-	echo -e "${BOLD}${CYAN}║  ${GREEN}[16]${CYAN}  Send Heads-Up (26.Q2.1)                  ║${NC}"
+	echo -e "${BOLD}${CYAN}║  ${GREEN}[16]${CYAN}  Send Heads-Up (heads_up, pick sprint)   ║${NC}"
+	echo -e "${BOLD}${CYAN}║  ${GREEN}[17]${CYAN}  Send DoD Heads-Up (next week's DoD)     ║${NC}"
 	echo -e "${BOLD}${CYAN}║                                                  ║${NC}"
 	echo -e "${BOLD}${CYAN}╠══════════════════════════════════════════════════╣${NC}"
 	echo -e "${BOLD}${CYAN}║  ${YELLOW}[0]${CYAN}   ← Back to Main Menu                     ║${NC}"
 	echo -e "${BOLD}${CYAN}╚══════════════════════════════════════════════════╝${NC}"
 	echo ""
-	printf "  ${BOLD}➜ Enter your choice [0-16]: ${NC}"
+	printf "  ${BOLD}➜ Enter your choice [0-17]: ${NC}"
 }
 
 # Show daily timer submenu
@@ -456,15 +487,17 @@ show_daily_timer_menu() {
 	echo -e "${BOLD}${CYAN}╠══════════════════════════════════════════════════╣${NC}"
 	echo -e "${BOLD}${CYAN}║                                                  ║${NC}"
 	echo -e "${BOLD}${CYAN}║  ${GREEN}[1]${CYAN}  Start Meeting (CLI)                     ║${NC}"
-	echo -e "${BOLD}${CYAN}║  ${GREEN}[2]${CYAN}  Start Meeting (Web UI)                  ║${NC}"
-	echo -e "${BOLD}${CYAN}║  ${GREEN}[3]${CYAN}  View Meeting History                    ║${NC}"
-	echo -e "${BOLD}${CYAN}║  ${GREEN}[4]${CYAN}  View History (Custom Range)            ║${NC}"
+	echo -e "${BOLD}${CYAN}║  ${GREEN}[2]${CYAN}  Start Meeting (CLI + Banner)            ║${NC}"
+	echo -e "${BOLD}${CYAN}║  ${GREEN}[3]${CYAN}  Start Meeting (CLI + Banner + Text)     ║${NC}"
+	echo -e "${BOLD}${CYAN}║  ${GREEN}[4]${CYAN}  Start Meeting (Web UI)                  ║${NC}"
+	echo -e "${BOLD}${CYAN}║  ${GREEN}[5]${CYAN}  View Meeting History                    ║${NC}"
+	echo -e "${BOLD}${CYAN}║  ${GREEN}[6]${CYAN}  View History (Custom Range)            ║${NC}"
 	echo -e "${BOLD}${CYAN}║                                                  ║${NC}"
 	echo -e "${BOLD}${CYAN}╠══════════════════════════════════════════════════╣${NC}"
 	echo -e "${BOLD}${CYAN}║  ${YELLOW}[0]${CYAN}  ← Back to Main Menu                      ║${NC}"
 	echo -e "${BOLD}${CYAN}╚══════════════════════════════════════════════════╝${NC}"
 	echo ""
-	printf "  ${BOLD}➜ Enter your choice [0-4]: ${NC}"
+	printf "  ${BOLD}➜ Enter your choice [0-6]: ${NC}"
 }
 
 # Tracker menu handler
@@ -867,14 +900,7 @@ handle_reminder_menu() {
 			clear_screen
 			echo -e "${CYAN}Send Release Reminder${NC}"
 			echo ""
-			echo -e "Reminder Types:"
-			echo -e "  ${GREEN}risk_analysis${NC}       - Risk analysis reminder"
-			echo -e "  ${GREEN}risk_analysis_final${NC} - Final risk analysis reminder"
-			echo -e "  ${GREEN}dr_tomorrow${NC}         - DR is tomorrow reminder"
-			echo -e "  ${GREEN}dr_today${NC}            - DR is today reminder"
-			echo -e "  ${GREEN}prod_tomorrow${NC}       - Production is tomorrow reminder"
-			echo -e "  ${GREEN}prod_today${NC}          - Production is today reminder"
-			echo ""
+			print_release_reminder_types_for_prompt
 			echo -n "Enter sprint (e.g., Q1-S1): "
 			read sprint
 			if [ -z "$sprint" ]; then
@@ -905,14 +931,7 @@ handle_reminder_menu() {
 			clear_screen
 			echo -e "${CYAN}Dry-Run Release Reminder (Preview Only)${NC}"
 			echo ""
-			echo -e "Reminder Types:"
-			echo -e "  ${GREEN}risk_analysis${NC}       - Risk analysis reminder"
-			echo -e "  ${GREEN}risk_analysis_final${NC} - Final risk analysis reminder"
-			echo -e "  ${GREEN}dr_tomorrow${NC}         - DR is tomorrow reminder"
-			echo -e "  ${GREEN}dr_today${NC}            - DR is today reminder"
-			echo -e "  ${GREEN}prod_tomorrow${NC}       - Production is tomorrow reminder"
-			echo -e "  ${GREEN}prod_today${NC}          - Production is today reminder"
-			echo ""
+			print_release_reminder_types_for_prompt
 			echo -n "Enter sprint (e.g., Q1-S1): "
 			read sprint
 			if [ -z "$sprint" ]; then
@@ -1037,26 +1056,82 @@ handle_reminder_menu() {
 			;;
 		16)
 			clear_screen
-			echo -e "${CYAN}Send Heads-Up Reminder — Sprint 26.Q2.1${NC}"
+			echo -e "${CYAN}Send Heads-Up Reminder${NC} ${BOLD}(reminder type: heads_up)${NC}"
 			echo ""
-			echo -e "Command: ${BOLD}python3 remind_champion.py 26.Q2.1 heads_up${NC}"
+			print_release_reminder_types_for_prompt
+			echo -n "Enter sprint (e.g., Q2-S1 or 26.Q2.2): "
+			read sprint_hu
+			if [ -z "$sprint_hu" ]; then
+				echo "Error: No sprint provided"
+				sleep 2
+				continue
+			fi
+			echo ""
+			echo -e "Will run: ${BOLD}python3 remind_champion.py ${sprint_hu} heads_up${NC}"
 			echo ""
 			echo -e "${YELLOW}Dry-run first? (Y/n): ${NC}"
 			read dry_first
 			if [[ ! "$dry_first" =~ ^[Nn]$ ]]; then
-				python3 "$REMINDER_SCRIPT" --dry-run 26.Q2.1 heads_up
+				python3 "$REMINDER_SCRIPT" --dry-run "$sprint_hu" heads_up
 				echo ""
 				echo -e "${YELLOW}Send for real now? (y/N): ${NC}"
 				read confirm_send
 				if [[ "$confirm_send" =~ ^[Yy]$ ]]; then
 					echo ""
-					python3 "$REMINDER_SCRIPT" 26.Q2.1 heads_up
+					python3 "$REMINDER_SCRIPT" "$sprint_hu" heads_up
 				else
 					echo "Send cancelled."
 				fi
 			else
-				python3 "$REMINDER_SCRIPT" 26.Q2.1 heads_up
+				python3 "$REMINDER_SCRIPT" "$sprint_hu" heads_up
 			fi
+			echo ""
+			echo -n "Press Enter to continue..."
+			read
+			;;
+		17)
+			clear_screen
+			echo -e "${CYAN}Send DoD Heads-Up${NC} ${BOLD}(next week's DoD champion)${NC}"
+			echo ""
+			echo -e "Will run: ${BOLD}python3 remind_champion.py --dod-heads-up${NC}"
+			echo ""
+			echo -e "${BOLD}Mode:${NC}"
+			echo -e "  ${GREEN}[1]${NC} Dry-run (preview only, no Slack)"
+			echo -e "  ${GREEN}[2]${NC} Test (real Slack DM, redirected to yosi_test)"
+			echo -e "  ${GREEN}[3]${NC} Test + Dry-run (verify test banner without sending)"
+			echo -e "  ${GREEN}[4]${NC} REAL send (to next week's DoD champion)"
+			echo -e "  ${YELLOW}[0]${NC} Cancel"
+			echo ""
+			echo -n "Choose mode [0-4]: "
+			read dod_hu_mode
+			echo ""
+			case "$dod_hu_mode" in
+			1)
+				python3 "$REMINDER_SCRIPT" --dry-run --dod-heads-up
+				;;
+			2)
+				python3 "$REMINDER_SCRIPT" --test --dod-heads-up
+				;;
+			3)
+				python3 "$REMINDER_SCRIPT" --test --dry-run --dod-heads-up
+				;;
+			4)
+				echo -e "${YELLOW}This will send a REAL Slack DM to next week's DoD champion.${NC}"
+				echo -n "Are you sure? (y/N): "
+				read confirm_dod_hu
+				if [[ "$confirm_dod_hu" =~ ^[Yy]$ ]]; then
+					python3 "$REMINDER_SCRIPT" --dod-heads-up
+				else
+					echo "Send cancelled."
+				fi
+				;;
+			0)
+				echo "Cancelled."
+				;;
+			*)
+				echo -e "${YELLOW}Invalid choice.${NC}"
+				;;
+			esac
 			echo ""
 			echo -n "Press Enter to continue..."
 			read
@@ -1110,6 +1185,39 @@ handle_daily_timer_menu() {
 			;;
 		2)
 			clear_screen
+			echo -e "${CYAN}Starting Daily Standup (CLI + Banner)...${NC}"
+			echo ""
+			cd "$DAILY_RUNNER_DIR"
+			source "$DAILY_RUNNER_VENV/bin/activate"
+			python main.py --mode cli --team imagine_dragons -b
+			deactivate
+			cd - >/dev/null
+			echo ""
+			echo -n "Press Enter to continue..."
+			read
+			;;
+		3)
+			clear_screen
+			echo -n "Enter banner text: "
+			read banner_text
+			echo ""
+			echo -e "${CYAN}Starting Daily Standup (CLI + Banner + Text)...${NC}"
+			echo ""
+			cd "$DAILY_RUNNER_DIR"
+			source "$DAILY_RUNNER_VENV/bin/activate"
+			if [ -z "$banner_text" ]; then
+				python main.py --mode cli --team imagine_dragons -b
+			else
+				python main.py --mode cli --team imagine_dragons --banner-fields sprint,sprint_week,champion,dod,next_event --banner-text "$banner_text"
+			fi
+			deactivate
+			cd - >/dev/null
+			echo ""
+			echo -n "Press Enter to continue..."
+			read
+			;;
+		4)
+			clear_screen
 			echo -e "${CYAN}Starting Daily Standup (Web UI)...${NC}"
 			echo ""
 			cd "$DAILY_RUNNER_DIR"
@@ -1121,7 +1229,7 @@ handle_daily_timer_menu() {
 			echo -n "Press Enter to continue..."
 			read
 			;;
-		3)
+		5)
 			clear_screen
 			echo -e "${CYAN}Meeting History (last 30 days):${NC}"
 			echo ""
@@ -1134,7 +1242,7 @@ handle_daily_timer_menu() {
 			echo -n "Press Enter to continue..."
 			read
 			;;
-		4)
+		6)
 			clear_screen
 			echo -n "Enter number of days to show (default 30): "
 			read days
@@ -1156,7 +1264,7 @@ handle_daily_timer_menu() {
 			return
 			;;
 		*)
-			echo -e "${YELLOW}Invalid choice. Please try again.${NC}"
+			echo -e "${RED}Invalid choice. Please try again.${NC}"
 			sleep 1
 			;;
 		esac
@@ -1753,5 +1861,11 @@ main() {
 
 # Run main function only if executed directly (not sourced)
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+	case "${1:-}" in
+	--version | -v)
+		echo "launcher.sh v${LAUNCHER_VERSION}"
+		exit 0
+		;;
+	esac
 	main
 fi
