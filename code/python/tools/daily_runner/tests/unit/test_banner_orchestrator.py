@@ -101,6 +101,8 @@ class TestRenderBanner:
         assert result is not None
         assert "unavailable" in result.lower()
         assert "nope.json" in result
+        # Path should appear exactly once — no redundant reason line restating the headline.
+        assert result.count("nope.json") == 1
 
     def test_missing_schedule_with_text_appends_text(self, tmp_path: Path) -> None:
         cfg = BannerConfig(
