@@ -52,6 +52,7 @@ def test_get_row_returns_existing(manifest):
     got = manifest.get("personal_KB", "a.md")
     assert got is not None
     assert got.document_id == "docs/9"
+    assert got.uploaded_at is not None  # substituted by upsert when row had None
 
 
 def test_delete_row_removes(manifest):
@@ -87,3 +88,38 @@ def test_persists_across_instances(tmp_path):
     ))
     b = Manifest(db)
     assert b.get("personal_KB", "x.md") is not None
+
+
+def test_close_does_not_raise(manifest):
+    manifest.close()
+
+
+def test_concurrent_upserts_do_not_raise(manifest):
+    """Validate check_same_thread=False + Lock combination."""
+    import threading
+
+    errors: list[BaseException] = []
+
+    def worker(tid: int) -> None:
+        try:
+            for i in range(20):
+                manifest.upsert(ManifestRow(
+                    source="personal_KB",
+                    rel_path=f"t{tid}/f{i}.md",
+                    sha256=f"hash-{tid}-{i}",
+                    display_name=f"personal_KB/t{tid}/f{i}.md",
+                    document_id=None,
+                ))
+                manifest.classify("personal_KB", f"t{tid}/f{i}.md", f"hash-{tid}-{i}")
+        except BaseException as e:
+            errors.append(e)
+
+    threads = [threading.Thread(target=worker, args=(t,)) for t in range(4)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+
+    assert errors == []
+    counts = manifest.summary()
+    assert counts.get("personal_KB") == 4 * 20
