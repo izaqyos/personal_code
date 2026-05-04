@@ -112,3 +112,17 @@ class TestRenderBanner:
 
         assert result is not None
         assert "welcome back" in result
+
+    def test_explicit_fields_with_text_loads_schedules(self, schedules_file: Path) -> None:
+        """`-b sprint --banner-text 'hi'` with cfg.enabled=False must still load cadence."""
+        cfg = BannerConfig(
+            enabled=False,
+            schedules_path=str(schedules_file),
+            default_fields=["sprint"],
+        )
+        args = make_args(banner_value="sprint", banner_fields=["sprint"], banner_text="hi")
+        result = render_banner(args, cfg, today=date(2026, 4, 13), width=100)
+
+        assert result is not None
+        assert "26.Q2.1" in result  # sprint loaded from schedules
+        assert "hi" in result        # text appears too
