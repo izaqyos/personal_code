@@ -240,3 +240,55 @@ MIT License - See LICENSE file for details.
 ## Author
 
 Yosi Izaq - Imagine Dragons Team Lead
+
+## Standup Banner
+
+The CLI mode can show a banner with release-cadence context (sprint, week, release champion, Developer on Duty, next DR/prod event) plus an optional free-text greeting before the standup starts.
+
+### Quick start
+
+1. Point at your `schedules.json`:
+
+   ```json
+   {
+     "banner": {
+       "enabled": false,
+       "schedules_path": "/absolute/path/to/schedules.json",
+       "default_fields": ["sprint", "sprint_week", "champion", "dod", "next_event"]
+     }
+   }
+   ```
+
+2. Run with `-b`:
+
+   ```bash
+   python main.py --mode cli -b
+   python main.py --mode cli -b sprint,champion,dod
+   python main.py --mode cli -b "welcome back Muhe"
+   python main.py --mode cli --banner-fields sprint,dod --banner-text "welcome back Muhe"
+   python main.py --mode cli --no-banner   # explicit off, even if config enables it
+   ```
+
+### Available fields
+
+| Field         | Description                                                      |
+| ------------- | ---------------------------------------------------------------- |
+| `sprint`      | Current sprint identifier (e.g. `26.Q2.1`)                       |
+| `sprint_week` | Week 1, 2, or 3 of the current sprint                            |
+| `champion`    | Release ambassador for the current sprint                        |
+| `dod`         | Developer on Duty for the current week                           |
+| `next_event`  | Closest upcoming DR or Prod release with countdown               |
+
+### Layout adapts to terminal width
+
+- ≥80 cols → full panel
+- 40-79 cols → compact panel with shortened labels
+- <40 cols → single-line plain text
+
+### If `schedules.json` is missing
+
+The banner shows an inline error explaining how to fix it; the standup continues normally. Three ways to recover:
+
+1. Set `banner.schedules_path` in `config.json` to your real schedules file.
+2. Or copy the bundled example: `cp config/schedules.example.json config/schedules.json`.
+3. Or run with `--no-banner` to suppress.
