@@ -299,7 +299,7 @@ def main() -> int:
         from src.data.config_manager import ConfigManager
 
         # Load config to access banner section.
-        config_mgr = ConfigManager(Path(args.config) if args.config else None)
+        config_mgr = ConfigManager(Path(args.config))
         app_config = config_mgr.load()
         banner_text = render_banner(args, app_config.banner)
         if banner_text:

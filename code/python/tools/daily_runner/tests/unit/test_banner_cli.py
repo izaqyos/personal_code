@@ -124,8 +124,12 @@ class TestBannerInCliMode:
             )
         )
 
-        # Mock cli_main to a no-op returning 0
-        with patch("src.cli.app.main", return_value=0):
+        # Mock cli_main to print a sentinel so we can verify ordering.
+        def fake_cli_main() -> int:
+            print("__CLI_MAIN_RAN__")
+            return 0
+
+        with patch("src.cli.app.main", side_effect=fake_cli_main):
             monkeypatch.chdir(tmp_path)
             monkeypatch.setattr(
                 "sys.argv",
@@ -137,4 +141,11 @@ class TestBannerInCliMode:
 
         captured = capsys.readouterr()
         assert rc == 0
-        assert "26.Q2.1" in captured.out or "Yocheved" in captured.out
+        assert "__CLI_MAIN_RAN__" in captured.out
+        # Banner must be printed BEFORE cli_main runs:
+        banner_idx = captured.out.find("26.Q2.1")
+        if banner_idx == -1:
+            banner_idx = captured.out.find("Yocheved")
+        cli_idx = captured.out.find("__CLI_MAIN_RAN__")
+        assert banner_idx >= 0, f"banner not found in:\n{captured.out}"
+        assert cli_idx > banner_idx, f"cli_main ran before banner; output:\n{captured.out}"
