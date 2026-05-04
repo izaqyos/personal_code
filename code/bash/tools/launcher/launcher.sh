@@ -1208,7 +1208,7 @@ handle_daily_timer_menu() {
 			if [ -z "$banner_text" ]; then
 				python main.py --mode cli --team imagine_dragons -b
 			else
-				python main.py --mode cli --team imagine_dragons --banner-fields sprint,sprint_week,champion,dod,next_event --banner-text "$banner_text"
+				python main.py --mode cli --team imagine_dragons -b --banner-text "$banner_text"
 			fi
 			deactivate
 			cd - >/dev/null

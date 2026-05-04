@@ -24,7 +24,7 @@ assert_grep "Start Meeting (CLI + Banner + Text)" "Menu shows CLI + Banner + Tex
 assert_grep "Enter your choice [0-6]" "Prompt range updated to 0-6"
 assert_grep "main.py --mode cli --team imagine_dragons -b" "Banner option invokes -b"
 assert_grep "Enter banner text:" "Banner+Text option prompts for text"
-assert_grep "--banner-fields sprint,sprint_week,champion,dod,next_event --banner-text" "Banner+Text option passes both flags"
+assert_grep "-b --banner-text" "Banner+Text option passes -b plus --banner-text"
 
 echo ""
 echo "Total: $((PASS + FAIL)) tests, $PASS passed, $FAIL failed"
