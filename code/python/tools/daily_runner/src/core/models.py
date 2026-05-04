@@ -342,6 +342,18 @@ class BannerConfig(BaseModel):
         description="Cadence fields shown when -b is bare.",
     )
 
+    @field_validator("default_fields")
+    @classmethod
+    def _validate_default_fields(cls, v: list[str]) -> list[str]:
+        from src.banner import KNOWN_BANNER_FIELDS
+        unknown = [f for f in v if f not in KNOWN_BANNER_FIELDS]
+        if unknown:
+            raise ValueError(
+                f"unknown banner field(s) in default_fields: {unknown}. "
+                f"Known: {sorted(KNOWN_BANNER_FIELDS)}"
+            )
+        return v
+
 
 class AppConfig(BaseModel):
     """Root application configuration model."""

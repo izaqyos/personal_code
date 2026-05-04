@@ -283,7 +283,7 @@ The CLI mode can show a banner with release-cadence context (sprint, week, relea
 
 - ≥80 cols → full panel
 - 40-79 cols → compact panel with shortened labels
-- <40 cols → single-line plain text
+- <40 cols → plain text, no panel chrome
 
 ### If `schedules.json` is missing
 

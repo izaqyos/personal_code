@@ -139,3 +139,13 @@ class TestRenderErrorBanner:
         between = lines[path_idx + 1:fix_idx]
         blanks = [ln for ln in between if ln == ""]
         assert len(blanks) == 1, f"expected exactly 1 blank line between path and Fix:, got {len(blanks)} in {between!r}"
+
+    def test_malformed_kind_shows_parse_headline(self) -> None:
+        out = render_error_banner(
+            schedule_path="/tmp/x.json",
+            reason="invalid JSON: line 1",
+            free_text=None,
+            width=100,
+            kind="malformed",
+        )
+        assert "could not be parsed" in out
