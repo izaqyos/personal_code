@@ -294,7 +294,16 @@ def main() -> int:
 
     else:
         # Run CLI mode
+        from src.banner import render_banner
         from src.cli.app import main as cli_main
+        from src.data.config_manager import ConfigManager
+
+        # Load config to access banner section.
+        config_mgr = ConfigManager(Path(args.config) if args.config else None)
+        app_config = config_mgr.load()
+        banner_text = render_banner(args, app_config.banner)
+        if banner_text:
+            print(banner_text, end="")
 
         # Reconstruct sys.argv for CLI
         sys.argv = ["daily-timer"]
