@@ -143,9 +143,14 @@ def render_error_banner(
     reason: str,
     free_text: str | None,
     width: int,
+    kind: str = "missing",  # "missing" | "malformed"
 ) -> str:
+    if kind == "malformed":
+        headline = "schedules.json could not be parsed:"
+    else:
+        headline = "schedules.json not found at:"
     body_lines = [
-        "schedules.json not found at:",
+        headline,
         f"  {schedule_path}",
         f"  ({reason})" if reason else None,
         "",

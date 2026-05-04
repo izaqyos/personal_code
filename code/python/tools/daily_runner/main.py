@@ -11,6 +11,7 @@ import sys
 from datetime import datetime, timedelta
 from pathlib import Path
 
+from src.banner import KNOWN_BANNER_FIELDS
 from src.core.time_utils import format_team_name
 
 
@@ -164,11 +165,6 @@ def show_history(team_id: str | None, days: int, limit: int) -> int:
     return 0
 
 
-KNOWN_BANNER_FIELDS: frozenset[str] = frozenset(
-    {"sprint", "sprint_week", "champion", "dod", "next_event"}
-)
-
-
 def _parse_banner_value(
     value: str | None,
     known: frozenset[str] | set[str] = KNOWN_BANNER_FIELDS,
@@ -186,6 +182,19 @@ def _parse_banner_value(
     if all(tok in known for tok in tokens):
         return (tokens, None)
     return (None, value)
+
+
+def _parse_banner_fields_csv(s: str) -> list[str]:
+    """argparse type for --banner-fields. Validates against KNOWN_BANNER_FIELDS."""
+    from src.banner import KNOWN_BANNER_FIELDS
+    tokens = [t.strip() for t in s.split(",") if t.strip()]
+    unknown = [t for t in tokens if t not in KNOWN_BANNER_FIELDS]
+    if unknown:
+        raise argparse.ArgumentTypeError(
+            f"unknown banner field(s): {', '.join(unknown)}. "
+            f"Known: {', '.join(sorted(KNOWN_BANNER_FIELDS))}"
+        )
+    return tokens
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -251,7 +260,7 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--banner-fields",
-        type=lambda s: [t.strip() for t in s.split(",") if t.strip()],
+        type=_parse_banner_fields_csv,
         default=None,
         help="Explicit comma-separated cadence fields to show.",
     )

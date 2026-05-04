@@ -11,6 +11,10 @@ from src.banner.errors import BannerError, MalformedScheduleError, MissingSchedu
 from src.banner.renderer import BannerData, render_banner_text, render_error_banner
 from src.banner.schedule_loader import load_schedules
 
+KNOWN_BANNER_FIELDS: frozenset[str] = frozenset(
+    {"sprint", "sprint_week", "champion", "dod", "next_event"}
+)
+
 
 def _resolve_intent(args: Any, config_enabled: bool) -> tuple[bool, list[str] | None, str | None]:
     """Return (banner_on, fields_or_None_for_default, free_text_or_None).
@@ -90,12 +94,18 @@ def render_banner(
         if sched is None:
             raise MissingScheduleError("")
     except BannerError as exc:
-        reason = exc.reason if isinstance(exc, MalformedScheduleError) else str(exc)
+        if isinstance(exc, MalformedScheduleError):
+            kind = "malformed"
+            reason = exc.reason
+        else:
+            kind = "missing"
+            reason = str(exc)
         return render_error_banner(
             schedule_path=schedules_path or "(not configured)",
             reason=reason,
             free_text=free_text,
             width=width,
+            kind=kind,
         )
 
     sprint_id = current_sprint(sched, today) if "sprint" in fields or "sprint_week" in fields else None
@@ -116,4 +126,4 @@ def render_banner(
     return render_banner_text(data, width)
 
 
-__all__ = ["render_banner", "_resolve_intent"]
+__all__ = ["render_banner", "_resolve_intent", "KNOWN_BANNER_FIELDS"]

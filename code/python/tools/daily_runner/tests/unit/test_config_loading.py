@@ -7,6 +7,8 @@ Test ID: 1.T2 - Config file loads with defaults when missing
 import json
 from pathlib import Path
 
+import pytest
+
 
 class TestConfigFileLoading:
     """Test configuration file loading behavior."""
@@ -166,3 +168,12 @@ class TestBannerConfig:
 
         cfg = AppConfig.model_validate({"version": "1.0"})
         assert cfg.banner.enabled is False
+
+    def test_unknown_default_field_rejected(self) -> None:
+        from pydantic import ValidationError
+        from src.core.models import AppConfig
+
+        with pytest.raises(ValidationError):
+            AppConfig.model_validate(
+                {"banner": {"default_fields": ["sprint", "bogus"]}}
+            )

@@ -77,6 +77,11 @@ class TestBannerArgs:
         assert on is True
         assert text == "hi"
 
+    def test_banner_fields_rejects_unknown(self) -> None:
+        parser = _build_parser()
+        with pytest.raises(SystemExit):
+            parser.parse_args(["--banner-fields", "sprint,bogus"])
+
 
 class TestBannerInCliMode:
     """Smoke test: -b causes banner output on stdout before cli_main runs."""
