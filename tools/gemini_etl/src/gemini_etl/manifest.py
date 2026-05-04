@@ -53,6 +53,12 @@ class Manifest:
             self._conn.commit()
 
     def classify(self, source: str, rel_path: str, sha256: str) -> FileState:
+        """Return whether a file is NEW, CHANGED, or UNCHANGED relative to the manifest.
+
+        Note: ``classify`` followed by ``upsert`` is not atomic. If two threads
+        race on the same ``(source, rel_path)``, the result may be stale.
+        Callers must ensure no concurrent writer for the same key between the
+        two calls."""
         row = self.get(source, rel_path)
         if row is None:
             return FileState.NEW
@@ -69,6 +75,11 @@ class Manifest:
         return ManifestRow(*r) if r else None
 
     def upsert(self, row: ManifestRow) -> None:
+        """Insert or update a manifest row.
+
+        If ``row.uploaded_at`` is None, the current UTC timestamp is
+        substituted before writing. The DB enforces NOT NULL on the column,
+        so rows returned by ``get()`` always have a non-None ``uploaded_at``."""
         uploaded_at = row.uploaded_at or datetime.now(UTC).isoformat()
         with self._lock:
             self._conn.execute(
@@ -95,6 +106,11 @@ class Manifest:
             self._conn.commit()
 
     def deleted_rows(self, live_set: set[tuple[str, str]]) -> Iterator[ManifestRow]:
+        """Yield manifest rows whose ``(source, rel_path)`` is not in ``live_set``.
+
+        The snapshot is taken atomically under the lock; the generator yields
+        outside the lock so consumers may take their time without blocking
+        writers."""
         with self._lock:
             rows = list(self._conn.execute(
                 "SELECT source, rel_path, sha256, display_name, document_id, uploaded_at FROM files"
@@ -113,5 +129,9 @@ class Manifest:
             }
 
     def close(self) -> None:
+        """Close the underlying SQLite connection.
+
+        After ``close()`` is called, no other methods may be called on this
+        instance — they will raise ``sqlite3.ProgrammingError``."""
         with self._lock:
             self._conn.close()
