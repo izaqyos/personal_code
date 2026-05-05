@@ -72,3 +72,34 @@ class TestSchedules:
         }
         sched = Schedules.model_validate(data)
         assert sched.rotation_schedule == {}
+
+    def test_parses_with_sprints_table(self) -> None:
+        from datetime import date
+        data = {
+            "team_members": {},
+            "rotation_schedule": {
+                "26.Q2.1": {
+                    "champion": "alice",
+                    "dr": "2026-04-26",
+                    "go_nogo": "2026-04-30",
+                    "prod": "2026-05-03",
+                },
+            },
+            "dod_schedule": {},
+            "sprints": {
+                "26.Q2.1": {"start": "2026-03-29", "end": "2026-04-18"},
+            },
+        }
+        sched = Schedules.model_validate(data)
+        assert sched.sprints["26.Q2.1"].start == date(2026, 3, 29)
+        assert sched.sprints["26.Q2.1"].end == date(2026, 4, 18)
+
+    def test_sprints_default_to_empty_dict(self) -> None:
+        # Backward compat: schedules without `sprints` still parse.
+        data = {
+            "team_members": {},
+            "rotation_schedule": {},
+            "dod_schedule": {},
+        }
+        sched = Schedules.model_validate(data)
+        assert sched.sprints == {}
