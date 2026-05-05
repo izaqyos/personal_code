@@ -16,6 +16,10 @@ ALWAYS_SKIP_DIRS = frozenset({
     "dist", "build", "target", ".next", ".turbo",
 })
 
+# Whitespace-only files larger than one page are vanishingly rare; only
+# strip-check small files to avoid the cost of a full read for every file.
+_WHITESPACE_CHECK_LIMIT = 4096
+
 
 @dataclass(frozen=True)
 class FileRef:
@@ -26,11 +30,12 @@ class FileRef:
     sha256: str
 
 
-def _load_gitignore(root: Path) -> GitIgnoreSpec:
-    """Read root-level .gitignore. Nested .gitignore files are matched against
-    paths relative to root, which is what pathspec supports out of the box for
-    simple cases. For deep nesting we still respect nested files by re-loading
-    on each subdir during the walk."""
+def _load_gitignore(root: Path) -> "GitIgnoreSpec":
+    """Read root-level ``.gitignore`` only. Nested ``.gitignore`` files are NOT loaded.
+
+    This is sufficient for ``personal_KB`` and ``personal_code``, which are
+    shallow trees with root-level ignore rules. If we ever need nested-gitignore
+    support, swap this for a per-directory load during ``os.walk``."""
     gi = root / ".gitignore"
     lines: list[str] = []
     if gi.exists():
@@ -81,7 +86,7 @@ def walk_source(
                 continue
 
             # Whitespace-only check (cheap for empty-ish files).
-            if size < 4096:
+            if size < _WHITESPACE_CHECK_LIMIT:
                 if not abs_path.read_bytes().strip():
                     continue
 

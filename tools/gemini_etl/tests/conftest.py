@@ -5,10 +5,6 @@ from pathlib import Path
 import pytest
 
 
-@pytest.fixture
-def fixtures_dir() -> Path:
-    return Path(__file__).parent / "fixtures"
-
 
 @pytest.fixture
 def fake_count_tokens() -> Callable[[str], int]:
@@ -32,7 +28,7 @@ def sample_kb_tree(tmp_path: Path) -> Path:
     (root / "build").mkdir()
     (root / ".git").mkdir()
 
-    (root / ".gitignore").write_text("build/\n*.tmp\n", encoding="utf-8")
+    (root / ".gitignore").write_text("build/\n*.tmp\ncustom_output/\n", encoding="utf-8")
 
     # SHOULD be yielded
     (root / "notes" / "intro.md").write_text("# Hello\nbody\n", encoding="utf-8")
@@ -43,6 +39,9 @@ def sample_kb_tree(tmp_path: Path) -> Path:
     (root / "notes" / "empty.md").write_text("", encoding="utf-8")
     (root / "notes" / "draft.tmp").write_text("tmp\n", encoding="utf-8")
     (root / ".git" / "HEAD").write_text("in dot-git\n", encoding="utf-8")
+
+    (root / "custom_output").mkdir()
+    (root / "custom_output" / "ignored.md").write_text("noise\n", encoding="utf-8")
 
     return root
 

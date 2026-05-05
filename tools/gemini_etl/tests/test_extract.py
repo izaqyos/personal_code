@@ -88,3 +88,14 @@ def test_skipped_files_exist_but_are_not_yielded(kb_source, sample_kb_tree):
     assert ".git/HEAD" not in paths
     assert "notes/draft.tmp" not in paths
     assert "notes/empty.md" not in paths
+
+
+def test_skips_gitignored_dir_not_in_always_skip(kb_source, sample_kb_tree):
+    """Isolates the .gitignore directory pruning logic from ALWAYS_SKIP_DIRS.
+
+    'custom_output/' is gitignored but NOT in ALWAYS_SKIP_DIRS, so this test
+    fails if the gitignore directory pruning is broken even when ALWAYS_SKIP_DIRS
+    still works."""
+    assert (sample_kb_tree / "custom_output" / "ignored.md").is_file()
+    paths = {r.rel_path for r in walk_source(kb_source)}
+    assert not any("custom_output" in p for p in paths)
