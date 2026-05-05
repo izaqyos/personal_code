@@ -84,14 +84,14 @@ class TestBannerArgs:
 
 
 class TestBannerInCliMode:
-    """Smoke test: -b causes banner output on stdout before cli_main runs."""
+    """Smoke test: -b causes the banner_header renderable to flow into CLIApp."""
 
-    def test_banner_printed_before_cli(
+    def test_banner_passed_to_cliapp(
         self,
         tmp_path: Path,
         monkeypatch: pytest.MonkeyPatch,
-        capsys: pytest.CaptureFixture[str],
     ) -> None:
+        """Ensure CLIApp receives the banner_header when -b is set."""
         import json
         from unittest.mock import patch
 
@@ -129,28 +129,25 @@ class TestBannerInCliMode:
             )
         )
 
-        # Mock cli_main to print a sentinel so we can verify ordering.
-        def fake_cli_main() -> int:
-            print("__CLI_MAIN_RAN__")
-            return 0
+        captured: dict[str, object] = {}
 
-        with patch("src.cli.app.main", side_effect=fake_cli_main):
-            monkeypatch.chdir(tmp_path)
-            monkeypatch.setattr(
-                "sys.argv",
-                ["daily-timer", "--mode", "cli", "--config", str(cfg_path), "-b"],
-            )
+        class FakeApp:
+            def __init__(self, **kwargs: object) -> None:
+                captured.update(kwargs)
+
+            def run(self, team_id: str | None = None) -> int:
+                captured["team_id"] = team_id
+                return 0
+
+        monkeypatch.chdir(tmp_path)
+        monkeypatch.setattr(
+            "sys.argv",
+            ["daily-timer", "--mode", "cli", "--config", str(cfg_path), "-b"],
+        )
+        with patch("src.cli.app.CLIApp", FakeApp):
             from main import main as run
 
             rc = run()
 
-        captured = capsys.readouterr()
         assert rc == 0
-        assert "__CLI_MAIN_RAN__" in captured.out
-        # Banner must be printed BEFORE cli_main runs:
-        banner_idx = captured.out.find("26.Q2.1")
-        if banner_idx == -1:
-            banner_idx = captured.out.find("Yocheved")
-        cli_idx = captured.out.find("__CLI_MAIN_RAN__")
-        assert banner_idx >= 0, f"banner not found in:\n{captured.out}"
-        assert cli_idx > banner_idx, f"cli_main ran before banner; output:\n{captured.out}"
+        assert captured.get("banner_header") is not None
