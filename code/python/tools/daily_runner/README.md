@@ -247,17 +247,19 @@ The CLI mode can show a banner with release-cadence context (sprint, week, relea
 
 ### Quick start
 
-1. Point at your `schedules.json`:
+1. Point at your `schedules.json` (absolute path, or `~`-prefixed — `~` is expanded against `$HOME`):
 
    ```json
    {
      "banner": {
        "enabled": false,
-       "schedules_path": "/absolute/path/to/schedules.json",
+       "schedules_path": "~/path/to/schedules.json",
        "default_fields": ["sprint", "sprint_week", "champion", "dod", "next_event"]
      }
    }
    ```
+
+   With `enabled: true`, the banner shows by default on every CLI run; `--no-banner` overrides.
 
 2. Run with `-b`:
 
@@ -278,6 +280,22 @@ The CLI mode can show a banner with release-cadence context (sprint, week, relea
 | `champion`    | Release ambassador for the current sprint                        |
 | `dod`         | Developer on Duty for the current week                           |
 | `next_event`  | Closest upcoming DR or Prod release with countdown               |
+
+`--banner-fields` rejects unknown field names at parse time. `BannerConfig.default_fields` is validated the same way.
+
+### Sprint windows (optional `sprints` section)
+
+By default, sprint window is computed as `DR - 14 days`. If your real cadence differs, add an explicit `sprints` table to `schedules.json`:
+
+```json
+"sprints": {
+  "26.Q2.1": {"start": "2026-03-29", "end": "2026-04-18"},
+  "26.Q2.2": {"start": "2026-04-19", "end": "2026-05-09"},
+  "26.Q2.3": {"start": "2026-05-10", "end": "2026-05-30"}
+}
+```
+
+When present, `current_sprint` and `sprint_week` use these windows. Sprints not listed in the table fall back to the `DR - 14` heuristic, so partial coverage is fine.
 
 ### Layout adapts to terminal width
 

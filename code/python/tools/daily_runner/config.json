@@ -30,5 +30,10 @@
     "directory": "teams",
     "default_team": "imagine_dragons"
   },
+  "banner": {
+    "enabled": true,
+    "schedules_path": "~/work/CheckPoint/Jira/release/reminder_app/config/schedules.json",
+    "default_fields": ["sprint", "sprint_week", "champion", "dod", "next_event"]
+  },
   "default_order": "alphabetical"
 }

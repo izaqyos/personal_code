@@ -7,6 +7,8 @@
 - venv at `code/python/tools/daily_runner/.venv`, deps installed (`pip install -e ".[dev]"`)
 - shell: zsh on macOS
 
+> **Note on dates:** the bundled example schedule covers Q1 2026 only. If today's date is past Q1, fields like `dod` / `next_event` may be empty in the EXPECT lines below — that's correct behavior, not a bug. To exercise full output, point at a current `schedules.json` (see Quick start in [README.md](../README.md#standup-banner)).
+
 ## Setup (~30s)
 
 ```bash
@@ -139,7 +141,29 @@ EXPECT:
 - No box-drawing characters.
 - One pipe-separated line: `26.Q1.X WN | Champ:Alic | DoD:... | DR in Nd`.
 
-### 9. Launcher menu wiring (~60s)
+### 9. Sprints table is honored when present (~30s)
+
+The bundled `config/schedules.example.json` ships with an explicit `sprints` block. Verify it overrides the `DR - 14` heuristic:
+
+```bash
+python -c "
+from datetime import date
+from pathlib import Path
+from src.banner.cadence import current_sprint, sprint_week
+from src.banner.schedule_loader import load_schedules
+sched = load_schedules(Path('config/schedules.example.json'))
+# Sprint Q1.1 in the example: start=2026-01-04, end=2026-01-24
+today = date(2026, 1, 18)
+print('sprint:', current_sprint(sched, today))
+print('week:',   sprint_week(sched, current_sprint(sched, today), today))
+"
+```
+
+EXPECT:
+- `sprint: 26.Q1.1`
+- `week: 3` (Jan 4 + 14 days = Jan 18 → day 15 → week 3)
+
+### 10. Launcher menu wiring (~60s)
 
 ```bash
 bash /Users/yosii/work/git/personal_code/code/bash/tools/launcher/launcher.sh
