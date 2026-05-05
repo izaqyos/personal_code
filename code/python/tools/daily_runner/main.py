@@ -303,27 +303,38 @@ def main() -> int:
 
     else:
         # Run CLI mode
-        from src.banner import render_banner
-        from src.cli.app import main as cli_main
+        from rich.console import Console
+
+        from src.banner import render_banner_renderable_for
+        from src.cli.app import CLIApp, setup_logging
         from src.data.config_manager import ConfigManager
+        from src.data.team_repository import TeamRepository
 
         # Load config to access banner section.
         config_mgr = ConfigManager(Path(args.config))
         app_config = config_mgr.load()
-        banner_text = render_banner(args, app_config.banner)
-        if banner_text:
-            print(banner_text, end="")
+        setup_logging(args.verbose)
 
-        # Reconstruct sys.argv for CLI
-        sys.argv = ["daily-timer"]
-        if args.team:
-            sys.argv.extend(["--team", args.team])
-        if args.config != "config.json":
-            sys.argv.extend(["--config", args.config])
-        if args.verbose:
-            sys.argv.append("--verbose")
+        banner_renderable = render_banner_renderable_for(args, app_config.banner)
 
-        return cli_main()
+        # Rich Live suppresses output when stdout is not a TTY (transient=True
+        # writes nothing). To keep the banner visible to non-TTY consumers
+        # (CI, subprocess capture, redirected output), print it once up front.
+        # For TTY users, the same renderable is also embedded inside the Live
+        # display so it stays on-screen for the whole meeting at any width.
+        console = Console()
+        if banner_renderable is not None and not console.is_terminal:
+            console.print(banner_renderable)
+
+        teams_dir = Path(app_config.teams.directory)
+        team_repo = TeamRepository(teams_dir=teams_dir)
+        app = CLIApp(
+            config=app_config,
+            team_repo=team_repo,
+            banner_header=banner_renderable,
+            console=console,
+        )
+        return app.run(team_id=args.team)
 
 
 if __name__ == "__main__":

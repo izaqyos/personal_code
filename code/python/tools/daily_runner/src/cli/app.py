@@ -13,7 +13,7 @@ import time
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
-from rich.console import Console, Group
+from rich.console import Console, Group, RenderableType
 from rich.live import Live
 
 from src.cli.commands import Command, KeyboardHandler
@@ -56,6 +56,7 @@ class CLIApp:
         team_repo: TeamRepository,
         keyboard: KeyboardHandler | None = None,
         console: Console | None = None,
+        banner_header: RenderableType | None = None,
     ) -> None:
         """
         Initialize the CLI application.
@@ -65,12 +66,16 @@ class CLIApp:
             team_repo: Team data repository.
             keyboard: Optional keyboard handler (for testing).
             console: Optional Rich console (for testing).
+            banner_header: Optional Rich renderable shown above the timer/queue
+                inside the Live display, so the banner stays visible during the
+                meeting at any terminal width.
         """
         self._config = config
         self._team_repo = team_repo
         self._console = console or Console()
         self._display = CLIDisplay(self._console)
         self._keyboard = keyboard or KeyboardHandler()
+        self._banner_header = banner_header
 
         # Set warning threshold from config
         self._display.set_warning_threshold(
@@ -350,6 +355,10 @@ class CLIApp:
 
         state = self._meeting_manager.state
         components = []
+
+        # Banner header (if provided) — kept visible above the live timer.
+        if self._banner_header is not None:
+            components.append(self._banner_header)
 
         # Header
         team_name = self._team_id or "Unknown"

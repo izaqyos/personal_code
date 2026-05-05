@@ -6,8 +6,9 @@ from dataclasses import dataclass
 from datetime import date
 from io import StringIO
 
-from rich.console import Console
+from rich.console import Console, Group, RenderableType
 from rich.panel import Panel
+from rich.text import Text
 
 from src.banner.cadence import NextEvent
 
@@ -57,7 +58,7 @@ def _capture(renderable: object, width: int) -> str:
     return buf.getvalue()
 
 
-def _render_wide(data: BannerData, width: int) -> str:
+def _wide_panel(data: BannerData, width: int) -> Panel:
     title_parts = []
     if data.sprint_id:
         title_parts.append(f"Sprint {data.sprint_id}")
@@ -80,11 +81,10 @@ def _render_wide(data: BannerData, width: int) -> str:
         lines.append(data.free_text)
 
     body = "\n".join(lines) if lines else " "
-    panel = Panel(body, title=title, border_style="cyan", width=width)
-    return _capture(panel, width)
+    return Panel(body, title=title, border_style="cyan", width=width)
 
 
-def _render_narrow(data: BannerData, width: int) -> str:
+def _narrow_panel(data: BannerData, width: int) -> Panel:
     title_parts = []
     if data.sprint_id:
         title_parts.append(data.sprint_id)
@@ -107,11 +107,10 @@ def _render_narrow(data: BannerData, width: int) -> str:
         lines.append(data.free_text)
 
     body = "\n".join(lines) if lines else " "
-    panel = Panel(body, title=title, border_style="cyan", width=width)
-    return _capture(panel, width)
+    return Panel(body, title=title, border_style="cyan", width=width)
 
 
-def _render_tiny(data: BannerData) -> str:
+def _tiny_renderable(data: BannerData) -> Text:
     parts: list[str] = []
     if data.sprint_id:
         sp = data.sprint_id
@@ -126,25 +125,31 @@ def _render_tiny(data: BannerData) -> str:
         parts.append(_short_countdown_str(data.next_event))
     line = " | ".join(parts)
     if data.free_text:
-        return f"{line}\n{data.free_text}\n" if line else f"{data.free_text}\n"
-    return line + "\n"
+        text_value = f"{line}\n{data.free_text}" if line else data.free_text
+    else:
+        text_value = line
+    return Text(text_value)
+
+
+def render_banner_renderable(data: BannerData, width: int) -> RenderableType:
+    """Return a Rich renderable for the banner. Same width thresholds as render_banner_text."""
+    if width < TINY_THRESHOLD:
+        return _tiny_renderable(data)
+    if width < WIDE_THRESHOLD:
+        return _narrow_panel(data, width)
+    return _wide_panel(data, width)
 
 
 def render_banner_text(data: BannerData, width: int) -> str:
-    if width < TINY_THRESHOLD:
-        return _render_tiny(data)
-    if width < WIDE_THRESHOLD:
-        return _render_narrow(data, width)
-    return _render_wide(data, width)
+    return _capture(render_banner_renderable(data, width), width)
 
 
-def render_error_banner(
+def _error_panel(
     schedule_path: str,
     reason: str,
-    free_text: str | None,
+    kind: str,
     width: int,
-    kind: str = "missing",  # "missing" | "malformed"
-) -> str:
+) -> Panel:
     if kind == "malformed":
         headline = "schedules.json could not be parsed:"
     else:
@@ -162,13 +167,39 @@ def render_error_banner(
         "  3. Or run with --no-banner to suppress",
     ]
     body = "\n".join(line for line in body_lines if line is not None)
-    panel = Panel(
+    return Panel(
         body,
         title="⚠ Banner unavailable",
         border_style="yellow",
         width=max(width, TINY_THRESHOLD),
     )
-    out = _capture(panel, max(width, TINY_THRESHOLD))
+
+
+def render_error_renderable(
+    schedule_path: str,
+    reason: str,
+    free_text: str | None,
+    width: int,
+    kind: str = "missing",  # "missing" | "malformed"
+) -> RenderableType:
+    """Return a Rich renderable (Group of Panel + optional text) for the error banner."""
+    panel = _error_panel(schedule_path, reason, kind, width)
+    if free_text:
+        return Group(panel, Text(free_text))
+    return panel
+
+
+def render_error_banner(
+    schedule_path: str,
+    reason: str,
+    free_text: str | None,
+    width: int,
+    kind: str = "missing",  # "missing" | "malformed"
+) -> str:
+    out = _capture(
+        _error_panel(schedule_path, reason, kind, width),
+        max(width, TINY_THRESHOLD),
+    )
     if free_text:
         out += f"{free_text}\n"
     return out
