@@ -17,6 +17,15 @@ class RotationEntry(BaseModel):
     release_title: str | None = None
 
 
+class SprintWindow(BaseModel):
+    """Explicit sprint window (overrides DR-14 heuristic when present)."""
+
+    model_config = ConfigDict(extra="ignore")
+
+    start: date
+    end: date
+
+
 class Schedules(BaseModel):
     """Top-level schedules.json contents."""
 
@@ -25,3 +34,4 @@ class Schedules(BaseModel):
     team_members: dict[str, str] = Field(default_factory=dict)
     rotation_schedule: dict[str, RotationEntry]
     dod_schedule: dict[date, str] = Field(default_factory=dict)
+    sprints: dict[str, SprintWindow] = Field(default_factory=dict)

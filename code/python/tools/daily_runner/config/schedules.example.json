@@ -15,6 +15,11 @@
     "carol": "UEXAMPLE003",
     "dave": "UEXAMPLE004"
   },
+  "sprints": {
+    "26.Q1.1": {"start": "2026-01-04", "end": "2026-01-24"},
+    "26.Q1.2": {"start": "2026-01-25", "end": "2026-02-14"},
+    "26.Q1.3": {"start": "2026-02-15", "end": "2026-03-07"}
+  },
   "rotation_schedule": {
     "26.Q1.1": {
       "champion": "alice",
