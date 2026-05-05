@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added — Standup Banner
+
+- Opt-in CLI banner showing release-cadence context (sprint, week, champion, DoD, next DR/Prod event) plus optional free-text greeting before standup starts.
+- CLI flags: `-b [VALUE]` (bare or fields-csv or free text), `--banner-fields`, `--banner-text`, `--no-banner`.
+- `--banner-fields` validates tokens against the canonical set (`sprint`, `sprint_week`, `champion`, `dod`, `next_event`); unknowns rejected at parse time.
+- New `banner` section in `config.json`: `enabled`, `schedules_path` (absolute or `~`-prefixed), `default_fields`. `BannerConfig.default_fields` validated against the canonical set.
+- Optional `sprints` section in `schedules.json` provides explicit sprint windows (`{start, end}` per sprint id). Falls back to `DR - 14 days` heuristic when absent.
+- `config/schedules.example.json` ships as anonymized template anchored at 2026-01-01, with example `sprints` block.
+- Width-adaptive rendering: full rich panel ≥80 cols, compact 40-79, plain text <40.
+- Graceful degrade on missing/malformed `schedules.json`: distinct error headlines (`not found at:` vs `could not be parsed:`), actionable Fix instructions, standup proceeds.
+- Manual smoke-test procedure at [docs/MANUAL_TEST_BANNER.md](docs/MANUAL_TEST_BANNER.md) (≤5 min, 9 checks).
+
+### Module structure
+
+New `src/banner/` package: `errors`, `models`, `schedule_loader`, `cadence`, `renderer`, and orchestrator (`__init__.py` exposing `render_banner` and `KNOWN_BANNER_FIELDS`).
+
 ## [1.1.0] - 2026-03-01
 
 ### Added

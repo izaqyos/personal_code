@@ -11,6 +11,9 @@ this project uses [Semantic Versioning](https://semver.org/).
 - Daily Timer menu: `[3] Start Meeting (CLI + Banner + Text)` prompts for free text and shows it under the banner.
 - Renumbered: Web UI is now `[4]`, View History is now `[5]`, View History (Custom Range) is now `[6]`.
 
+### Fixed
+- `[3] CLI + Banner + Text` now invokes `-b --banner-text "$banner_text"` instead of hardcoding `--banner-fields`. The orchestrator decides cadence vs free-text-only from config, so users without `banner.schedules_path` configured get a clean text-only banner instead of a "Banner unavailable" error.
+
 ## [1.1.0] - 2026-04-30
 
 ### Added
