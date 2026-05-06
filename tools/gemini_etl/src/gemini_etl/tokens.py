@@ -14,6 +14,11 @@ class TokenCounter(Protocol):
 
 
 class CachedTokenCounter:
+    """In-memory cached token counter; implements the ``TokenCounter`` Protocol.
+
+    Wraps an underlying ``Callable[[str], int]`` and memoizes its results in a
+    per-instance ``dict``. Cache is keyed by string equality, not identity.
+    """
     def __init__(self, underlying: Callable[[str], int]) -> None:
         self._underlying = underlying
         self._cache: dict[str, int] = {}
@@ -33,6 +38,12 @@ def gemini_token_counter(client: Any, model: str = "gemini-2.5-flash") -> Callab
     """
     def _count(text: str) -> int:
         result = client.models.count_tokens(model=model, contents=text)
-        # google-genai returns an object with .total_tokens (verify per SDK version).
-        return int(getattr(result, "total_tokens", getattr(result, "totalTokens", 0)))
+        for attr in ("total_tokens", "totalTokens"):
+            val = getattr(result, attr, None)
+            if val is not None:
+                return int(val)
+        raise AttributeError(
+            f"count_tokens result has neither 'total_tokens' nor 'totalTokens'; "
+            f"got: {result!r}"
+        )
     return _count
