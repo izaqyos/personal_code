@@ -43,3 +43,7 @@ target-version = "py311"
 [tool.mypy]
 strict = true
 files = ["src"]
+
+[[tool.mypy.overrides]]
+module = "frontmatter"
+ignore_missing_imports = true
