@@ -88,3 +88,51 @@ def test_chunk_text_includes_metadata_header_and_body():
     )
     assert chunks[0].text.startswith("[Source: s]")
     assert "---\nbody only" in chunks[0].text
+
+
+def test_preamble_prose_is_preserved_as_own_chunk():
+    """Intro prose before the first H2 must become a chunk, not be silently dropped."""
+    md = (
+        "# Parent\n"
+        "Intro paragraph.\n"
+        "## Sub A\n" + ("a" * 250) + "\n"
+        "## Sub B\n" + ("b" * 250) + "\n"
+    )
+    chunks = chunk_markdown(
+        text=md, source="s", rel_path="p.md",
+        token_limit=50, count_tokens=_above_threshold_for_long,
+    )
+    # Expected: 3 chunks — the H1 preamble (intro paragraph) and the 2 H2 sections.
+    assert len(chunks) == 3
+    intro = chunks[0]
+    assert "Intro paragraph." in intro.text
+    assert "[Section: # Parent]" in intro.text
+
+
+def test_preamble_only_headers_suppressed():
+    """Preamble that is only header lines (no real prose) should not produce a chunk."""
+    md = (
+        "# Parent\n"
+        "## Sub A\n" + ("a" * 250) + "\n"
+        "## Sub B\n" + ("b" * 250) + "\n"
+    )
+    chunks = chunk_markdown(
+        text=md, source="s", rel_path="p.md",
+        token_limit=50, count_tokens=_above_threshold_for_long,
+    )
+    # Only 2 chunks (the two H2s); the empty H1 preamble is dropped by _has_prose.
+    assert len(chunks) == 2
+
+
+def test_string_tags_coerced_to_single_element_tuple():
+    md = (
+        "---\n"
+        "tags: single-tag\n"
+        "---\n"
+        "body\n"
+    )
+    chunks = chunk_markdown(
+        text=md, source="s", rel_path="p.md",
+        token_limit=10_000, count_tokens=_under_threshold,
+    )
+    assert "[Tags: single-tag]" in chunks[0].text

@@ -32,7 +32,12 @@ def chunk_markdown(
     body = post.content
     title = post.metadata.get("title") if post.metadata else None
     tags_value = post.metadata.get("tags") if post.metadata else None
-    tags = tuple(tags_value) if isinstance(tags_value, (list, tuple)) else ()
+    if isinstance(tags_value, (list, tuple)):
+        tags = tuple(tags_value)
+    elif isinstance(tags_value, str):
+        tags = (tags_value,)
+    else:
+        tags = ()
 
     base_meta = ChunkMetadata(
         source=source, rel_path=rel_path, ext=".md",
@@ -96,9 +101,8 @@ def _split_on_header(body: str, prefix: str) -> list[tuple[str, str]]:
     """Return [(header_line_or_empty, section_body), ...].
 
     The portion before the first matching header (preamble) is returned with
-    an empty header_line.  Preambles that consist only of Markdown header
-    lines (any level) with no prose content are dropped, because they merely
-    echo a parent-level heading that is already captured in *section_path*."""
+    an empty header_line. Section bodies start AFTER the header line — the
+    header is captured in section_path metadata, not duplicated in the body."""
     pattern = re.compile(rf"(?m)^{re.escape(prefix)}.*$")
     matches = list(pattern.finditer(body))
     if not matches:
@@ -111,7 +115,12 @@ def _split_on_header(body: str, prefix: str) -> list[tuple[str, str]]:
             out.append(("", preamble))
     for i, m in enumerate(matches):
         end = matches[i + 1].start() if i + 1 < len(matches) else len(body)
-        out.append((m.group(0).strip(), body[m.start():end]))
+        # Skip the header line and following newline so the body doesn't
+        # duplicate the heading captured in section_path.
+        body_start = m.end()
+        if body_start < len(body) and body[body_start] == "\n":
+            body_start += 1
+        out.append((m.group(0).strip(), body[body_start:end]))
     return out
 
 
