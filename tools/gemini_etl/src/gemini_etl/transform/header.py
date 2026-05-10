@@ -5,6 +5,12 @@ from dataclasses import dataclass
 
 
 @dataclass(frozen=True)
+class Chunk:
+    text: str
+    rel_path: str
+
+
+@dataclass(frozen=True)
 class ChunkMetadata:
     source: str
     rel_path: str

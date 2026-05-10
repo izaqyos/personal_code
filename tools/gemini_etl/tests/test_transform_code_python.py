@@ -1,3 +1,5 @@
+import logging
+
 from gemini_etl.transform.code_python import chunk_python
 
 
@@ -74,3 +76,50 @@ def test_class_body_is_atomic_chunk():
     cls = next(c for c in chunks if "class Foo" in c.text)
     assert "def bar" in cls.text
     assert "def baz" in cls.text
+
+
+def test_non_def_node_between_defs_keeps_source_order():
+    """Module-level statements after a def must remain in source position."""
+    src = (
+        "def first():\n    return 1\n"
+        "\n"
+        "CONSTANT = 42\n"
+        "\n"
+        "def second():\n    return 2\n"
+    )
+    chunks = chunk_python(
+        text=src, source="personal_code", rel_path="m.py",
+        token_limit=1, count_tokens=_always_above,
+    )
+    bodies = [c.text for c in chunks]
+    # Order: first(), CONSTANT, second()
+    first_idx = next(i for i, b in enumerate(bodies) if "def first" in b)
+    const_idx = next(i for i, b in enumerate(bodies) if "CONSTANT = 42" in b)
+    second_idx = next(i for i, b in enumerate(bodies) if "def second" in b)
+    assert first_idx < const_idx < second_idx
+
+
+def test_oversize_def_logged_and_emitted_intact(caplog):
+    """A single def larger than token_limit gets a warning but is still emitted as one chunk."""
+    src = "def huge():\n" + ("    x = 1\n" * 50)
+
+    def _huge_only(t: str) -> int:
+        return 999_999 if "x = 1" in t else 1
+
+    with caplog.at_level(logging.WARNING):
+        chunks = chunk_python(
+            text=src, source="personal_code", rel_path="m.py",
+            token_limit=10, count_tokens=_huge_only,
+        )
+
+    assert len(chunks) == 1
+    assert "oversize def" in caplog.text
+
+
+def test_empty_file_returns_no_chunks_when_oversize():
+    """Empty input under the oversize branch returns []."""
+    chunks = chunk_python(
+        text="", source="personal_code", rel_path="m.py",
+        token_limit=1, count_tokens=_always_above,
+    )
+    assert chunks == []

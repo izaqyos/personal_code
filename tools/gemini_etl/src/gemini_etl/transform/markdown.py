@@ -3,18 +3,11 @@ from __future__ import annotations
 
 import dataclasses
 import re
-from dataclasses import dataclass
 from typing import Callable
 
 import frontmatter
 
-from gemini_etl.transform.header import ChunkMetadata, build_header
-
-
-@dataclass(frozen=True)
-class Chunk:
-    text: str
-    rel_path: str
+from gemini_etl.transform.header import Chunk, ChunkMetadata, build_header
 
 
 _HEADER_LEVELS = ("# ", "## ", "### ")
