@@ -6,7 +6,10 @@ from typing import Callable
 
 from gemini_etl.transform.header import Chunk, ChunkMetadata, build_header
 
-# Heuristics: per-extension top-level definition starters.
+# Heuristics: per-extension top-level definition starters. These are
+# best-effort and will over-split (e.g. JS `const X = ...` for every module
+# constant) or under-split (e.g. multi-line C return types) on real code.
+# Cost is a few extra chunks; never lost content.
 _PATTERNS: dict[str, re.Pattern[str]] = {
     ".js": re.compile(
         r"^(export\s+)?(async\s+)?(function\s+\w+|class\s+\w+|const\s+\w+\s*=)",
@@ -16,12 +19,23 @@ _PATTERNS: dict[str, re.Pattern[str]] = {
         r"^(export\s+)?(async\s+)?(function\s+\w+|class\s+\w+|const\s+\w+\s*=)",
         re.MULTILINE,
     ),
-    ".c":   re.compile(r"^[\w\s\*]+\w+\s*\([^)]*\)\s*\{", re.MULTILINE),
-    ".cpp": re.compile(r"^([\w\s\*]+\w+\s*\([^)]*\)\s*\{|class\s+\w+)", re.MULTILINE),
-    ".h":   re.compile(r"^([\w\s\*]+\w+\s*\([^)]*\)\s*[\{;]|class\s+\w+)", re.MULTILINE),
+    ".c":   re.compile(
+        r"^(?!for\b|if\b|while\b|switch\b|do\b|return\b)[\w\s\*]+\w+\s*\([^)]*\)\s*\{",
+        re.MULTILINE,
+    ),
+    ".cpp": re.compile(
+        r"^((?!for\b|if\b|while\b|switch\b|do\b|return\b)[\w\s\*]+\w+\s*\([^)]*\)\s*\{|class\s+\w+)",
+        re.MULTILINE,
+    ),
+    ".h":   re.compile(
+        r"^((?!for\b|if\b|while\b|switch\b|do\b|return\b)[\w\s\*]+\w+\s*\([^)]*\)\s*[\{;]|class\s+\w+)",
+        re.MULTILINE,
+    ),
     ".bash": re.compile(r"^(function\s+\w+|\w+\s*\(\)\s*\{)", re.MULTILINE),
 }
 
+# 10 % overlap — retains boundary context for RAG retrieval without
+# materially doubling the chunk count.
 _OVERLAP_RATIO = 0.10
 
 
@@ -42,12 +56,16 @@ def chunk_generic(
         return _window_chunks(text, source, rel_path, ext, token_limit, count_tokens)
 
     sections = _split_on_pattern(text, pattern)
+    # When the regex genuinely couldn't split (one section), we fall back to
+    # a token-windowed split. When it DID split, we keep each section whole
+    # even if oversized — preserving the semantic boundary is more valuable
+    # for RAG retrieval than rigid size compliance.
+    only_one_section = len(sections) == 1
     chunks: list[Chunk] = []
     for body in sections:
         if not body.strip():
             continue
-        if count_tokens(body) > token_limit and len(sections) == 1:
-            # Regex couldn't split at all — fall back to token window.
+        if only_one_section and count_tokens(body) > token_limit:
             chunks.extend(
                 _window_chunks(body, source, rel_path, ext, token_limit, count_tokens)
             )
