@@ -1,11 +1,12 @@
 #!/bin/bash
-# Test suite for launcher.sh formatting and alignment functions
-# Run with: bash test_launcher_formatting.sh
+# Test suite for launcher.sh formatting and alignment helpers.
+# Run with: bash test_formatting.sh
 
 set -e
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "$SCRIPT_DIR/launcher.sh" 2>/dev/null || true
+TESTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+LAUNCHER="$TESTS_DIR/../launcher.sh"
+source "$LAUNCHER" 2>/dev/null || true
 
 # Test counters
 TESTS_RUN=0
@@ -267,12 +268,17 @@ while IFS= read -r line; do
     fi
     stripped=$(echo "$line" | sed 's/\x1b\[[0-9;]*[a-zA-Z]//g')
     len=${#stripped}
-    
+
+    # Skip lines that strip to empty (e.g. clear_screen ANSI-only output)
+    if [ "$len" -eq 0 ]; then
+        continue
+    fi
+
     # Skip the prompt line (doesn't need to be 140)
     if [[ "$stripped" == *"Enter your choice"* ]]; then
         continue
     fi
-    
+
     if [ "$len" -ne 140 ]; then
         all_lines_correct=false
         ((wrong_lines++))
