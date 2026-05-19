@@ -103,6 +103,9 @@ $RECYCLE.BIN/
 # Cursor
 .cursor/
 
+# Claude Code
+.claude/
+
 # JetBrains (IntelliJ, WebStorm, PyCharm, etc.)
 .idea/
 *.iml
