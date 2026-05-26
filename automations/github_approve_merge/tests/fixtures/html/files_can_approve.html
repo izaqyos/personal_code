@@ -1,0 +1,12 @@
+<!doctype html>
+<html><head>
+  <title>Files — can approve</title>
+  <meta name="user-login" content="reviewer-bot">
+</head><body>
+  <form action="/owner/repo/pull/1/reviews">
+    <input type="radio" name="pull_request_review[event]" value="approve">
+    <input type="radio" name="pull_request_review[event]" value="request_changes">
+    <input type="radio" name="pull_request_review[event]" value="comment">
+    <button type="submit">Submit review</button>
+  </form>
+</body></html>
