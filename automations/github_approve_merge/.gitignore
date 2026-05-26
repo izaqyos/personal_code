@@ -1,0 +1,16 @@
+# Runtime artifacts
+logs/
+storage_state.json
+
+# Brainstorm scratchpad (superseded by docs/superpowers/specs/)
+.brainstorm/
+
+# Python
+.venv/
+__pycache__/
+*.egg-info/
+.pytest_cache/
+.coverage
+
+# OS / editor
+.DS_Store
