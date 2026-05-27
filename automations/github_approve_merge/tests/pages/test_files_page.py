@@ -29,8 +29,8 @@ async def test_submit_review_locator_resolves(page, fixture_url):
 async def test_select_approve_then_submit_succeeds_against_fixture(page, fixture_url):
     # No backend, so this just verifies the method completes without raising:
     # the radio is selected and the submit button is clicked.
+    # The fixture uses type="button" on the submit so the form doesn't navigate.
     await page.goto(fixture_url("files_can_approve.html"))
     fp = FilesPage(page)
-    # Check the radio before submit (the form submission will navigate away)
-    await fp.approve_radio().check()
+    await fp.select_approve_and_submit()
     assert await fp.approve_radio().is_checked()
