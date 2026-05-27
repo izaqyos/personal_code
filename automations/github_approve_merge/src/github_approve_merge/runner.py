@@ -50,14 +50,14 @@ class Runner:
 
         # Queue every PR up front so a SIGINT before the first one still leaves a record.
         for pr in prs:
-            if str(pr) in completed_on_resume:
+            if self.ctx.pr_token(pr) in completed_on_resume:
                 continue
             self._append_state(pr, "queued")
 
         interrupted = False
         results: list[tuple[PRRef, ProcessResult]] = []
         for pr in prs:
-            slug = str(pr)
+            slug = self.ctx.pr_token(pr)
             if slug in completed_on_resume:
                 _log.info("resume: skipping already-done PR", extra={"pr": slug, "step": "resume"})
                 continue
@@ -86,7 +86,7 @@ class Runner:
 
     def _append_state(self, pr: PRRef, status: str, *, duration_ms: int = 0,
                       error_message: str = "") -> None:
-        record = {"ts": _utcnow_iso(), "pr": str(pr), "status": status}
+        record = {"ts": _utcnow_iso(), "pr": self.ctx.pr_token(pr), "status": status}
         if duration_ms:
             record["duration_ms"] = duration_ms
         if error_message:
@@ -146,7 +146,7 @@ class Runner:
             "exit_code": exit_code,
             "counts": {"done": counts["done"], "skipped": counts["skipped"], "failed": counts["failed"]},
             "prs": [
-                {"pr": str(pr), "status": r.status, "duration_ms": r.duration_ms}
+                {"pr": self.ctx.pr_token(pr), "status": r.status, "duration_ms": r.duration_ms}
                 for pr, r in results
             ],
         }

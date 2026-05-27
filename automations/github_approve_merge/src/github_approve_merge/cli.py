@@ -64,6 +64,9 @@ def build_parser() -> argparse.ArgumentParser:
     verbosity = run.add_mutually_exclusive_group()
     verbosity.add_argument("--verbose", action="store_true")
     verbosity.add_argument("--quiet", action="store_true")
+    run.add_argument("--redact-logs", action="store_true",
+                     help="Hash PR slugs in run.jsonl/state.jsonl/summary.json so "
+                          "the logs/<run_id>/ dir can be shared externally.")
 
     # gc
     gc = sub.add_parser("gc", help="Run the retention sweep without doing anything else.")
@@ -138,7 +141,7 @@ def _cmd_run(args) -> int:
 
     run_id = args.resume or args.run_id or generate_run_id()
     run_dir = args.logs_dir / run_id
-    ctx = RunContext(run_id=run_id, run_dir=run_dir)
+    ctx = RunContext(run_id=run_id, run_dir=run_dir, redact_logs=args.redact_logs)
     logger = make_run_logger(ctx, verbose=args.verbose, quiet=args.quiet)
 
     if not args.dry_run:

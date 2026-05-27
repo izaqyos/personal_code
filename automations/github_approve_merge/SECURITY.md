@@ -23,6 +23,16 @@ This document is the operating manual for keeping that data inside your machine.
 4. **Treat `storage_state.json` as a credential.** Don't commit it, don't paste it, don't sync it to cloud storage. If you suspect it leaked, revoke your GitHub session at https://github.com/settings/sessions and run `auth login` again.
 5. **Refreshing fixtures may capture real repo HTML.** `scripts/refresh_fixtures.py` sanitizes by default (see its `--no-sanitize` flag if you want to skip). Always review the resulting `tests/fixtures/html/*.html` before committing — search for any organization-specific strings and replace with the standard placeholders (`acme-org`, `widgets-service`, `api-gateway`).
 
+### What `--redact-logs` does and does not redact
+
+| Artifact | With `--redact-logs` |
+| --- | --- |
+| `state.jsonl` | `pr` field is hashed (`redacted-<12hex>`); status is kept as-is |
+| `summary.json` | each `prs[i].pr` is hashed |
+| `run.jsonl` | the `pr` field on every log event is hashed |
+| `screenshots/*.png` | **not redacted** — full-page captures still exist with raw repo names in their filenames. Delete or move screenshots manually before sharing. |
+| stdout (terminal) | **not redacted** — the live summary table still prints raw PR slugs. Use `--quiet` if you need a silent run. |
+
 ## Pre-commit guard
 
 `scripts/check_no_org_leaks.sh` (run automatically by the git pre-commit hook
