@@ -96,3 +96,27 @@ class TestMakeRunLogger:
         assert payload["msg"] == "hello world"
         assert payload["step"] == "boot"
         assert payload["run_id"] == "20260526-143012-7af3"
+
+
+class TestRedactPrToken:
+    def test_no_redaction_when_disabled(self):
+        ctx = RunContext(run_id="rid", run_dir=Path("/tmp/x"), redact_logs=False)
+        assert ctx.pr_token("acme-org/widgets-service#1") == "acme-org/widgets-service#1"
+
+    def test_redaction_produces_stable_hash(self):
+        ctx = RunContext(run_id="rid", run_dir=Path("/tmp/x"), redact_logs=True)
+        token = ctx.pr_token("acme-org/widgets-service#1")
+        assert token.startswith("redacted-")
+        assert len(token) == len("redacted-") + 12
+
+    def test_redaction_is_deterministic(self):
+        ctx = RunContext(run_id="rid", run_dir=Path("/tmp/x"), redact_logs=True)
+        a = ctx.pr_token("acme-org/widgets-service#1")
+        b = ctx.pr_token("acme-org/widgets-service#1")
+        assert a == b
+
+    def test_different_inputs_different_tokens(self):
+        ctx = RunContext(run_id="rid", run_dir=Path("/tmp/x"), redact_logs=True)
+        a = ctx.pr_token("acme-org/widgets-service#1")
+        b = ctx.pr_token("acme-org/widgets-service#2")
+        assert a != b

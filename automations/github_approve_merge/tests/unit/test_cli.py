@@ -51,6 +51,15 @@ class TestArgs:
         assert ns.subcommand == "auth"
         assert ns.auth_subcommand == "login"
 
+    def test_redact_logs_flag_parses(self):
+        ns = build_parser().parse_args(["run", "https://github.com/acme-org/widgets-service/pull/1",
+                                        "--redact-logs"])
+        assert ns.redact_logs is True
+
+    def test_redact_logs_default_off(self):
+        ns = build_parser().parse_args(["run", "https://github.com/acme-org/widgets-service/pull/1"])
+        assert ns.redact_logs is False
+
 
 class TestRunWiring:
     def test_run_invokes_runner_with_resolved_inputs(self, tmp_path: Path, monkeypatch, capsys):

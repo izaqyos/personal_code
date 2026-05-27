@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import logging
 import sys
@@ -30,6 +31,19 @@ class RunContext:
     run_dir: Path
     authenticated_login: str | None = None
     screenshot_counters: dict[str, int] = field(default_factory=dict)
+    redact_logs: bool = False
+
+    def pr_token(self, pr) -> str:
+        """Return the value to write as the `pr` field in log artifacts.
+
+        With redact_logs=False (default), returns str(pr) — the PR slug owner/repo#N.
+        With redact_logs=True, returns a stable 12-char hash so the run dir can be
+        shared externally without exposing repo names.
+        """
+        s = str(pr)
+        if not self.redact_logs:
+            return s
+        return f"redacted-{hashlib.sha256(s.encode()).hexdigest()[:12]}"
 
 
 class JSONFormatter(logging.Formatter):
@@ -102,6 +116,10 @@ class _ContextFilter(logging.Filter):
     def filter(self, record: logging.LogRecord) -> bool:
         if not hasattr(record, "run_id"):
             record.run_id = self.ctx.run_id
+        if self.ctx.redact_logs:
+            pr = getattr(record, "pr", None)
+            if pr is not None:
+                record.pr = self.ctx.pr_token(pr)
         return True
 
 

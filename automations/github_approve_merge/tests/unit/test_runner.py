@@ -131,3 +131,35 @@ async def test_signal_marks_current_as_interrupted(tmp_path: Path):
     transitions = _read_state(run_dir)
     pr2_terminal = [t for t in transitions if t["pr"] == "o/r#2" and t["status"].startswith("failed")]
     assert pr2_terminal and pr2_terminal[-1]["status"] == "failed-interrupted"
+
+
+@pytest.mark.asyncio
+async def test_redact_logs_hashes_pr_in_state_jsonl(tmp_path: Path):
+    """With redact_logs=True, state.jsonl and summary.json contain hashes, not raw slugs."""
+    from github_approve_merge.logging_setup import RunContext
+
+    ctx = RunContext(
+        run_id="20260526-143012-aaaa",
+        run_dir=tmp_path / "20260526-143012-aaaa",
+        redact_logs=True,
+    )
+
+    async def fake_process(_ctx, pr, **_kwargs):
+        return ProcessResult(status="done")
+
+    runner = Runner(
+        logs_dir=tmp_path,
+        run_id="20260526-143012-aaaa",
+        process_pr_fn=fake_process,
+        ctx=ctx,
+    )
+    exit_code = await runner.execute([PR1])
+    assert exit_code == 0
+
+    state_lines = (tmp_path / "20260526-143012-aaaa" / "state.jsonl").read_text()
+    summary = json.loads((tmp_path / "20260526-143012-aaaa" / "summary.json").read_text())
+    # No raw slug anywhere.
+    assert "o/r#1" not in state_lines
+    assert "o/r#1" not in (tmp_path / "20260526-143012-aaaa" / "summary.json").read_text()
+    assert "redacted-" in state_lines
+    assert summary["prs"][0]["pr"].startswith("redacted-")
