@@ -22,10 +22,12 @@ PATTERNS=(
   'CheckPoint'
 )
 
-# Files to skip (intentional metadata about the guard itself).
+# Files to skip (intentional metadata about the guard itself, or scripts that
+# must embed the same pattern list in order to perform runtime leak-checking).
 SKIP_BASENAMES=(
   'check_no_org_leaks.sh'
   'SECURITY.md'
+  'refresh_fixtures.py'
 )
 
 if [[ "${1:-}" == "--all" ]]; then
