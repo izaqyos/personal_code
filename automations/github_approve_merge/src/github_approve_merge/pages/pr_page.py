@@ -64,3 +64,8 @@ class PRPage:
             return None
         text = await el.first.text_content()
         return text.strip() if text else None
+
+    async def detect_state(self, *, me: str | None):
+        # Delegates to the module-level function for testability.
+        from github_approve_merge.pr_state import detect_state as _ds
+        return await _ds(self.page, me=me)
