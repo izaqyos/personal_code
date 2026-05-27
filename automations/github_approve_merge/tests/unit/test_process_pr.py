@@ -173,3 +173,31 @@ async def test_unexpected_exception_yields_failed_exception(ctx):
 
 async def _noop_capture(_pr_page, _ctx, _pr, _label):
     return None
+
+
+@pytest.mark.asyncio
+async def test_dry_run_already_approved_returns_skipped_merged(ctx):
+    """OPEN_APPROVABLE + ALREADY_APPROVED in dry-run should report skipped-merged,
+    not failed-exception (would have merged via the bypass-approve path)."""
+    pr_page = FakePRPage([(PRState.OPEN_APPROVABLE, {StateFlag.ALREADY_APPROVED})])
+    fp = FakeFilesPage()
+    result = await process_pr(ctx, PR, pr_page=pr_page, files_page=fp,
+                              capture=_noop_capture, dry_run=True)
+    assert result.status == "skipped-merged"
+    assert not pr_page.merge_clicked
+    assert not fp.approve_submitted
+
+
+@pytest.mark.asyncio
+async def test_conflict_takes_error_screenshot(ctx):
+    captured_labels: list[str] = []
+
+    async def recording_capture(_pp, _ctx, _pr, label):
+        captured_labels.append(label)
+        return None
+
+    pr_page = FakePRPage([(PRState.CONFLICT, set())])
+    result = await process_pr(ctx, PR, pr_page=pr_page, files_page=FakeFilesPage(),
+                              capture=recording_capture)
+    assert result.status == "failed-conflict"
+    assert "error-conflict" in captured_labels
