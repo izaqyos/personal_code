@@ -121,3 +121,11 @@ PYTEST_LIVE=1 LIVE_TEST_PR_URL=https://... uv run pytest tests/live
 ```
 
 See `docs/superpowers/specs/2026-05-26-github-approve-merge-design.md` for the full design.
+
+## Security
+
+See [SECURITY.md](SECURITY.md) for the data-handling rules. Highlights:
+
+- `storage_state.json` is a credential. Treat accordingly.
+- `logs/` and screenshots contain repo content. Don't share externally without redaction.
+- Install the pre-commit guard once: `ln -s ../../scripts/check_no_org_leaks.sh .git/hooks/pre-commit` (run from project root).
