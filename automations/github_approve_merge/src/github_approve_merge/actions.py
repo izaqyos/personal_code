@@ -116,7 +116,10 @@ async def process_pr(
         state, flags = await pr_page.detect_state(me=ctx.authenticated_login)
 
         if state in _TERMINAL_STATES:
-            return _result(_STATE_TO_TERMINAL_STATUS[state], started)
+            status = _STATE_TO_TERMINAL_STATUS[state]
+            if status.startswith("failed-"):
+                await capture(pr_page, ctx, pr, f"error-{status.removeprefix('failed-')}")
+            return _result(status, started)
 
         if dry_run:
             return _result(_dry_run_status_for(state, flags), started)
@@ -128,7 +131,10 @@ async def process_pr(
             await pr_page.goto(pr)
             state, flags = await pr_page.detect_state(me=ctx.authenticated_login)
             if state in _TERMINAL_STATES:
-                return _result(_STATE_TO_TERMINAL_STATUS[state], started)
+                status = _STATE_TO_TERMINAL_STATUS[state]
+                if status.startswith("failed-"):
+                    await capture(pr_page, ctx, pr, f"error-{status.removeprefix('failed-')}")
+                return _result(status, started)
             if state is PRState.OPEN_APPROVABLE:
                 return _result("skipped-needs-more-approvals", started)
 
@@ -158,10 +164,8 @@ def _elapsed(started: float) -> int:
     return int((time.monotonic() - started) * 1000)
 
 
-def _dry_run_status_for(state: PRState, flags: set[StateFlag]) -> str:
+def _dry_run_status_for(state: PRState, _flags: set[StateFlag]) -> str:
     """In dry-run return what the action WOULD have ended in."""
-    if state is PRState.OPEN_APPROVABLE and StateFlag.ALREADY_APPROVED not in flags:
-        return "skipped-merged"
-    if state in (PRState.OPEN_MERGEABLE, PRState.REQUIRED_PENDING):
+    if state in (PRState.OPEN_APPROVABLE, PRState.OPEN_MERGEABLE, PRState.REQUIRED_PENDING):
         return "skipped-merged"
     return _STATE_TO_TERMINAL_STATUS.get(state, "failed-exception")

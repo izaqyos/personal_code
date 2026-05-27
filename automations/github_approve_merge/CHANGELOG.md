@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-05-27
+
 ### Added
 
 - `auth login` / `auth status` / `run` / `gc` subcommands.
@@ -19,7 +21,3 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `--resume <id>` to retry an interrupted batch; idempotency safety net re-checks GitHub state.
 - Three-tier test suite: unit (pure logic), Page Object tests against HTML fixtures, opt-in live smoke (`PYTEST_LIVE=1`).
 - `scripts/refresh_fixtures.py` helper for re-snapshotting HTML fixtures after GitHub UI changes.
-
-## [0.1.0] - 2026-05-26
-
-Initial scaffold.
