@@ -1,0 +1,25 @@
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [Unreleased]
+
+### Added
+
+- `auth login` / `auth status` / `run` / `gc` subcommands.
+- Batch approve + merge of GitHub PRs via Playwright.
+- "Merge when ready" auto-merge when required checks are pending.
+- PR-state classifier: MERGED / CLOSED / DRAFT / LOCKED / SELF_AUTHORED / CONFLICT / REQUIRED_FAILING / REQUIRED_PENDING / OPEN_MERGEABLE / OPEN_APPROVABLE plus the ALREADY_APPROVED flag.
+- JSONL run log (`run.jsonl`) and per-PR state file (`state.jsonl`).
+- Checkpoint screenshots (after-load, after-approve-submit, before-merge-click, after-merge) plus on-failure screenshots.
+- 10-day lazy-delete retention sweep on every `run`, also runnable via `gc`.
+- `--resume <id>` to retry an interrupted batch; idempotency safety net re-checks GitHub state.
+- Three-tier test suite: unit (pure logic), Page Object tests against HTML fixtures, opt-in live smoke (`PYTEST_LIVE=1`).
+- `scripts/refresh_fixtures.py` helper for re-snapshotting HTML fixtures after GitHub UI changes.
+
+## [0.1.0] - 2026-05-26
+
+Initial scaffold.
