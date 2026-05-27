@@ -111,6 +111,8 @@ def make_run_logger(ctx: RunContext, *, verbose: bool, quiet: bool) -> logging.L
     # Reset handlers on re-init so tests can call this repeatedly.
     for h in list(logger.handlers):
         logger.removeHandler(h)
+    for f in list(logger.filters):
+        logger.removeFilter(f)
     logger.setLevel(logging.DEBUG)
     logger.propagate = False
 
