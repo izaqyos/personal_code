@@ -18,6 +18,10 @@ class PRPage:
         url = f"https://github.com/{pr.owner}/{pr.repo}/pull/{pr.number}"
         await self.page.goto(url, wait_until="domcontentloaded")
 
+    async def screenshot(self, **kwargs) -> None:
+        # Delegated so screenshots.capture(pr_page, ...) can treat PRPage like a Page.
+        await self.page.screenshot(**kwargs)
+
     # --- Locators (no clicks; used by tests and by action methods) ---------
 
     def merge_button(self) -> Locator:

@@ -3,6 +3,7 @@ from pathlib import Path
 import pytest
 
 from github_approve_merge.logging_setup import RunContext
+from github_approve_merge.pages.pr_page import PRPage
 from github_approve_merge.screenshots import capture
 from github_approve_merge.url import PRRef
 
@@ -31,6 +32,20 @@ async def test_capture_error_skips_counter(page, fixture_url, tmp_path: Path):
     p = await capture(page, ctx, pr, "error-conflict-detected")
     assert p == Path("screenshots/o__r__1__error-conflict-detected.png")
     assert (tmp_path / p).exists()
+
+
+@pytest.mark.asyncio
+async def test_capture_accepts_pr_page_wrapper(page, fixture_url, tmp_path: Path):
+    # Regression: actions.py passes PRPage (not raw Page) to capture(); this used to fail
+    # with "'PRPage' object has no attribute 'screenshot'" during real runs.
+    ctx = RunContext(run_id="rid", run_dir=tmp_path)
+    pr = PRRef("o", "r", 7)
+    await page.goto(fixture_url("pr_mergeable.html"))
+
+    result = await capture(PRPage(page), ctx, pr, "after-load")
+
+    assert result == Path("screenshots/o__r__7__01-after-load.png")
+    assert (tmp_path / result).exists()
 
 
 @pytest.mark.asyncio
