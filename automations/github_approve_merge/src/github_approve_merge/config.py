@@ -1,13 +1,11 @@
 from __future__ import annotations
 
-import os
 import re
 import secrets
 from datetime import datetime, timezone
 from pathlib import Path
 
 DEFAULT_RETENTION_DAYS = 10
-DEFAULT_TIMEOUT_SECONDS = 30
 
 RUN_ID_PATTERN = re.compile(r"^\d{8}-\d{6}-[a-f0-9]{4}$")
 
@@ -15,16 +13,6 @@ RUN_ID_PATTERN = re.compile(r"^\d{8}-\d{6}-[a-f0-9]{4}$")
 def default_logs_dir() -> Path:
     """`./logs` relative to the current working directory."""
     return Path.cwd() / "logs"
-
-
-def default_storage_state_path() -> Path:
-    """XDG-style location for the persisted browser session.
-
-    Honours `$XDG_CONFIG_HOME` if set, otherwise `~/.config`.
-    """
-    xdg = os.environ.get("XDG_CONFIG_HOME")
-    base = Path(xdg) if xdg else Path.home() / ".config"
-    return base / "github_approve_merge" / "storage_state.json"
 
 
 def generate_run_id() -> str:
