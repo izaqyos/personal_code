@@ -1,77 +1,86 @@
 # github_approve_merge
 
-Approve and merge a batch of GitHub PRs from the command line, driven by a
-real browser via Playwright. Logs every step, captures screenshots, and
-survives interruption.
+Approve and merge a batch of GitHub PRs from the command line, driven by the
+GitHub CLI (`gh`). Auto-detects merge queues, gates every merge behind an
+explicit confirmation, logs every step, and survives interruption.
 
 ## Install
 
-Requires Python 3.12. Recommended: install with `uv`.
+Requires Python 3.12 and the [GitHub CLI](https://cli.github.com/). Recommended: install with `uv`.
 
 ```bash
 uv venv
 uv pip install -e .
-uv run playwright install chromium
 ```
 
-Or with `pipx`:
+## Prerequisite: gh auth (SSO-authorized)
+
+This tool uses your existing `gh` login — no separate browser session, no stored
+credentials of its own.
 
 ```bash
-pipx install -e .
-playwright install chromium
+gh auth login            # once; complete SSO authorization for the org in your browser
+gh-approve-merge doctor  # checks gh is installed, logged in, and SSO-authorized
 ```
 
-## One-time login
+If the org uses SAML SSO, the token must be authorized for it (GitHub prompts you
+in the browser the first time, or via `gh auth refresh`). `doctor` tells you if
+something's missing.
+
+## Verbs
 
 ```bash
-gh-approve-merge auth login
+gh-approve-merge approve URLS...   # approve only (no merge)
+gh-approve-merge merge   URLS...   # merge only (gated; no approve)
+gh-approve-merge run     URLS...   # approve + merge (gated)
 ```
 
-This opens a real Chromium window. Sign in to github.com (SSO/2FA all work).
-The session is saved to `~/.config/github_approve_merge/storage_state.json`
-with mode `0600`. **Treat this file like a credential** — it grants
-PR-merging power on your account.
-
-Check it exists later:
+Pass URLs as args, via `--file`, or piped on stdin:
 
 ```bash
-gh-approve-merge auth status
-```
-
-## Approve + merge PRs
-
-Pass URLs as args, via a file, or piped on stdin:
-
-```bash
-# Args
 gh-approve-merge run \
   https://github.com/acme-org/widgets-service/pull/561 \
   https://github.com/acme-org/api-gateway/pull/101
 
-# File
 gh-approve-merge run --file ~/prs.txt
-
-# Pipe
-gh pr list --json url -q '.[].url' | gh-approve-merge run
+gh pr list --json url -q '.[].url' | gh-approve-merge merge
 ```
 
-A `urls.txt` file looks like:
+## The merge gate
+
+`merge` and `run` **never merge without your confirmation.** They classify every
+PR, print a plan table, and wait:
 
 ```
-# Comments and blank lines OK
-https://github.com/owner/repo/pull/1
-https://github.com/owner/repo/pull/2
+Merge plan:
+  acme-org/widgets-service#561    OPEN_MERGEABLE    enqueue (merge queue)
+  acme-org/api-gateway#101        OPEN_APPROVABLE   approve → direct merge
+Proceed with merge for 2 PR(s)? [y/N]:
 ```
+
+- `--yes` skips the gate (for scripts/cron).
+- `--confirm-each` asks per PR instead of one batch prompt.
+- `--dry-run` prints the plan and exits — no approve, no merge, no gate.
+
+The gate is independent of review verdict: an unapproved PR still appears in the
+plan with its intended action; you decide.
 
 ## What it does, per PR
 
-1. Loads the PR page.
-2. Inspects the state. If merged / closed / draft / locked / conflict / required-check failing / your own PR — records the result and moves on.
-3. If approval is needed (and you haven't already approved): goes to the Files-changed tab, picks "Approve", submits.
-4. Goes back to the PR.
-5. If required checks are still pending, clicks "Merge when ready" (auto-merge). Otherwise clicks the primary "Merge" button, then "Confirm".
+1. Reads the PR via `gh` and classifies it from structured fields (state, draft,
+   locked, mergeable, mergeStateStatus, reviewDecision, author).
+2. Terminal states (merged / closed / draft / locked / conflict / required-check
+   failing / your own PR) are recorded and skipped.
+3. If approval is needed (and `approve`/`run`, and you haven't already approved),
+   submits an approval, then re-classifies.
+4. Picks the merge action automatically: **enqueue** if the repo uses a merge
+   queue, else **direct merge** if mergeable now, else **enable auto-merge** if
+   checks are still pending.
+5. Executes only after the gate is satisfied.
 
-It never opens the merge-method dropdown — whatever GitHub pre-selects (your repo default) is what gets used.
+Direct merges use `--merge-method` (default `merge`; `squash`/`rebase` available),
+falling back to an allowed method if the repo disallows the chosen one. Merge-queue
+repos ignore the method — the queue decides.
 
 ## Where artifacts land
 
@@ -79,53 +88,53 @@ It never opens the merge-method dropdown — whatever GitHub pre-selects (your r
 ./logs/<YYYYMMDD-HHMMSS-rand4>/
   run.jsonl         # every log event
   state.jsonl       # per-PR status transitions
-  summary.json      # final summary (also written on Ctrl-C)
-  screenshots/      # 4 checkpoints per PR + one on each failure
+  summary.json      # final summary
 ```
 
-Old run dirs are deleted lazily on every `run` (default: keep 10 days).
-Override with `--retention-days N`, or run the sweep alone with
-`gh-approve-merge gc`.
+Old run dirs are deleted lazily on every run (default: keep 10 days). Override
+with `--retention-days N`, or run the sweep alone with `gh-approve-merge gc`.
 
 ## Resume after Ctrl-C / crash
 
 ```bash
-gh-approve-merge run --resume 20260526-143012-7af3
+gh-approve-merge run --resume 20260601-143012-7af3
 ```
 
-The resumed run skips any PR whose latest status is `done` or `skipped-*`.
-Each PR is also re-classified against GitHub before action, so a stale
-state file cannot cause double-action.
+Skips any PR whose latest status is `done`, `queued`, or `skipped-*`. Each PR is
+re-classified against GitHub before action, so a stale state file can't cause
+double-action.
 
 ## Exit codes
 
 | Code | Meaning |
 |---|---|
-| 0 | Every PR ended `done` or `skipped-merged` (success-class). |
-| 1 | Any PR ended in a warn-class skip (closed/draft/self/needs-more-approvals) or a failure. |
+| 0 | Every PR ended `done`, `queued`, `skipped-merged`, or (in `--dry-run`) `would-merge` (success-class). |
+| 1 | Any PR ended in a warn-class skip (closed/draft/self/needs-more-approvals/cancelled) or a failure. |
 | 2 | Usage / configuration error before any PR was touched. |
 | 130 | Interrupted (SIGINT / SIGTERM). |
 
 ## Troubleshooting
 
-- **`storage_state not found`** — run `gh-approve-merge auth login`.
-- **Selector resolution failed in CI** — GitHub redesigned a widget. Refresh fixtures with `python scripts/refresh_fixtures.py <name>.html <url>` and update the affected selector in `src/github_approve_merge/pages/selectors.py`.
+- **`gh not ready` / `failed-auth`** — run `gh auth login` and authorize the token
+  for the org's SSO. Verify with `gh-approve-merge doctor`.
+- **`failed-not-found`** — wrong owner/repo/number, or the token can't see the repo.
 - **Re-running a failed batch** — `gh-approve-merge run --resume <run-id>`.
 
 ## Development
 
 ```bash
-uv pip install -e ".[dev]"
-uv run pytest                       # unit + page-object tests
-PYTEST_LIVE=1 LIVE_TEST_PR_URL=https://... uv run pytest tests/live
+uv sync --extra dev
+uv run pytest                # unit tests (fake gh runner; no network)
+PYTEST_LIVE=1 uv run pytest tests/live    # read-only live smoke against a real PR
 ```
 
-See `docs/superpowers/specs/2026-05-26-github-approve-merge-design.md` for the full design.
+See `docs/superpowers/specs/2026-06-01-github-approve-merge-api-backend-design.md` for the design.
 
 ## Security
 
 See [SECURITY.md](SECURITY.md) for the data-handling rules. Highlights:
 
-- `storage_state.json` is a credential. Treat accordingly.
-- `logs/` and screenshots contain repo content. Don't share externally without redaction.
+- The tool stores no credentials of its own — it uses your `gh` token.
+- `logs/` contains repo/PR slugs. Use `--redact-logs` to hash them before sharing externally.
 - Install the pre-commit guard once: `ln -s ../../scripts/check_no_org_leaks.sh .git/hooks/pre-commit` (run from project root).
+```
