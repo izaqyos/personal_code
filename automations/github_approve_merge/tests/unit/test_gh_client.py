@@ -128,10 +128,13 @@ def test_direct_merge_falls_back_when_method_disallowed():
 
 
 def test_prclient_classify_caches_queue_probe():
+    # fetch_pr makes 2 gh calls (pr view + locked REST); has_merge_queue is a 3rd.
     fake = gc.FakeRunner(queue=[
-        (PR_JSON, "", 0),                                                # fetch_pr #1
+        (PR_JSON, "", 0),                                                # classify1: pr view
+        ("false", "", 0),                                               # classify1: locked REST
         (_json.dumps({"data": {"repository": {"mergeQueue": {"id": "x"}}}}), "", 0),  # queue probe
-        (PR_JSON, "", 0),                                                # fetch_pr #2
+        (PR_JSON, "", 0),                                                # classify2: pr view
+        ("false", "", 0),                                               # classify2: locked REST
     ])
     pc = gc.PrClient(gh=gc.GhClient(runner=fake), owner="o", repo="r", number=565, me="YosiIzaq")
     pc.classify(None)

@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import logging
 import subprocess
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import Protocol
 
 
@@ -57,7 +57,9 @@ class FakeRunner:
 _AUTH_MARKERS = ("sso", "not logged", "authentication", "gh auth login", "bad credentials")
 _NOTFOUND_MARKERS = ("could not resolve to a repository", "not found", "no pull requests found")
 
-_PR_FIELDS = "number,state,isDraft,locked,mergeable,mergeStateStatus,reviewDecision,author,baseRefName,reviews"
+# NB: `locked` is NOT a valid `gh pr view --json` field (not in gh's allowlist), so we
+# fetch it separately from the REST pulls endpoint in fetch_pr().
+_PR_FIELDS = "number,state,isDraft,mergeable,mergeStateStatus,reviewDecision,author,baseRefName,reviews"
 
 _METHOD_FLAG = {"merge": "--merge", "squash": "--squash", "rebase": "--rebase"}
 # Repo allow-flag key per method, checked in this order for fallback.
@@ -138,7 +140,12 @@ class GhClient:
             "pr", "view", str(number), "--repo", f"{owner}/{repo}",
             "--json", _PR_FIELDS,
         ])
-        return GhPR.from_json(out)
+        pr = GhPR.from_json(out)
+        # `locked` isn't available via `gh pr view --json`; read it from REST.
+        locked = self._run([
+            "api", f"repos/{owner}/{repo}/pulls/{number}", "--jq", ".locked",
+        ]).strip()
+        return replace(pr, locked=(locked == "true"))
 
     def has_merge_queue(self, owner: str, repo: str, branch: str) -> bool:
         q = ("query($o:String!,$r:String!,$b:String!){repository(owner:$o,name:$r)"

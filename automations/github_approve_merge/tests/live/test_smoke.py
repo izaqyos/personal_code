@@ -1,26 +1,22 @@
-"""Live smoke test.
+"""Live smoke test (read-only).
 
-Skipped by default. Set `PYTEST_LIVE=1` and `LIVE_TEST_PR_URL=https://github.com/...` to run.
-The test will REAL-WORLD approve and (auto-)merge the target PR — only point it at a throwaway
-PR in a sandbox repo.
+Skipped by default. Set `PYTEST_LIVE=1` to run. This only *reads* a real PR via `gh`
+(no approve, no merge) to confirm auth + the API path work end-to-end.
 """
 import os
-import subprocess
-import sys
 
 import pytest
 
+from github_approve_merge.gh_client import GhClient
+
+pytestmark = pytest.mark.skipif(os.environ.get("PYTEST_LIVE") != "1",
+                                reason="PYTEST_LIVE=1 not set")
+
 
 @pytest.mark.live
-def test_approve_and_merge_throwaway_pr(tmp_path):
-    url = os.environ.get("LIVE_TEST_PR_URL")
-    if not url:
-        pytest.skip("LIVE_TEST_PR_URL not set")
-    result = subprocess.run(
-        [sys.executable, "-m", "github_approve_merge", "run", url,
-         "--logs-dir", str(tmp_path / "logs")],
-        capture_output=True, text=True, check=False,
-    )
-    print(result.stdout)
-    print(result.stderr, file=sys.stderr)
-    assert result.returncode in (0, 1), f"unexpected exit code {result.returncode}"
+def test_live_fetch_pr_readonly():
+    gh = GhClient()
+    gh.preflight()
+    pr = gh.fetch_pr("perimeter-81", "platform-global-domain", 565)
+    assert pr.number == 565
+    assert pr.state in {"OPEN", "MERGED", "CLOSED"}

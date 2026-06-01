@@ -1,12 +1,9 @@
-import re
 from pathlib import Path
 
 from github_approve_merge.config import (
     DEFAULT_RETENTION_DAYS,
-    DEFAULT_TIMEOUT_SECONDS,
     RUN_ID_PATTERN,
     default_logs_dir,
-    default_storage_state_path,
     generate_run_id,
 )
 
@@ -15,21 +12,9 @@ class TestDefaults:
     def test_retention_days(self):
         assert DEFAULT_RETENTION_DAYS == 10
 
-    def test_timeout_seconds(self):
-        assert DEFAULT_TIMEOUT_SECONDS == 30
-
     def test_default_logs_dir_is_cwd_relative(self, tmp_path: Path, monkeypatch):
         monkeypatch.chdir(tmp_path)
         assert default_logs_dir() == tmp_path / "logs"
-
-    def test_default_storage_state_path_uses_xdg(self, monkeypatch, tmp_path: Path):
-        monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
-        assert default_storage_state_path() == tmp_path / "github_approve_merge" / "storage_state.json"
-
-    def test_default_storage_state_path_falls_back_to_home_config(self, monkeypatch, tmp_path: Path):
-        monkeypatch.delenv("XDG_CONFIG_HOME", raising=False)
-        monkeypatch.setenv("HOME", str(tmp_path))
-        assert default_storage_state_path() == tmp_path / ".config" / "github_approve_merge" / "storage_state.json"
 
 
 class TestRunId:
