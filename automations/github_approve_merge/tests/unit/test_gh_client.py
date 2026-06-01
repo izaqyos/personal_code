@@ -29,3 +29,99 @@ def test_run_raises_generic_on_other_failure():
     client = gc.GhClient(runner=fake)
     with pytest.raises(gc.GhError):
         client._run(["pr", "view", "1"])
+
+
+import json as _json
+
+PR_JSON = _json.dumps({
+    "number": 565, "state": "OPEN", "isDraft": False, "locked": False,
+    "mergeable": "MERGEABLE", "mergeStateStatus": "CLEAN",
+    "reviewDecision": "APPROVED",
+    "author": {"login": "chkp-muhammady"}, "baseRefName": "master",
+    "reviews": [{"author": {"login": "YosiIzaq"}, "state": "APPROVED"}],
+})
+
+
+def test_fetch_pr_parses_fields():
+    fake = gc.FakeRunner(stdout=PR_JSON)
+    client = gc.GhClient(runner=fake)
+    pr = client.fetch_pr("perimeter-81", "platform-global-domain", 565)
+    assert pr.state == "OPEN"
+    assert pr.mergeable == "MERGEABLE"
+    assert pr.review_decision == "APPROVED"
+    assert pr.author_login == "chkp-muhammady"
+    assert pr.base_ref == "master"
+    assert pr.approved_by("YosiIzaq") is True
+    assert pr.approved_by("someone-else") is False
+
+
+def test_current_login():
+    fake = gc.FakeRunner(stdout="YosiIzaq\n")
+    client = gc.GhClient(runner=fake)
+    assert client.current_login() == "YosiIzaq"
+
+
+def test_has_merge_queue_true_when_node_present():
+    fake = gc.FakeRunner(stdout=_json.dumps(
+        {"data": {"repository": {"mergeQueue": {"id": "MQ_x"}}}}))
+    client = gc.GhClient(runner=fake)
+    assert client.has_merge_queue("perimeter-81", "platform-global-domain", "master") is True
+
+
+def test_has_merge_queue_false_when_null():
+    fake = gc.FakeRunner(stdout=_json.dumps(
+        {"data": {"repository": {"mergeQueue": None}}}))
+    client = gc.GhClient(runner=fake)
+    assert client.has_merge_queue("perimeter-81", "platform-global-domain", "master") is False
+
+
+def test_preflight_ok():
+    fake = gc.FakeRunner(stdout="Logged in to github.com account YosiIzaq", returncode=0)
+    gc.GhClient(runner=fake).preflight()  # no raise
+
+
+def test_preflight_raises_auth_when_logged_out():
+    fake = gc.FakeRunner(stdout="", stderr="You are not logged into any GitHub hosts", returncode=1)
+    with pytest.raises(gc.GhAuthError):
+        gc.GhClient(runner=fake).preflight()
+
+
+def test_enqueue_calls_graphql_mutation():
+    fake = gc.FakeRunner(queue=[
+        (_json.dumps({"data": {"repository": {"pullRequest": {"id": "PR_x"}}}}), "", 0),  # node id
+        (_json.dumps({"data": {"enqueuePullRequest": {"mergeQueueEntry": {"state": "QUEUED"}}}}), "", 0),
+    ])
+    client = gc.GhClient(runner=fake)
+    client.enqueue("perimeter-81", "platform-global-domain", 565)
+    assert any("enqueuePullRequest" in " ".join(c) for c in fake.calls)
+
+
+def test_direct_merge_uses_method_flag():
+    fake = gc.FakeRunner(stdout="", returncode=0)
+    client = gc.GhClient(runner=fake)
+    client.direct_merge("perimeter-81", "repo", 7, method="merge")
+    assert fake.calls[-1] == ["gh", "pr", "merge", "7", "--repo",
+                              "perimeter-81/repo", "--merge"]
+
+
+def test_approve_calls_pr_review():
+    fake = gc.FakeRunner(returncode=0)
+    client = gc.GhClient(runner=fake)
+    client.approve("perimeter-81", "repo", 7)
+    assert fake.calls[-1] == ["gh", "pr", "review", "7", "--repo",
+                              "perimeter-81/repo", "--approve"]
+
+
+def test_direct_merge_falls_back_when_method_disallowed():
+    # 1) requested method rejected; 2) repo allow-flags query; 3) retry with allowed method.
+    fake = gc.FakeRunner(queue=[
+        ("", "Merge commits are not allowed on this repository", 1),
+        (_json.dumps({"allow_merge_commit": False, "allow_squash_merge": True,
+                      "allow_rebase_merge": True}), "", 0),
+        ("", "", 0),
+    ])
+    client = gc.GhClient(runner=fake)
+    client.direct_merge("perimeter-81", "repo", 7, method="merge")
+    # final call should be the squash retry (first allowed in merge->squash->rebase order).
+    assert fake.calls[-1] == ["gh", "pr", "merge", "7", "--repo",
+                              "perimeter-81/repo", "--squash"]
