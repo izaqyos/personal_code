@@ -21,7 +21,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Auto-detected merge action per PR: enqueue (merge queue) / direct merge / enable auto-merge.
 - `auth status` / `doctor` checks `gh` install + login + SSO authorization with an actionable message.
 - Statuses `queued` (enqueued) and `cancelled` (gate declined); dry-run reports `would-merge`.
-- Merge-method fallback when the repo disallows the chosen method.
+- Merge-method fallback: if the chosen method is rejected (e.g. by a branch ruleset that the
+  repo's allow_* flags don't reflect), the other methods are attempted in turn until one works.
 
 ### Removed
 

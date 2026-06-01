@@ -62,12 +62,9 @@ _NOTFOUND_MARKERS = ("could not resolve to a repository", "not found", "no pull 
 _PR_FIELDS = "number,state,isDraft,mergeable,mergeStateStatus,reviewDecision,author,baseRefName,reviews"
 
 _METHOD_FLAG = {"merge": "--merge", "squash": "--squash", "rebase": "--rebase"}
-# Repo allow-flag key per method, checked in this order for fallback.
-_METHOD_ALLOW_KEY = {
-    "merge": "allow_merge_commit",
-    "squash": "allow_squash_merge",
-    "rebase": "allow_rebase_merge",
-}
+# Order to try after the requested method is rejected. squash first (the most common
+# ruleset-required method), then rebase, then merge.
+_FALLBACK_ORDER = ("squash", "rebase", "merge")
 _log = logging.getLogger("gam")
 
 
@@ -179,30 +176,29 @@ class GhClient:
         self._run(["api", "graphql", "-f", f"query={m}", "-F", f"id={pr_id}"])
 
     def direct_merge(self, owner: str, repo: str, number: int, *, method: str) -> None:
-        try:
-            self._run(["pr", "merge", str(number), "--repo", f"{owner}/{repo}",
-                       _METHOD_FLAG[method]])
-        except GhError as e:
-            if "not allowed" not in str(e).lower():
-                raise
-            fallback = self._first_allowed_method(owner, repo)
-            _log.warning("merge method %r disallowed on %s/%s; falling back to %r",
-                         method, owner, repo, fallback)
-            self._run(["pr", "merge", str(number), "--repo", f"{owner}/{repo}",
-                       _METHOD_FLAG[fallback]])
+        """Merge with `method`, falling back to other methods if it's disallowed.
 
-    def _first_allowed_method(self, owner: str, repo: str) -> str:
-        out = self._run([
-            "api", f"repos/{owner}/{repo}", "--jq",
-            "{allow_merge_commit:.allow_merge_commit,"
-            "allow_squash_merge:.allow_squash_merge,"
-            "allow_rebase_merge:.allow_rebase_merge}",
-        ])
-        flags = json.loads(out)
-        for method in ("merge", "squash", "rebase"):
-            if flags.get(_METHOD_ALLOW_KEY[method]):
-                return method
-        raise GhError(f"no merge method allowed on {owner}/{repo}")
+        Repo-level allow_* flags are NOT a reliable source of truth — a branch ruleset on
+        the base branch can forbid a method the repo flag still reports as allowed. So we
+        *attempt* the requested method, then the others in turn; each rejected attempt is a
+        no-op (gh errors before merging), and we keep whichever one succeeds.
+        """
+        candidates = [method] + [m for m in _FALLBACK_ORDER if m != method]
+        last_err: GhError | None = None
+        for i, m in enumerate(candidates):
+            try:
+                self._run(["pr", "merge", str(number), "--repo", f"{owner}/{repo}",
+                           _METHOD_FLAG[m]])
+                if i > 0:
+                    _log.warning("merge method %r disallowed on %s/%s; merged with %r instead",
+                                 method, owner, repo, m)
+                return
+            except GhError as e:
+                if "not allowed" not in str(e).lower():
+                    raise
+                last_err = e
+        raise GhError(f"no merge method accepted on {owner}/{repo} "
+                      f"(tried {candidates}): {last_err}")
 
     def enable_auto_merge(self, owner: str, repo: str, number: int, *, method: str) -> None:
         self._run(["pr", "merge", str(number), "--repo", f"{owner}/{repo}",
