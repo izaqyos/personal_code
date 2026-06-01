@@ -112,19 +112,36 @@ def test_approve_calls_pr_review():
                               "perimeter-81/repo", "--approve"]
 
 
-def test_direct_merge_falls_back_when_method_disallowed():
-    # 1) requested method rejected; 2) repo allow-flags query; 3) retry with allowed method.
+def test_direct_merge_falls_back_by_attempting_other_methods():
+    # Repo allow_* flags are unreliable (branch rulesets override them), so the fallback
+    # *attempts* other methods rather than reading flags. Requested merge fails → squash works.
     fake = gc.FakeRunner(queue=[
-        ("", "Merge commits are not allowed on this repository", 1),
-        (_json.dumps({"allow_merge_commit": False, "allow_squash_merge": True,
-                      "allow_rebase_merge": True}), "", 0),
-        ("", "", 0),
+        ("", "Merge commits are not allowed on this repository", 1),  # --merge fails
+        ("", "", 0),                                                  # --squash succeeds
     ])
     client = gc.GhClient(runner=fake)
     client.direct_merge("perimeter-81", "repo", 7, method="merge")
-    # final call should be the squash retry (first allowed in merge->squash->rebase order).
     assert fake.calls[-1] == ["gh", "pr", "merge", "7", "--repo",
                               "perimeter-81/repo", "--squash"]
+    # No repo-flags query — we never call `gh api repos/...`.
+    assert all("api" not in c for c in fake.calls)
+
+
+def test_direct_merge_raises_when_all_methods_disallowed():
+    fake = gc.FakeRunner(queue=[
+        ("", "Merge commits are not allowed", 1),
+        ("", "Squash merges are not allowed", 1),
+        ("", "Rebase merges are not allowed", 1),
+    ])
+    with pytest.raises(gc.GhError):
+        gc.GhClient(runner=fake).direct_merge("o", "r", 7, method="merge")
+
+
+def test_direct_merge_no_fallback_on_first_success():
+    fake = gc.FakeRunner(stdout="", returncode=0)
+    gc.GhClient(runner=fake).direct_merge("o", "r", 7, method="squash")
+    assert len(fake.calls) == 1
+    assert fake.calls[0][-1] == "--squash"
 
 
 def test_prclient_classify_caches_queue_probe():
