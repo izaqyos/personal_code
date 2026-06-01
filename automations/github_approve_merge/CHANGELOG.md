@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-06-01
+
+### Changed (breaking)
+
+- Backend swapped from Playwright/`storage_state` to the GitHub API via the `gh` CLI.
+- Removed `auth login` (no browser). Prerequisite is now `gh auth login` (SSO-authorized token).
+- New verbs: `approve`, `merge`, `run`. `merge`/`run` require confirmation (the merge gate)
+  unless `--yes`. `--merge-method` (default `merge`). `--confirm-each` for per-PR gating.
+
+### Added
+
+- Auto-detected merge action per PR: enqueue (merge queue) / direct merge / enable auto-merge.
+- `auth status` / `doctor` checks `gh` install + login + SSO authorization with an actionable message.
+- Statuses `queued` (enqueued) and `cancelled` (gate declined); dry-run reports `would-merge`.
+- Merge-method fallback when the repo disallows the chosen method.
+
+### Removed
+
+- Playwright dependency, browser/page-object code, screenshots, HTML fixtures, and the
+  fixture-refresh script.
+
 ## [0.1.0] - 2026-05-27
 
 ### Added

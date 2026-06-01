@@ -1,6 +1,6 @@
 [project]
 name = "github-approve-merge"
-version = "0.1.0"
+version = "0.2.0"
 description = "CLI that approves and merges GitHub PRs in batch via the gh API."
 requires-python = ">=3.12"
 authors = [{name = "Yosi Izaq", email = "me@example.com"}]
