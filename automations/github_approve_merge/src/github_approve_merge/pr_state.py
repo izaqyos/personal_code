@@ -2,14 +2,11 @@ from __future__ import annotations
 
 from enum import Enum, auto
 
-from playwright.async_api import Page
-
-from github_approve_merge.pages import selectors as S
-from github_approve_merge.pages.pr_page import PRPage
+from github_approve_merge.gh_client import GhPR
 
 
 class PRState(Enum):
-    """Terminal classification of a PR's current state. See spec §9."""
+    """Terminal classification of a PR's current state. See spec §6."""
 
     MERGED = auto()
     CLOSED = auto()
@@ -24,70 +21,53 @@ class PRState(Enum):
 
 
 class StateFlag(Enum):
-    """Modifier flags that combine with a PRState. See spec §9."""
+    """Modifier flags that combine with a PRState."""
 
     ALREADY_APPROVED = auto()
 
 
-async def detect_state(page: Page, *, me: str | None) -> tuple[PRState, set[StateFlag]]:
-    """Inspect the loaded PR page DOM and classify it. See spec §9.
+# mergeStateStatus values meaning "blocked on a hard requirement" → failing (only when
+# the PR is already approved; see classify()).
+_FAILING_STATUS = {"BLOCKED", "DIRTY"}
 
-    `me` is the authenticated user's login (e.g. "reviewer-bot"). Pass None to skip the
-    self-PR check.
+
+def classify(pr: GhPR, *, me: str | None, has_queue: bool) -> tuple[PRState, set[StateFlag]]:
+    """Classify a PR from structured `gh` fields. See spec §6.
+
+    `has_queue` is accepted for symmetry with the action layer but does not change the
+    state — a merge-queue repo still classifies as OPEN_MERGEABLE/REQUIRED_PENDING; the
+    queue only changes the *action* (see merge_action.select_merge_action).
     """
     flags: set[StateFlag] = set()
 
-    # 1-2: header status badges.
-    if await _text_visible(page, S.STATE_BADGE_MERGED):
+    if pr.state == "MERGED":
         return PRState.MERGED, flags
-    if await _text_visible(page, S.STATE_BADGE_CLOSED):
+    if pr.state == "CLOSED":
         return PRState.CLOSED, flags
-
-    # 3: draft.
-    if await _text_visible(page, S.DRAFT_BADGE_TEXT):
+    if pr.is_draft:
         return PRState.DRAFT, flags
-
-    # 4: locked.
-    if await _text_visible(page, S.LOCKED_NOTICE_TEXT):
+    if pr.locked:
         return PRState.LOCKED, flags
-
-    # 5: authored by me?
-    if me:
-        author = await PRPage(page).pr_author_login()
-        if author and author == me:
-            return PRState.SELF_AUTHORED, flags
-
-    # 6: merge conflict.
-    if await _text_visible(page, S.CONFLICT_NOTICE_TEXT):
+    if me and pr.author_login == me:
+        return PRState.SELF_AUTHORED, flags
+    if pr.mergeable == "CONFLICTING":
         return PRState.CONFLICT, flags
 
-    # 7-8: required-statuses widget. Distinguish failing from pending.
-    if await _text_visible(page, S.REQUIRED_STATUS_TEXT):
-        # "Merge when ready" present → pending; otherwise treat as failing.
-        if await page.get_by_role("button", name=S.MERGE_WHEN_READY_NAME).count() > 0:
-            return PRState.REQUIRED_PENDING, flags
-        return PRState.REQUIRED_FAILING, flags
-
-    # 9: already-approved-by-me flag (combines with OPEN_*).
-    if me and await _approved_by(page, me):
+    if me and pr.approved_by(me):
         flags.add(StateFlag.ALREADY_APPROVED)
 
-    # 10-11: default — merge button enabled vs not.
-    pr_page = PRPage(page)
-    btn = pr_page.merge_button()
-    if await btn.count() > 0 and await btn.is_enabled():
+    # Review-first. A PR awaiting approval reports mergeStateStatus=BLOCKED *because* the
+    # review is the missing requirement (this is the #271 case). So if it isn't approved
+    # yet, it's approvable — we defer any check-failure judgment until after we approve and
+    # re-classify. Only once APPROVED does BLOCKED/DIRTY mean a hard requirement is failing.
+    if pr.review_decision != "APPROVED":
+        return PRState.OPEN_APPROVABLE, flags
+
+    mss = pr.merge_state_status
+    if mss in _FAILING_STATUS:
+        return PRState.REQUIRED_FAILING, flags
+    if mss == "CLEAN":
         return PRState.OPEN_MERGEABLE, flags
-    return PRState.OPEN_APPROVABLE, flags
-
-
-async def _text_visible(page: Page, pattern) -> bool:
-    locator = page.get_by_text(pattern)
-    return await locator.count() > 0
-
-
-async def _approved_by(page: Page, login: str) -> bool:
-    panel = page.locator("#reviewers-panel")
-    if await panel.count() == 0:
-        return False
-    text = await panel.first.text_content() or ""
-    return login in text and "approved these changes" in text.lower()
+    # BEHIND / UNSTABLE / HAS_HOOKS / UNKNOWN / anything unrecognized → conservatively pending
+    # (routes to the gated enqueue/auto-merge path, never a blind direct merge).
+    return PRState.REQUIRED_PENDING, flags
