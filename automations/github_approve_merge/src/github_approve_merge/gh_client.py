@@ -200,3 +200,38 @@ class GhClient:
     def enable_auto_merge(self, owner: str, repo: str, number: int, *, method: str) -> None:
         self._run(["pr", "merge", str(number), "--repo", f"{owner}/{repo}",
                    "--auto", _METHOD_FLAG[method]])
+
+
+@dataclass
+class PrClient:
+    """Binds a GhClient + PR coordinates so process_pr stays PR-centric. Caches the
+    merge-queue probe across the per-PR flow (classify may be called twice)."""
+
+    gh: GhClient
+    owner: str
+    repo: str
+    number: int
+    me: str
+    _has_queue: bool | None = None
+
+    def classify(self, _pr):
+        from github_approve_merge.pr_state import classify as _classify
+        pr = self.gh.fetch_pr(self.owner, self.repo, self.number)
+        if self._has_queue is None:
+            self._has_queue = self.gh.has_merge_queue(self.owner, self.repo, pr.base_ref)
+        return _classify(pr, me=self.me, has_queue=self._has_queue)
+
+    def has_queue(self, _pr):
+        return bool(self._has_queue)
+
+    def approve(self, _pr):
+        self.gh.approve(self.owner, self.repo, self.number)
+
+    def enqueue(self, _pr):
+        self.gh.enqueue(self.owner, self.repo, self.number)
+
+    def direct_merge(self, _pr, method):
+        self.gh.direct_merge(self.owner, self.repo, self.number, method=method)
+
+    def enable_auto_merge(self, _pr, method):
+        self.gh.enable_auto_merge(self.owner, self.repo, self.number, method=method)

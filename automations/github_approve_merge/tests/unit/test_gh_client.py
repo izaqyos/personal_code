@@ -125,3 +125,17 @@ def test_direct_merge_falls_back_when_method_disallowed():
     # final call should be the squash retry (first allowed in merge->squash->rebase order).
     assert fake.calls[-1] == ["gh", "pr", "merge", "7", "--repo",
                               "perimeter-81/repo", "--squash"]
+
+
+def test_prclient_classify_caches_queue_probe():
+    fake = gc.FakeRunner(queue=[
+        (PR_JSON, "", 0),                                                # fetch_pr #1
+        (_json.dumps({"data": {"repository": {"mergeQueue": {"id": "x"}}}}), "", 0),  # queue probe
+        (PR_JSON, "", 0),                                                # fetch_pr #2
+    ])
+    pc = gc.PrClient(gh=gc.GhClient(runner=fake), owner="o", repo="r", number=565, me="YosiIzaq")
+    pc.classify(None)
+    pc.classify(None)            # second classify must NOT re-probe the queue
+    probe_calls = [c for c in fake.calls if "mergeQueue" in " ".join(c)]
+    assert len(probe_calls) == 1
+    assert pc.has_queue(None) is True
