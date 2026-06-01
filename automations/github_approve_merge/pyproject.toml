@@ -1,12 +1,10 @@
 [project]
 name = "github-approve-merge"
 version = "0.1.0"
-description = "Playwright CLI that approves and merges GitHub PRs in batch."
+description = "CLI that approves and merges GitHub PRs in batch via the gh API."
 requires-python = ">=3.12"
 authors = [{name = "Yosi Izaq", email = "me@example.com"}]
-dependencies = [
-    "playwright>=1.44.0",
-]
+dependencies = []
 
 [project.optional-dependencies]
 dev = [
