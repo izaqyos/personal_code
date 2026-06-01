@@ -95,6 +95,51 @@ class MergeDecision:
 Gate = Callable[[list["MergeDecision"]], list[bool]]
 
 
+def plan_pr(client, pr: PRRef, *, approve: bool, do_merge: bool,
+            dry_run: bool = False) -> "MergeDecision | str":
+    """Pass 1: classify and (if needed) approve, returning either a terminal status string
+    or a MergeDecision to be gated+executed later. May raise GhError subclasses; callers
+    map those to failed-* statuses. See spec §7."""
+    state, flags = client.classify(pr)
+
+    if state in _TERMINAL_STATES:
+        return _STATE_TO_TERMINAL_STATUS[state]
+
+    will_approve = (
+        approve and state is PRState.OPEN_APPROVABLE
+        and StateFlag.ALREADY_APPROVED not in flags
+    )
+
+    if dry_run:
+        return "would-merge"
+
+    if will_approve:
+        client.approve(pr)
+        state, flags = client.classify(pr)
+        if state in _TERMINAL_STATES:
+            return _STATE_TO_TERMINAL_STATUS[state]
+        if state is PRState.OPEN_APPROVABLE:
+            return "skipped-needs-more-approvals"
+
+    if not do_merge or state not in _MERGEABLE_STATES:
+        return "skipped-needs-more-approvals"
+
+    action = select_merge_action(state, has_queue=client.has_queue(pr))
+    return MergeDecision(pr=pr, state=state, action=action, will_approve=will_approve)
+
+
+def execute_decision(client, decision: "MergeDecision", method: str) -> str:
+    """Pass 2: perform the gated merge action. Returns the terminal status string."""
+    if decision.action is MergeAction.ENQUEUE:
+        client.enqueue(decision.pr)
+        return "queued"
+    if decision.action is MergeAction.DIRECT_MERGE:
+        client.direct_merge(decision.pr, method)
+        return "done"
+    client.enable_auto_merge(decision.pr, method)
+    return "done"
+
+
 async def process_pr(
     client,
     pr: PRRef,
@@ -105,49 +150,19 @@ async def process_pr(
     gate: Gate,
     dry_run: bool = False,
 ) -> ProcessResult:
-    """Single-PR flow. See spec §7. `client` is a PrClient-shaped adapter exposing
-    classify/has_queue/approve/enqueue/direct_merge/enable_auto_merge."""
+    """Single-PR convenience wrapper: plan → gate([decision]) → execute. The batch runner
+    uses plan_pr/execute_decision directly so the gate sees all PRs at once."""
     started = time.monotonic()
     try:
-        state, flags = client.classify(pr)
-
-        if state in _TERMINAL_STATES:
-            return _result(_STATE_TO_TERMINAL_STATUS[state], started)
-
-        will_approve = (
-            approve and state is PRState.OPEN_APPROVABLE
-            and StateFlag.ALREADY_APPROVED not in flags
-        )
-
-        if dry_run:
-            return _result("would-merge", started)
-
-        if will_approve:
-            client.approve(pr)
-            state, flags = client.classify(pr)
-            if state in _TERMINAL_STATES:
-                return _result(_STATE_TO_TERMINAL_STATUS[state], started)
-            if state is PRState.OPEN_APPROVABLE:
-                return _result("skipped-needs-more-approvals", started)
-
-        if not do_merge or state not in _MERGEABLE_STATES:
-            return _result("skipped-needs-more-approvals", started)
-
-        action = select_merge_action(state, has_queue=client.has_queue(pr))
-        decision = MergeDecision(pr=pr, state=state, action=action, will_approve=will_approve)
-
-        if not gate([decision])[0]:
-            return _result("cancelled", started)
-
-        if action is MergeAction.ENQUEUE:
-            client.enqueue(pr)
-            return _result("queued", started)
-        if action is MergeAction.DIRECT_MERGE:
-            client.direct_merge(pr, method)
-            return _result("done", started)
-        client.enable_auto_merge(pr, method)
-        return _result("done", started)
-
+        outcome = plan_pr(client, pr, approve=approve, do_merge=do_merge, dry_run=dry_run)
+        if isinstance(outcome, MergeDecision):
+            if not gate([outcome])[0]:
+                status = "cancelled"
+            else:
+                status = execute_decision(client, outcome, method)
+        else:
+            status = outcome
+        return _result(status, started)
     except GhAuthError as e:
         return ProcessResult("failed-auth", repr(e), _elapsed(started))
     except GhNotFound as e:
