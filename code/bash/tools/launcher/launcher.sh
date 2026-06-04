@@ -4,7 +4,7 @@
 # Interactive menu for frequently used scripts
 #
 
-LAUNCHER_VERSION="1.1.0"
+LAUNCHER_VERSION="1.2.0"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 TRACKER_SCRIPT="/Users/yosii/work/git/personal_code/code/AI/cursor/tracking/cursor_tracker.py"
@@ -21,6 +21,7 @@ EMOJI_GENERATOR_VENV="$EMOJI_GENERATOR_DIR/.venv"
 NUGGETS_DIR="/Users/yosii/work/git/personal_code/code/python/knowledge/oneliners"
 BACKUP_AGENT_SCRIPT="/Users/yosii/work/git/personal_code/agents/backup/backup_agent.py"
 BACKUP_VENV="/Users/yosii/work/git/git_backup/yosi_general_venv"
+GITHUB_MERGER_DIR="/Users/yosii/work/git/personal_code/automations/github_approve_merge"
 
 # Colors for output (using $'...' for proper escape interpretation)
 GREEN=$'\033[0;32m'
@@ -358,6 +359,7 @@ show_main_menu() {
 	print_menu_item "6" "MCP Health Check"
 	print_menu_item "7" "Emoji Generator"
 	print_menu_item "8" "Backup Manager"
+	print_menu_item "9" "GitHub PR Merger"
 	print_box_empty
 	print_box_separator
 	print_box_empty
@@ -365,7 +367,7 @@ show_main_menu() {
 	print_box_empty
 	print_box_bottom
 	echo ""
-	printf "   ${BOLD}➜ Enter your choice [0-8]: ${NC}"
+	printf "   ${BOLD}➜ Enter your choice [0-9]: ${NC}"
 }
 
 # Show tracker submenu
@@ -1597,6 +1599,149 @@ handle_emoji_generator_menu() {
 	done
 }
 
+# Show GitHub PR merger submenu
+show_github_merger_menu() {
+	clear_screen
+	echo ""
+	echo -e "${BOLD}${CYAN}╔══════════════════════════════════════════════════╗${NC}"
+	echo -e "${BOLD}${CYAN}║                                                  ║${NC}"
+	echo -e "${BOLD}${CYAN}║          🔀 GITHUB PR MERGER MENU               ║${NC}"
+	echo -e "${BOLD}${CYAN}║                                                  ║${NC}"
+	echo -e "${BOLD}${CYAN}╠══════════════════════════════════════════════════╣${NC}"
+	echo -e "${BOLD}${CYAN}║                                                  ║${NC}"
+	echo -e "${BOLD}${CYAN}║  ${GREEN}[1]${CYAN}  Doctor (gh + SSO)                        ║${NC}"
+	echo -e "${BOLD}${CYAN}║  ${GREEN}[2]${CYAN}  Dry-Run (Preview Plan)                  ║${NC}"
+	echo -e "${BOLD}${CYAN}║  ${GREEN}[3]${CYAN}  Approve only                            ║${NC}"
+	echo -e "${BOLD}${CYAN}║  ${GREEN}[4]${CYAN}  Merge (gated)                           ║${NC}"
+	echo -e "${BOLD}${CYAN}║  ${GREEN}[5]${CYAN}  Run = Approve + Merge (gated)           ║${NC}"
+	echo -e "${BOLD}${CYAN}║  ${GREEN}[6]${CYAN}  Cleanup Old Logs (GC)                   ║${NC}"
+	echo -e "${BOLD}${CYAN}║                                                  ║${NC}"
+	echo -e "${BOLD}${CYAN}╠══════════════════════════════════════════════════╣${NC}"
+	echo -e "${BOLD}${CYAN}║  ${YELLOW}[0]${CYAN}  ← Back to Main Menu                      ║${NC}"
+	echo -e "${BOLD}${CYAN}╚══════════════════════════════════════════════════╝${NC}"
+	echo ""
+	printf "  ${BOLD}➜ Enter your choice [0-6]: ${NC}"
+}
+
+# GitHub PR merger menu handler
+handle_github_merger_menu() {
+	if [ ! -d "$GITHUB_MERGER_DIR" ]; then
+		clear_screen
+		echo -e "${YELLOW}Warning: GitHub PR Merger dir not found at $GITHUB_MERGER_DIR${NC}"
+		echo ""
+		echo -n "Press Enter to continue..."
+		read
+		return
+	fi
+
+	if ! command -v uv >/dev/null 2>&1; then
+		clear_screen
+		echo -e "${YELLOW}Warning: 'uv' not found in PATH. Install from https://docs.astral.sh/uv/${NC}"
+		echo ""
+		echo -n "Press Enter to continue..."
+		read
+		return
+	fi
+
+	while true; do
+		show_github_merger_menu
+		read choice
+
+		case "$choice" in
+		1)
+			clear_screen
+			echo -e "${CYAN}Checking gh auth + SSO authorization...${NC}"
+			echo ""
+			cd "$GITHUB_MERGER_DIR"
+			uv run gh-approve-merge doctor
+			cd - >/dev/null
+			echo ""
+			echo -n "Press Enter to continue..."
+			read
+			;;
+		2 | 3 | 4 | 5)
+			# Map menu choice -> CLI verb/flags. The tool itself prompts [y/N] for merges.
+			local verb="" mode_label=""
+			case "$choice" in
+			2) verb="run --dry-run"; mode_label="Dry-Run (plan only)" ;;
+			3) verb="approve";       mode_label="Approve only" ;;
+			4) verb="merge";         mode_label="Merge (gated)" ;;
+			5) verb="run";           mode_label="Run = Approve + Merge (gated)" ;;
+			esac
+			clear_screen
+			echo -e "${CYAN}${mode_label}: GitHub PR Merger${NC}"
+			echo ""
+			echo -e "${BOLD}Input:${NC}"
+			echo -e "  ${GREEN}[1]${NC}  Paste URLs (space-separated)"
+			echo -e "  ${GREEN}[2]${NC}  Path to file (one URL per line)"
+			echo ""
+			echo -n "Choose [1-2]: "
+			read input_mode
+			local extra_args=""
+			case "$input_mode" in
+			1)
+				echo -n "Enter PR URLs (space-separated): "
+				read pr_urls
+				if [ -z "$pr_urls" ]; then
+					echo "Error: No URLs provided"
+					sleep 2
+					continue
+				fi
+				extra_args="$pr_urls"
+				;;
+			2)
+				echo -n "Enter path to URL file: "
+				read pr_file
+				if [ -z "$pr_file" ] || [ ! -f "$pr_file" ]; then
+					echo "Error: File not found"
+					sleep 2
+					continue
+				fi
+				extra_args="--file $pr_file"
+				;;
+			*)
+				echo "Invalid choice."
+				sleep 1
+				continue
+				;;
+			esac
+			echo ""
+			echo -e "${YELLOW}Redact PR slugs in logs (for shareable artifacts)? (y/N): ${NC}"
+			read redact
+			local redact_flag=""
+			if [[ "$redact" =~ ^[Yy]$ ]]; then
+				redact_flag="--redact-logs"
+			fi
+			echo ""
+			cd "$GITHUB_MERGER_DIR"
+			uv run gh-approve-merge $verb $redact_flag $extra_args
+			cd - >/dev/null
+			echo ""
+			echo -n "Press Enter to continue..."
+			read
+			;;
+		6)
+			clear_screen
+			echo -e "${CYAN}Cleaning up old run logs (retention sweep)...${NC}"
+			echo ""
+			cd "$GITHUB_MERGER_DIR"
+			uv run gh-approve-merge gc
+			cd - >/dev/null
+			echo ""
+			echo -n "Press Enter to continue..."
+			read
+			;;
+		0)
+			return
+			;;
+		*)
+			echo -e "${YELLOW}Invalid choice. Please try again.${NC}"
+			sleep 1
+			;;
+		esac
+	done
+}
+
 # Show backup manager submenu
 show_backup_menu() {
 	clear_screen
@@ -1796,6 +1941,10 @@ check_scripts() {
 	if [ ! -f "$BACKUP_AGENT_SCRIPT" ]; then
 		echo -e "${YELLOW}Warning: Backup agent not found at $BACKUP_AGENT_SCRIPT${NC}"
 	fi
+
+	if [ ! -d "$GITHUB_MERGER_DIR" ]; then
+		echo -e "${YELLOW}Warning: GitHub PR Merger dir not found at $GITHUB_MERGER_DIR${NC}"
+	fi
 }
 
 # Main loop
@@ -1845,6 +1994,9 @@ main() {
 			;;
 		8)
 			handle_backup_menu
+			;;
+		9)
+			handle_github_merger_menu
 			;;
 		0)
 			clear_screen
