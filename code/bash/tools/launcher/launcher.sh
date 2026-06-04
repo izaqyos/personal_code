@@ -22,7 +22,6 @@ NUGGETS_DIR="/Users/yosii/work/git/personal_code/code/python/knowledge/oneliners
 BACKUP_AGENT_SCRIPT="/Users/yosii/work/git/personal_code/agents/backup/backup_agent.py"
 BACKUP_VENV="/Users/yosii/work/git/git_backup/yosi_general_venv"
 GITHUB_MERGER_DIR="/Users/yosii/work/git/personal_code/automations/github_approve_merge"
-GITHUB_MERGER_VENV="$GITHUB_MERGER_DIR/.venv"
 
 # Colors for output (using $'...' for proper escape interpretation)
 GREEN=$'\033[0;32m'
@@ -1610,17 +1609,18 @@ show_github_merger_menu() {
 	echo -e "${BOLD}${CYAN}║                                                  ║${NC}"
 	echo -e "${BOLD}${CYAN}╠══════════════════════════════════════════════════╣${NC}"
 	echo -e "${BOLD}${CYAN}║                                                  ║${NC}"
-	echo -e "${BOLD}${CYAN}║  ${GREEN}[1]${CYAN}  Auth Status                              ║${NC}"
-	echo -e "${BOLD}${CYAN}║  ${GREEN}[2]${CYAN}  Auth Login (Browser)                    ║${NC}"
-	echo -e "${BOLD}${CYAN}║  ${GREEN}[3]${CYAN}  Dry-Run (Preview Classifications)       ║${NC}"
-	echo -e "${BOLD}${CYAN}║  ${GREEN}[4]${CYAN}  Run (Approve + Merge)                   ║${NC}"
-	echo -e "${BOLD}${CYAN}║  ${GREEN}[5]${CYAN}  Cleanup Old Logs (GC)                   ║${NC}"
+	echo -e "${BOLD}${CYAN}║  ${GREEN}[1]${CYAN}  Doctor (gh + SSO)                        ║${NC}"
+	echo -e "${BOLD}${CYAN}║  ${GREEN}[2]${CYAN}  Dry-Run (Preview Plan)                  ║${NC}"
+	echo -e "${BOLD}${CYAN}║  ${GREEN}[3]${CYAN}  Approve only                            ║${NC}"
+	echo -e "${BOLD}${CYAN}║  ${GREEN}[4]${CYAN}  Merge (gated)                           ║${NC}"
+	echo -e "${BOLD}${CYAN}║  ${GREEN}[5]${CYAN}  Run = Approve + Merge (gated)           ║${NC}"
+	echo -e "${BOLD}${CYAN}║  ${GREEN}[6]${CYAN}  Cleanup Old Logs (GC)                   ║${NC}"
 	echo -e "${BOLD}${CYAN}║                                                  ║${NC}"
 	echo -e "${BOLD}${CYAN}╠══════════════════════════════════════════════════╣${NC}"
 	echo -e "${BOLD}${CYAN}║  ${YELLOW}[0]${CYAN}  ← Back to Main Menu                      ║${NC}"
 	echo -e "${BOLD}${CYAN}╚══════════════════════════════════════════════════╝${NC}"
 	echo ""
-	printf "  ${BOLD}➜ Enter your choice [0-5]: ${NC}"
+	printf "  ${BOLD}➜ Enter your choice [0-6]: ${NC}"
 }
 
 # GitHub PR merger menu handler
@@ -1650,32 +1650,24 @@ handle_github_merger_menu() {
 		case "$choice" in
 		1)
 			clear_screen
+			echo -e "${CYAN}Checking gh auth + SSO authorization...${NC}"
+			echo ""
 			cd "$GITHUB_MERGER_DIR"
-			uv run gh-approve-merge auth status
+			uv run gh-approve-merge doctor
 			cd - >/dev/null
 			echo ""
 			echo -n "Press Enter to continue..."
 			read
 			;;
-		2)
-			clear_screen
-			echo -e "${CYAN}Opening browser for GitHub login...${NC}"
-			echo -e "${YELLOW}Sign in to github.com (SSO included). Session saved on success.${NC}"
-			echo ""
-			cd "$GITHUB_MERGER_DIR"
-			uv run gh-approve-merge auth login
-			cd - >/dev/null
-			echo ""
-			echo -n "Press Enter to continue..."
-			read
-			;;
-		3 | 4)
-			local dry_flag=""
-			local mode_label="Run (REAL)"
-			if [ "$choice" = "3" ]; then
-				dry_flag="--dry-run"
-				mode_label="Dry-Run"
-			fi
+		2 | 3 | 4 | 5)
+			# Map menu choice -> CLI verb/flags. The tool itself prompts [y/N] for merges.
+			local verb="" mode_label=""
+			case "$choice" in
+			2) verb="run --dry-run"; mode_label="Dry-Run (plan only)" ;;
+			3) verb="approve";       mode_label="Approve only" ;;
+			4) verb="merge";         mode_label="Merge (gated)" ;;
+			5) verb="run";           mode_label="Run = Approve + Merge (gated)" ;;
+			esac
 			clear_screen
 			echo -e "${CYAN}${mode_label}: GitHub PR Merger${NC}"
 			echo ""
@@ -1722,13 +1714,13 @@ handle_github_merger_menu() {
 			fi
 			echo ""
 			cd "$GITHUB_MERGER_DIR"
-			uv run gh-approve-merge run $dry_flag $redact_flag $extra_args
+			uv run gh-approve-merge $verb $redact_flag $extra_args
 			cd - >/dev/null
 			echo ""
 			echo -n "Press Enter to continue..."
 			read
 			;;
-		5)
+		6)
 			clear_screen
 			echo -e "${CYAN}Cleaning up old run logs (retention sweep)...${NC}"
 			echo ""
