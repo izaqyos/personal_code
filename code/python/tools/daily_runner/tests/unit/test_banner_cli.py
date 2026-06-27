@@ -144,6 +144,9 @@ class TestBannerInCliMode:
             "sys.argv",
             ["daily-timer", "--mode", "cli", "--config", str(cfg_path), "-b"],
         )
+        # main() exits early (banner-only) when stdin isn't a TTY; fake an
+        # interactive stdin so the CLIApp construction path is exercised.
+        monkeypatch.setattr("sys.stdin.isatty", lambda: True)
         with patch("src.cli.app.CLIApp", FakeApp):
             from main import main as run
 
