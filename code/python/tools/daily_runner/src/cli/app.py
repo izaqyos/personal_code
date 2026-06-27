@@ -197,7 +197,7 @@ class CLIApp:
 
     def _check_recovery(self) -> bool:
         """Check if a recovery session exists."""
-        if self._recovery_mgr is None:
+        if not self._config.recovery.enabled or self._recovery_mgr is None:
             return False
         return self._recovery_mgr.has_recovery()
 

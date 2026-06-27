@@ -22,6 +22,10 @@ def cfg_with_example_schedule(tmp_path: Path) -> Path:
         json.dumps(
             {
                 "version": "1.0",
+                "recovery": {
+                    "enabled": False,
+                    "file_path": str(tmp_path / ".session_recovery.json"),
+                },
                 "banner": {
                     "enabled": False,
                     "schedules_path": str(schedules_dst),
@@ -117,6 +121,10 @@ def test_missing_schedule_error_banner(tmp_path: Path) -> None:
         json.dumps(
             {
                 "version": "1.0",
+                "recovery": {
+                    "enabled": False,
+                    "file_path": str(tmp_path / ".session_recovery.json"),
+                },
                 "banner": {
                     "enabled": False,
                     "schedules_path": "/definitely/does/not/exist.json",

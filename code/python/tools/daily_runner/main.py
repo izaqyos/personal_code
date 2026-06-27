@@ -323,8 +323,12 @@ def main() -> int:
         # For TTY users, the same renderable is also embedded inside the Live
         # display so it stays on-screen for the whole meeting at any width.
         console = Console()
-        if banner_renderable is not None and not console.is_terminal:
-            console.print(banner_renderable)
+        if not sys.stdin.isatty():
+            # No interactive stdin (pipe, DEVNULL, CI) — print banner (if any) and exit.
+            # Rich is_terminal can stay True when stdout is piped; stdin.isatty is reliable.
+            if banner_renderable is not None:
+                console.print(banner_renderable)
+            return 0
 
         teams_dir = Path(app_config.teams.directory)
         team_repo = TeamRepository(teams_dir=teams_dir)

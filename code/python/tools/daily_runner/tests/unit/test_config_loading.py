@@ -107,7 +107,9 @@ class TestTeamFileLoading:
             team_data = json.load(f)
 
         assert "members" in team_data
-        assert len(team_data["members"]) == 8  # Yosi, Chen, Guy, Miri, Muhe, Osher, Yair, Yocheved
+        assert len(team_data["members"]) == 8  # incl. departed Guy + Yair (inactive)
+        active = [m for m in team_data["members"] if m["daily_config"]["active"]]
+        assert len(active) == 6  # Yosi + Chen, Miri, Muhe, Osher, Yocheved
 
     def test_default_team_members_have_required_fields(self) -> None:
         """Test that team members have all required fields."""
