@@ -76,6 +76,11 @@ data/.session_recovery.json
 data/history_*.json
 logs/
 
+# Runtime lock files (not uv.lock, which is tracked)
+config.lock
+data/.session_recovery.lock
+data/history_*.lock
+
 # Keep the data directory but ignore generated files
 !data/.gitkeep
 
