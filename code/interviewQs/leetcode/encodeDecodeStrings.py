@@ -27,13 +27,47 @@ Key challenge: the input strings can contain ANY characters — including whatev
 delimiter you pick. Think about how to make encoding unambiguous.
 """
 
+"""
+  # --- Strategy: fixed-width 3-digit length-prefix header ---
+  #
+  # encode(strs) -> str
+  #   1. Header, all numbers zero-padded to exactly 3 digits (000-199):
+  #        [count] [len(strs[0])] [len(strs[1])] ... [len(strs[n-1])]
+  #   2. Payload: all strings concatenated, NO delimiter.
+  #   Layout:  CCC L0L0L0 L1L1L1 ... <s0><s1>...
+  #
+  # decode(s) -> list[str]
+  #   1. Read count   = int(s[0:3])
+  #   2. Read the `count` lengths from the header (3 chars each),
+  #      starting at offset 3.
+  #   3. Walk the payload with a running offset:
+  #        for each length L: take s[off:off+L], then off += L
+  #
+  # Why no delimiter is needed: lengths are known up front, so we read
+  # each string by count instead of scanning for a separator — works for
+  # ANY characters (including '#', ':', digits that look like a header).
+  #
+  # Invariant: every number is EXACTLY 3 chars. Padding is load-bearing.
+"""
 
 def encode(strs: list[str]) -> str:
-    pass
+    parts = [f"{len(strs):03d}", *(f"{len(s):03d}" for s in strs), *strs ]
+    return "".join(parts)
+   
+
 
 
 def decode(s: str) -> list[str]:
-    pass
+    strs_len=int(s[:3])
+    strs = []
+    next_str_pos = (strs_len+1)*3
+    for i in range(strs_len):
+        len_str = int(s[(i+1)*3: (i+2)*3])
+        t_str = s[next_str_pos: next_str_pos + len_str]
+        next_str_pos += len_str 
+        strs.append(t_str)
+    return strs
+
 
 
 if __name__ == "__main__":
