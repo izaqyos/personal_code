@@ -42,18 +42,24 @@ def my_atoi(s: str) -> int:
     sign = 1
     while i < len(s) and s[i] == ' ':   # skip leading whitespace
         i += 1
-    c = s[i]
+    #print(f"skipped leading spaces, position is {i}")
+    if i >= len(s):
+        return ret 
+    if i< len(s):
+        c = s[i]
+    else:
+        return ret 
+
     if c == '+' or c == '-':   # sign
         if c == '-':
             sign = -1
         i += 1
+    #print(f"skipped leading sign, position is {i}")
     while i < len(s) and s[i].isdigit():  
         c = s[i]
+        #print(f"processing digit {c}, position is {i}")
         ret = ret * 10 + int(c)
         i += 1
-
-    
-
 
     ret *= sign
     if ret > INT_MAX:
@@ -93,6 +99,7 @@ if __name__ == "__main__":
     ]
     passed = 0
     for inp, exp in cases:
+        print(f"Testing: {inp!r} xx")
         got = my_atoi(inp)
         status = "PASS" if got == exp else "FAIL"
         if status == "PASS":
