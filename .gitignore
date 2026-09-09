@@ -696,3 +696,7 @@ perf.data
 
 # Project-specific env file
 code/AI/streamlit/tutorial/.env
+
+# amiio home assignment: standalone public repo (own git) + private meta notes (local only)
+code/practice/09_2026_job_hunt_practice/amiio/RealEstateMultiAgentMgmt/propco-agent/
+code/practice/09_2026_job_hunt_practice/amiio/RealEstateMultiAgentMgmt/meta/
