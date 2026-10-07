@@ -91,8 +91,11 @@ class TeamMember(BaseModel):
         max_length=30,
         description="Short display name for UI",
     )
-    email: EmailStr = Field(
-        ...,
+    # Optional: nothing in the app reads this field (no mail/notification path).
+    # Keeping it required made a missing or malformed address reject the whole
+    # team file. Validated when present.
+    email: EmailStr | None = Field(
+        default=None,
         description="Email address",
     )
     github: str | None = Field(
@@ -121,7 +124,8 @@ class ManagerInfo(BaseModel):
     model_config = ConfigDict(strict=True)
 
     name: str = Field(..., min_length=1, max_length=100)
-    email: EmailStr
+    # Optional for the same reason as TeamMember.email — unread by the app.
+    email: EmailStr | None = None
 
 
 class TeamInfo(BaseModel):

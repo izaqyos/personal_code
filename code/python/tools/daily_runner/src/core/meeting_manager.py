@@ -203,6 +203,53 @@ class MeetingManager:
     # Meeting Lifecycle
     # =========================================================================
 
+    def _apply_speaker_order(
+        self,
+        team_id: str,
+        members: list[TeamMember],
+        speaker_order: list[str] | None,
+    ) -> list[TeamMember]:
+        """
+        Reorder members to match an explicit speaker order.
+
+        Shared by start_meeting (custom order at kickoff) and restore_session
+        (the order the interrupted meeting was actually using).
+
+        Args:
+            team_id: Team the members belong to.
+            members: Active members, in team-file order.
+            speaker_order: Member IDs in speaking order. Falsy = no reordering.
+
+        Returns:
+            Members ordered per speaker_order. IDs that no longer resolve to an
+            active member are skipped; if none resolve, members is returned
+            unchanged.
+        """
+        if not speaker_order:
+            return members
+
+        ordered: list[TeamMember] = []
+        for member_id in speaker_order:
+            member = self._team_repo.get_member_by_id(team_id, member_id)
+            if member and member in members:
+                ordered.append(member)
+
+        if not ordered:
+            logger.warning(
+                f"No speaker in the requested order is active in team {team_id}; "
+                "falling back to team-file order"
+            )
+            return members
+
+        if len(ordered) != len(speaker_order):
+            logger.warning(
+                f"{len(speaker_order) - len(ordered)} of {len(speaker_order)} "
+                f"ordered speakers are no longer active in team {team_id}; "
+                "order applied to the remainder"
+            )
+
+        return ordered
+
     def start_meeting(
         self,
         team_id: str | None = None,
@@ -233,13 +280,7 @@ class MeetingManager:
             raise ValueError(f"No active members in team: {team_id}")
 
         # Apply custom order if provided
-        if speaker_order:
-            ordered_members = []
-            for member_id in speaker_order:
-                member = self._team_repo.get_member_by_id(team_id, member_id)
-                if member and member in members:
-                    ordered_members.append(member)
-            members = ordered_members if ordered_members else members
+        members = self._apply_speaker_order(team_id, members, speaker_order)
 
         # Initialize session
         self._session_id = str(uuid.uuid4())[:SESSION_ID_LENGTH]
@@ -667,11 +708,16 @@ class MeetingManager:
             self._team_id = recovery.team_id
             self._started_at = datetime.fromisoformat(recovery.started_at)
 
-            # Load team members
+            # Load team members, in the order the interrupted meeting used.
+            # current_speaker_index was recorded against that order, so
+            # rebuilding from team-file order would resume the wrong speaker.
             members = self._team_repo.get_active_members(recovery.team_id)
             if not members:
                 logger.error(f"No active members for team: {recovery.team_id}")
                 return False
+            members = self._apply_speaker_order(
+                recovery.team_id, members, recovery.speaker_order
+            )
 
             # Setup state manager
             self._state_manager.reset()

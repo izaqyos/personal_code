@@ -175,15 +175,23 @@ class TestTeamMemberValidation:
             TeamMember(
                 id="test",
                 name="Test",
-                # missing display_name and email
+                # missing display_name
             )  # type: ignore[call-arg]
         errors = exc_info.value.errors()
         error_fields = {e["loc"][0] for e in errors}
         assert "display_name" in error_fields
-        assert "email" in error_fields
+
+    def test_accepts_missing_email(self) -> None:
+        """email is optional — nothing in the app reads it."""
+        member = TeamMember(id="test", name="Test User", display_name="Test")
+        assert member.email is None
+
+    def test_accepts_missing_manager_email(self) -> None:
+        """ManagerInfo.email is optional for the same reason."""
+        assert ManagerInfo(name="Manager").email is None
 
     def test_reject_invalid_email(self) -> None:
-        """Test that invalid email format is rejected."""
+        """Invalid email format is still rejected when the field is present."""
         with pytest.raises(ValidationError) as exc_info:
             TeamMember(
                 id="test",

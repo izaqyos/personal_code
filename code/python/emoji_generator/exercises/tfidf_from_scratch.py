@@ -131,7 +131,17 @@ def compute_tf(tokens: list[str], variant: str = "normalized") -> dict[str, floa
     Words not present in `tokens` should not appear in the returned dict
     (this stays a sparse representation, like BOW's zero-skipping).
     """
-    raise NotImplementedError
+    counts = Counter(tokens)
+    total = len(tokens)
+    match variant:
+        case "raw":
+            return dict(counts)
+        case "normalized":
+            return {tok: cnt/total for tok, cnt in counts.items()}
+        case "sublinear":
+            return {tok: 1 + math.log(cnt) for tok, cnt in counts.items()}
+        case _:
+            raise ValueError(f"Got unknown variant {variant}")
 
 
 def compute_idf(corpus_tokens: list[list[str]], smooth: bool = True) -> dict[str, float]:
@@ -144,7 +154,21 @@ def compute_idf(corpus_tokens: list[list[str]], smooth: bool = True) -> dict[str
     this dict is the frozen vocabulary + weights that later queries get
     transformed against (see Q3).
     """
-    raise NotImplementedError
+    N = len(corpus_tokens)
+    idf_dict: dict[str, float] = dict()
+    df_dict = Counter()
+    for doc_tokens in corpus_tokens:
+       for token in set(doc_tokens):
+           df_dict[token] +=1
+
+    for tok in df_dict:
+        if smooth:
+            idf_dict[tok] = math.log((1+N)/ (1+df_dict[tok])) +1
+        else:
+            idf_dict[tok] = math.log(N/df_dict[tok])
+
+    return idf_dict
+
 
 
 def tfidf_vector(tf: dict[str, float], idf: dict[str, float]) -> dict[str, float]:
@@ -153,7 +177,12 @@ def tfidf_vector(tf: dict[str, float], idf: dict[str, float]) -> dict[str, float
     A word in `tf` but missing from `idf` (see Q3) should not crash this —
     decide what it contributes and be able to justify it.
     """
-    raise NotImplementedError
+    tfidf_vect = dict()
+    for tok, tok_val in tf.items():
+        if tok in idf:
+            tfidf_vect[tok] = tok_val * idf[tok]
+
+    return tfidf_vect
 
 
 def cosine_sim(vec_a: dict[str, float], vec_b: dict[str, float], eps: float = 1e-12) -> float:
@@ -164,7 +193,24 @@ def cosine_sim(vec_a: dict[str, float], vec_b: dict[str, float], eps: float = 1e
 
     Guard the denominator with `eps`, not an exact `== 0.0` check (Q4).
     """
-    raise NotImplementedError
+    if not vec_a or not vec_b:
+        return 0.0
+
+    shared_words = vec_a.keys() & vec_b.keys()
+    dot_prod_a_b = 0
+    a_magnitude_sqr = 0
+    b_magnitude_sqr = 0
+    for word in shared_words:
+        dot_prod_a_b += vec_a[word] * vec_b[word]
+
+    for v in vec_a.values():
+        a_magnitude_sqr += v**2
+    for v in vec_b.values():
+        b_magnitude_sqr += v**2
+
+    if  math.sqrt(a_magnitude_sqr) < eps or   math.sqrt(b_magnitude_sqr) < eps:
+        return 0.0
+    return dot_prod_a_b / ( math.sqrt(a_magnitude_sqr) * math.sqrt(b_magnitude_sqr)  ) 
 
 
 if __name__ == "__main__":
