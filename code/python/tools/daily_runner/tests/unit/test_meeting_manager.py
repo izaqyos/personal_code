@@ -735,6 +735,42 @@ class TestSessionRestore:
         assert result is True
         assert mm2.is_active is True
 
+    def test_restore_session_preserves_custom_speaker_order(
+        self,
+        team_repo: TeamRepository,
+        config: AppConfig,
+        history_repo: HistoryRepository,
+        recovery_mgr: RecoveryManager,
+    ) -> None:
+        """Resume must use the order the meeting ran with, not team-file order."""
+        default_order = [m.id for m in team_repo.get_active_members("test_team")]
+        assert len(default_order) >= 3, "fixture needs 3+ members for this test"
+        # Rotate rather than reverse: with an odd-length reversal the middle
+        # speaker is the same in both orders, which would hide the bug.
+        custom_order = default_order[1:] + default_order[:1]
+
+        mm1 = MeetingManager(team_repo, config, history_repo, recovery_mgr)
+        mm1.start_meeting(speaker_order=custom_order)
+        mm1.start_speaking()
+        mm1.next_speaker()  # advance so current_speaker_index != 0
+
+        expected_speaker = mm1.current_speaker
+        assert expected_speaker is not None
+        assert expected_speaker.id == custom_order[1]
+
+        state = mm1._get_recovery_state()
+        assert state is not None
+        assert state.speaker_order == custom_order
+        recovery_mgr.save_recovery(state)
+        recovery_mgr.stop_auto_save()
+
+        mm2 = MeetingManager(team_repo, config, history_repo, recovery_mgr)
+        assert mm2.restore_session() is True
+
+        assert mm2.current_speaker is not None
+        assert mm2.current_speaker.id == expected_speaker.id
+        assert [m.id for m in mm2._state_manager.speaker_queue] == custom_order
+
 
 # =============================================================================
 # Test 6.T13: Discard Recovery

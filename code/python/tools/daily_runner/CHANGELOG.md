@@ -37,6 +37,12 @@ New `src/banner/` package: `errors`, `models`, `schedule_loader`, `cadence`, `re
 
 - Version is now sourced dynamically from `pyproject.toml` via `importlib.metadata`
 
+### Fixed
+
+- Banner no longer fails to parse `schedules.json` when a rotation entry has no `go_nogo` date. `RotationEntry.go_nogo` is now optional (`date | None`); the CoreGateway ambassador table has no go/no-go column, so Core-train entries legitimately carry `dr` + `prod` only. The field was parsed but never read by cadence or rendering. Affected `26.Q3.1`-`26.Q3.3`, which surfaced as `⚠ Banner unavailable / rotation_schedule.26.Q3.1.go_nogo: Field required (and 2 more)`. `dr` and `prod` remain required.
+- Session restore now honours the saved `speaker_order`. `restore_session()` rebuilt the speaker queue from the team file's current order while `current_speaker_index` had been recorded against the meeting's actual (possibly custom) order — resuming after a crash could hand the floor to the wrong person. Ordering logic is now shared by `start_meeting()` and `restore_session()` via `MeetingManager._apply_speaker_order()`, which logs a warning when saved speaker IDs no longer resolve to active members.
+- `TeamMember.email` and `ManagerInfo.email` are now optional (`EmailStr | None`). Both were required — and format-validated under `strict=True` — while being read nowhere in the app, so one missing or malformed address rejected an entire team file.
+
 ## [1.0.0] - 2026-01-08
 
 ### Added

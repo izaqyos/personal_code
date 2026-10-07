@@ -12,8 +12,11 @@ class RotationEntry(BaseModel):
 
     champion: str
     dr: date
-    go_nogo: date
     prod: date
+    # Optional: the CoreGateway ambassador table has no go/no-go column, so
+    # Core-train entries carry dr + prod only. Parsed for completeness, unused
+    # by cadence/rendering.
+    go_nogo: date | None = None
     release_title: str | None = None
 
 

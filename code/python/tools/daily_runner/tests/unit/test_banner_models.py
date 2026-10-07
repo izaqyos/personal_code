@@ -30,6 +30,32 @@ class TestRotationEntry:
         )
         assert entry.release_title == "26.Q2.3.0"
 
+    def test_parses_core_train_entry_without_go_nogo(self) -> None:
+        """CoreGateway ambassador rows carry dr + prod only, no go/no-go column."""
+        entry = RotationEntry(
+            champion="miri",
+            dr=date(2026, 8, 2),
+            prod=date(2026, 8, 9),
+            release_title="CoreGateway 26.Q3.2.0",
+        )
+        assert entry.go_nogo is None
+        assert entry.dr == date(2026, 8, 2)
+        assert entry.prod == date(2026, 8, 9)
+
+    def test_rejects_missing_dr(self) -> None:
+        with pytest.raises(ValidationError):
+            RotationEntry(
+                champion="miri",
+                prod=date(2026, 8, 9),
+            )
+
+    def test_rejects_missing_prod(self) -> None:
+        with pytest.raises(ValidationError):
+            RotationEntry(
+                champion="miri",
+                dr=date(2026, 8, 2),
+            )
+
     def test_rejects_missing_champion(self) -> None:
         with pytest.raises(ValidationError):
             RotationEntry(
