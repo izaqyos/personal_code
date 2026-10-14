@@ -486,7 +486,6 @@ Before using certain projects, you should:
 
 3. **Generate your own certificates**:
    - PKI examples in various directories
-   - Use provided `scripts/bash/pki_generator.sh` for testing
 
 ### Best Practices
 - Always copy `env.example` to `.env` and configure properly
@@ -503,7 +502,6 @@ Before using certain projects, you should:
 Useful scripts for automation and system administration:
 
 ### Bash Scripts
-- **PKI/Certificate Management**: `pki_generator.sh` and variants
 - **Security**: `secure-dir.sh` (encrypted APFS disk images)
 - **Backup**: `manage_backups.sh`, rsync utilities
 - **Development**: `rust_cleaner.sh`, build helpers

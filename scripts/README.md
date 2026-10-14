@@ -18,10 +18,6 @@ A curated collection of useful scripts and utilities accumulated over years of s
 ## 🔧 Categories
 
 ### Bash Scripts (`bash/`)
-- **PKI/Certificate Management**: Scripts for generating and managing PKI infrastructure
-  - `pki_generator.sh` - Comprehensive certificate generation for testing
-  - `pki_generator_mult_val_RDN.sh` - Multi-value RDN certificate generation
-  - `pki_generator_subj_SSN.sh` - Subject SSN certificate generation
 - **Security**: 
   - `secure-dir.sh` - Create encrypted APFS disk images from directories (macOS)
 - **Backup & Sync**:
@@ -114,7 +110,6 @@ While this is a personal collection, suggestions and improvements are welcome. P
 Some particularly useful scripts:
 
 - **`bash/secure-dir.sh`**: Create encrypted, password-protected disk images on macOS
-- **`bash/pki_generator.sh`**: Comprehensive PKI certificate generation for testing
 - **`bash/manage_backups.sh`**: Automated backup management
 - **`bash/dir-diff.sh`**: Advanced directory comparison
 - **`python/my_modules/`**: Reusable Python modules

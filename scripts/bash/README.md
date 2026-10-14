@@ -217,35 +217,6 @@ hdiutil detach /Volumes/MyVault
 
 ---
 
-### PKI Certificate Generation Scripts
-
-#### `pki_generator.sh`
-**Purpose**: Comprehensive PKI certificate generation tool for stress testing and development.
-
-**Usage**:
-```bash
-./pki_generator.sh -Cm CA -Noc 1000 -Norc 5 -up user -mp machine -dp cisco.com \
-  -CAexp 365 -policyCaexp 365 -issuingCaexp 365 -SERexp 365 -CLTexp 365 \
-  -hash sha256 -keysz 2048 -RndSn
-```
-
-**Key Parameters**:
-- `-Cm, --CA_mode`: CA mode (noCA, CA, subCA)
-- `-Noc, --number_of_certificates`: Number of certificates to generate
-- `-Norc, --number_of_revoked_certificates`: Number of revoked certificates
-- `-up, --username_pattern`: Username pattern for user certificates
-- `-mp, --machinename_pattern`: Machine name pattern
-- `-dp, --domainname_pattern`: Domain pattern
-- `-hash, --hash_type`: Hash algorithm (sha256, sha384, sha512, sha1, md5)
-- `-keysz, --key_size`: Key size (512, 1024, 2048, 4096, 8192)
-
-**Variants**:
-- `pki_generator_new.sh`: Updated version with new features
-- `pki_generator_mult_val_RDN.sh`: Multiple value RDN support
-- `pki_generator_subj_SSN.sh`: Subject serial number support
-
----
-
 ### Key Management Scripts
 
 #### `zeorize_keys.bash` / `zeorize_keys_machine.bash`
@@ -399,7 +370,6 @@ Several scripts require configuration:
 
 - **`search_git_repos.sh`**: Edit `repo_data` array with your repository paths
 - **`manage_backups.sh`**: Edit `BACKUP_DIRS` array with your backup locations
-- **PKI scripts**: Adjust certificate parameters as needed
 
 ## Best Practices
 
@@ -414,7 +384,6 @@ Several scripts require configuration:
 - **Encryption scripts**: Use strong, memorable passwords
 - **Key management scripts**: Understand the implications of key deletion
 - **Directory sync scripts**: Be careful with deletion operations
-- **PKI scripts**: Generated certificates are for testing purposes only
 
 ## Contributing
 
@@ -451,7 +420,6 @@ Contributions are welcome! Please feel free to submit issues, feature requests, 
 | `search_git_repos.sh` | Multi-repo search | Search pattern | Match results | ✅ Safe |
 | `manage_backups.sh` | Backup management | Action + count | Listed/deleted backups | ⚠️ Destructive |
 | `load_nvm.sh` | Load NVM | None | NVM environment | ✅ Safe |
-| `pki_generator.sh` | Generate certificates | PKI parameters | Certificate files | ✅ Safe |
 
 **Legend**:
 - ✅ **Safe**: Read-only or non-destructive operations

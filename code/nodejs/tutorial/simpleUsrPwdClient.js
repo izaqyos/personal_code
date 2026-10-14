@@ -1,7 +1,7 @@
 process.env["NODE_TLS_REJECT_UNAUTHORIZED"] = 0
 const request = require('request')
-var username = '<user>'
-var password = '<password>'
+var username = process.env.API_USER
+var password = process.env.API_PASSWORD
 var options = {
   url: 'https://host.example.com:44300/api/entities',
   auth: {

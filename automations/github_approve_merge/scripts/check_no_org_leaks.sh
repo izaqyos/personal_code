@@ -7,20 +7,22 @@
 
 set -euo pipefail
 
-# Patterns that must never appear in tracked files. Add to this list when you
-# learn about new organization-internal terms that could leak.
-PATTERNS=(
-  'example-org'
-  'vpn-sso-'
-  'example-repo'
-  'checkpoint\.com'
-  'example-prefix-'
-  'example-term-1'
-  'example-term-2'
-  'example-term-3'
-  'Check Point'
-  'CheckPoint'
-)
+# Patterns that must never appear in tracked files are NOT stored in this repo
+# (listing them here would itself leak them). Put one extended regex per line in a
+# private file outside the repo, e.g. ~/.config/org_leak_patterns, or point the
+# ORG_LEAK_PATTERNS_FILE env var at it. Blank lines and lines starting with # are ignored.
+PATTERNS_FILE="${ORG_LEAK_PATTERNS_FILE:-$HOME/.config/org_leak_patterns}"
+PATTERNS=()
+if [[ -f "$PATTERNS_FILE" ]]; then
+  while IFS= read -r line; do
+    [[ -z "$line" || "$line" == \#* ]] && continue
+    PATTERNS+=("$line")
+  done < "$PATTERNS_FILE"
+fi
+if [[ ${#PATTERNS[@]} -eq 0 ]]; then
+  echo "check_no_org_leaks: no patterns configured (set ORG_LEAK_PATTERNS_FILE or create $PATTERNS_FILE); skipping." >&2
+  exit 0
+fi
 
 # Files to skip (intentional metadata about the guard itself, or scripts that
 # must embed the same pattern list in order to perform runtime leak-checking).

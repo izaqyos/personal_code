@@ -700,3 +700,11 @@ code/AI/streamlit/tutorial/.env
 # amiio home assignment: standalone public repo (own git) + private meta notes (local only)
 code/practice/09_2026_job_hunt_practice/amiio/RealEstateMultiAgentMgmt/propco-agent/
 code/practice/09_2026_job_hunt_practice/amiio/RealEstateMultiAgentMgmt/meta/
+
+# shell histories / editor state must never be committed
+.bash_history
+.zsh_history
+.zhistory
+.python_history
+.viminfo
+*.hup

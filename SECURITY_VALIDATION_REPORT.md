@@ -86,7 +86,7 @@ TEST_URL = "https://app.example.com"
 #### ✅ SAFE - Example/Tutorial Passwords
 **Files with password patterns** (48 files found):
 - Most are in test files, documentation, or tutorials
-- Examples: `pki_generator.sh` scripts use passwords for certificate generation
+- Examples: certificate-generation helper scripts use passwords for local test certificates
 - Context: Educational and testing purposes only
 - Status: ✅ Safe for repository
 

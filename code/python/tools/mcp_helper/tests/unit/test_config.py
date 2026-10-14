@@ -102,7 +102,7 @@ class TestMCPConfig:
         """Test getting all server names."""
         config = MCPConfig.model_validate(sample_mcp_config)
         names = config.server_names()
-        assert sorted(names) == ["github", "vpn-sso-atlassian", "slack"]
+        assert sorted(names) == ["github", "slack", "vpn-sso-atlassian"]
 
     def test_len(self, sample_mcp_config: dict[str, Any]) -> None:
         """Test __len__ returns number of servers."""

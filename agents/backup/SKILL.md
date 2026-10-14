@@ -81,5 +81,5 @@ python backup_agent.py launchctl logs checkpoint
 - Logs: `~/work/git/git_backup/logs/`
 - Venv: `~/work/git/git_backup/yosi_general_venv/`
 - LaunchAgents: `~/Library/LaunchAgents/com.yosii.*.plist`
-- OneDrive backups: `~/Library/CloudStorage/OneDrive-Work/Backups/`
+- OneDrive backups: `$ONEDRIVE_PATH/Backups/` (default `~/Library/CloudStorage/OneDrive-Personal/Backups/`)
 - Obsidian checkpoints: `~/work/backup/obsidian/`

@@ -21,7 +21,8 @@ from pathlib import Path
 HOME = Path.home()
 GIT_BACKUP_DIR = HOME / "work/git/git_backup"
 LAUNCH_AGENTS_DIR = HOME / "Library/LaunchAgents"
-ONEDRIVE_PATH = HOME / "Library/CloudStorage/OneDrive-Work"
+# Override with the ONEDRIVE_PATH env var to point at your OneDrive folder.
+ONEDRIVE_PATH = Path(os.environ.get("ONEDRIVE_PATH", HOME / "Library/CloudStorage/OneDrive-Personal"))
 ONEDRIVE_BACKUP_DIR = ONEDRIVE_PATH / "Backups"
 CHECKPOINT_BACKUP_DIR = HOME / "work/backup/obsidian"
 VENV_PYTHON = GIT_BACKUP_DIR / "yosi_general_venv/bin/python"

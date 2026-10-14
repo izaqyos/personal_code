@@ -37,7 +37,8 @@ This document is the operating manual for keeping that data inside your machine.
 
 `scripts/check_no_org_leaks.sh` (run automatically by the git pre-commit hook
 when installed) scans staged files for known organization-name patterns and
-refuses commits that contain them.
+refuses commits that contain them. The patterns are read from a private file outside
+the repo (`~/.config/org_leak_patterns`, or `$ORG_LEAK_PATTERNS_FILE`), one regex per line.
 
 Install the hook once:
 

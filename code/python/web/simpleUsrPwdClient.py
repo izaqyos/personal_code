@@ -1,6 +1,12 @@
-#!/usr/local/bin/python3
+#!/usr/bin/env python3
+import os
 
 import requests
 
-resp = requests.get( 'https://host.example.com:44300/api/entities', auth=('<user>',  '<password>'), verify=False)
+# Credentials come from the environment, never from source control.
+resp = requests.get(
+    'https://host.example.com:44300/api/entities',
+    auth=(os.environ['API_USER'], os.environ['API_PASSWORD']),
+    verify=False,
+)
 print(resp.json())
