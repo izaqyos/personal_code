@@ -51,8 +51,8 @@ def rows_work_demo(data):
 def working_with_data_frames(data):
     print("Create a DataFrame (table) from a dictionary")
     df_dict = {
-            "kids": ["May", "Itay", "Kay", "Aimy"],
-            "birthdates": ["14.03.2007", "21.06.2011", "08.06.2014", "02.03.2016"]
+            "kids": ["Alice", "Bob", "Carol", "Dana"],
+            "birthdates": ["01.01.2000", "01.01.2000", "01.01.2000", "01.01.2000"]
             }
     kids_df = pandas.DataFrame(df_dict)
     print(f"Created kids bdays DataFrame\n {kids_df}")
