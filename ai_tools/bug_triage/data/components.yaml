@@ -1,0 +1,125 @@
+components:
+- name: auth-sso
+  owner_team: Identity
+  default_assignee: Tobias Wren
+  keywords:
+  - login
+  - sso
+  - saml
+  - session
+  - mfa
+  - password
+  - idp
+  - sign-in
+- name: public-api
+  owner_team: Identity
+  default_assignee: Priya Anand
+  keywords:
+  - api
+  - endpoint
+  - token
+  - rate limit
+  - webhook
+  - rest
+  - gateway
+- name: permissions
+  owner_team: Identity
+  default_assignee: Marcus Oyelaran
+  keywords:
+  - permission
+  - role
+  - access denied
+  - '403'
+  - scope
+  - guest
+  - group
+- name: billing
+  owner_team: Payments
+  default_assignee: Dmitri Volkov
+  keywords:
+  - invoice
+  - payment
+  - card
+  - tax
+  - subscription
+  - plan
+  - coupon
+- name: reporting
+  owner_team: Payments
+  default_assignee: Amara Okafor
+  keywords:
+  - report
+  - dashboard
+  - chart
+  - csv
+  - export
+  - burndown
+  - velocity
+- name: sync-engine
+  owner_team: Platform
+  default_assignee: Sofia Marchetti
+  keywords:
+  - sync
+  - conflict
+  - offline
+  - merge
+  - cursor
+  - tombstone
+  - replica
+- name: file-storage
+  owner_team: Platform
+  default_assignee: Kwame Boateng
+  keywords:
+  - upload
+  - download
+  - attachment
+  - zip
+  - quota
+  - thumbnail
+  - export
+- name: search
+  owner_team: Platform
+  default_assignee: Ingrid Halvorsen
+  keywords:
+  - search
+  - index
+  - query
+  - autocomplete
+  - results
+  - filter
+  - ranking
+- name: web-ui
+  owner_team: Experience
+  default_assignee: Yuki Tanabe
+  keywords:
+  - button
+  - page
+  - layout
+  - dark mode
+  - browser
+  - drag
+  - render
+  - ui
+- name: mobile-app
+  owner_team: Experience
+  default_assignee: Camille Durand
+  keywords:
+  - app
+  - ios
+  - android
+  - crash
+  - push
+  - biometric
+  - mobile
+  - login
+- name: notifications
+  owner_team: Experience
+  default_assignee: Oskar Nilsson
+  keywords:
+  - notification
+  - email
+  - digest
+  - push
+  - mention
+  - unsubscribe
+  - alert

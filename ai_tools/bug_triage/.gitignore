@@ -1,0 +1,2 @@
+# Private leak-guard list for tests/test_generate_data.py
+tests/forbidden_names.local.txt

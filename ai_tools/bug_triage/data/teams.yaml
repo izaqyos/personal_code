@@ -1,0 +1,38 @@
+teams:
+- name: Identity
+  members:
+  - Tobias Wren
+  - Priya Anand
+  - Marcus Oyelaran
+  - Hana Lindqvist
+  components:
+  - auth-sso
+  - public-api
+  - permissions
+- name: Payments
+  members:
+  - Dmitri Volkov
+  - Amara Okafor
+  - Julian Reyes
+  components:
+  - billing
+  - reporting
+- name: Platform
+  members:
+  - Sofia Marchetti
+  - Kwame Boateng
+  - Ingrid Halvorsen
+  - Rahul Deshpande
+  components:
+  - sync-engine
+  - file-storage
+  - search
+- name: Experience
+  members:
+  - Yuki Tanabe
+  - Camille Durand
+  - Oskar Nilsson
+  components:
+  - web-ui
+  - mobile-app
+  - notifications

@@ -1,0 +1,95 @@
+known_issues:
+- id: KI-001
+  title: SSO login loops when third-party cookies are blocked
+  component: auth-sso
+  symptoms: Login through the corporate IdP bounces between /login and /sso/callback when the browser
+    blocks third-party cookies.
+  workaround: Allow cookies for the Larkspur domain or use the direct sign-in link.
+  status: open
+- id: KI-002
+  title: SAML metadata rotation invalidates active sessions
+  component: auth-sso
+  symptoms: After the IdP rotates its signing certificate every active session is dropped and login fails
+    with an audience or signature error until metadata is refreshed.
+  workaround: Re-upload the IdP metadata in SSO settings.
+  status: fixed
+- id: KI-003
+  title: List endpoints return 500 when page_size exceeds 500
+  component: public-api
+  symptoms: GET list endpoints answer HTTP 500 instead of clamping page_size above 500.
+  workaround: Request at most 500 items per page.
+  status: open
+- id: KI-004
+  title: Webhook retries stop after three timeouts
+  component: public-api
+  symptoms: When a customer endpoint times out three times the webhook is dropped silently and never retried.
+  workaround: Re-send the event from the webhook log page.
+  status: open
+- id: KI-005
+  title: Renaming a role drops its scopes until re-saved
+  component: permissions
+  symptoms: After renaming a custom role members get 403 on projects; saving the role again restores access.
+  workaround: Open the role and press Save once more after renaming.
+  status: fixed
+- id: KI-006
+  title: Duplicate VAT line after billing country change
+  component: billing
+  symptoms: Changing the billing country mid cycle produces an invoice with the tax line twice.
+  workaround: Support can regenerate the invoice; customers are not double charged.
+  status: open
+- id: KI-007
+  title: Checkout timeout may still capture the card payment
+  component: billing
+  symptoms: Upgrading a plan can hang and time out at the payment step although the charge succeeded.
+  workaround: Check the invoice list before retrying the payment.
+  status: open
+- id: KI-008
+  title: CSV export applies the timezone twice
+  component: reporting
+  symptoms: Dates in exported CSV reports are shifted by double the workspace timezone offset.
+  workaround: Set the workspace timezone to UTC before exporting.
+  status: fixed
+- id: KI-009
+  title: Quarterly dashboard times out on very large workspaces
+  component: reporting
+  symptoms: The quarterly summary dashboard shows a timeout for workspaces with over 100k tasks.
+  workaround: Narrow the date range to one month.
+  status: wontfix
+- id: KI-010
+  title: Conflict loop after long offline editing
+  component: sync-engine
+  symptoms: Clients that edited offline for a day or more never finish syncing because the merge keeps
+    detecting conflicts.
+  workaround: Sign out, clear the local cache and sign in again.
+  status: open
+- id: KI-011
+  title: Multipart upload completion times out above 500 MB
+  component: file-storage
+  symptoms: Uploads larger than 500 MB reach 99 percent and then fail when the completion call times out.
+  workaround: Split the file or upload through the desktop client.
+  status: open
+- id: KI-012
+  title: Index lag after bulk import
+  component: search
+  symptoms: Tasks created through a bulk import are not searchable for up to 15 minutes.
+  workaround: Wait for the indexer to catch up; no action needed.
+  status: wontfix
+- id: KI-013
+  title: Board drag and drop freezes with more than 1000 cards
+  component: web-ui
+  symptoms: Dragging a card on a board with over 1000 cards freezes the tab in Safari.
+  workaround: Filter the board to fewer cards before reordering.
+  status: open
+- id: KI-014
+  title: Biometric login fails after an OS update
+  component: mobile-app
+  symptoms: Face or fingerprint login stops working after a phone OS update until biometrics are enrolled
+    again in the app.
+  workaround: Disable and re-enable biometric login in app settings.
+  status: fixed
+- id: KI-015
+  title: Digest email duplicated when two schedulers overlap
+  component: notifications
+  symptoms: Users receive the daily digest twice when the scheduler failover overlaps with the primary.
+  workaround: No action needed; duplicates stop after the failover window.
+  status: open

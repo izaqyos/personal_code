@@ -1,0 +1,43 @@
+use_cases:
+- name: Sign in with company SSO
+  description: Employees sign in through the corporate identity provider.
+  components:
+  - auth-sso
+  - permissions
+- name: Invite external guests
+  description: Share one project with guests without exposing the workspace.
+  components:
+  - permissions
+  - auth-sso
+  - notifications
+- name: Automate with the public API
+  description: Integrations create and read tasks through REST and webhooks.
+  components:
+  - public-api
+  - permissions
+- name: Upgrade plan and pay invoices
+  description: Admins change plans, pay by card and download invoices.
+  components:
+  - billing
+  - notifications
+- name: Quarterly progress reporting
+  description: Managers build dashboards and export reports to CSV.
+  components:
+  - reporting
+  - search
+- name: Work offline on mobile
+  description: Edit tasks on the phone without connectivity and sync later.
+  components:
+  - mobile-app
+  - sync-engine
+- name: Share files on tasks
+  description: Attach, preview and download files on tasks.
+  components:
+  - file-storage
+  - web-ui
+  - search
+- name: Plan with board and Gantt views
+  description: Visual planning with drag and drop boards and timelines.
+  components:
+  - web-ui
+  - sync-engine
