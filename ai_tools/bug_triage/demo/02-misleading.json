@@ -1,0 +1,3 @@
+{"id": "DEMO-2", "title": "Users logged out of SSO and sent back to the login page",
+ "description": "Users sign in through SSO successfully, then after a few minutes they land on the login page again and have to sign in again. Login and SAML look healthy. The sync engine logs show the sync cursor expired and it forced a re-authentication because it could not resume the delta.",
+ "logs": "2026-10-21T14:02:11Z ERROR sync.engine: cursor expired, cannot resume delta, forcing reauth"}

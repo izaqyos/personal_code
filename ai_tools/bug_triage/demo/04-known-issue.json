@@ -1,0 +1,3 @@
+{"id": "DEMO-4", "title": "Dates in exported CSV report are shifted",
+ "description": "When I export the monthly report to CSV, every date is shifted by double the workspace timezone offset. Our workspace is UTC+3 and the dates are off by six hours.",
+ "logs": ""}

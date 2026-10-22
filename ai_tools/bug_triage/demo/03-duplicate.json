@@ -1,0 +1,3 @@
+{"id": "DEMO-3", "title": "Bulk export through the API times out for big workspaces",
+ "description": "POST /v1/exports for ws-9452 with over 30000 tasks returns 504 after 30 seconds.",
+ "logs": "2026-03-12T05:17:28Z ERROR api.gateway: upstream timeout 30000 ms route=/v1/exports"}

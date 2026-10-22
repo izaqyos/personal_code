@@ -1,0 +1,3 @@
+{"id": "DEMO-1", "title": "Coupon not applied when renewing an annual plan",
+ "description": "A valid 20% coupon is accepted at checkout for a new subscription, but when an existing customer renews their annual plan the renewal invoice is charged at full price.",
+ "logs": "2026-10-20T09:12:03Z INFO billing.renewal: plan=annual coupon=SAVE20 discount_applied=false"}
