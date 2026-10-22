@@ -26,6 +26,8 @@ class Tier1Like(Protocol):
 
     def predict(self, bug: Bug) -> Tier1Result: ...
 
+    def contact(self, component: str) -> str: ...
+
 
 class JudgeLike(Protocol):
     """Tier 2 LLM judge."""
@@ -69,11 +71,7 @@ class Pipeline:
             return False
         if self.policy == "always":
             return True
-        return (
-            s.component != t1.top_component()
-            or s.assignee != t1.assignee
-            or s.confidence < self.confidence_threshold
-        )
+        return s.component != t1.top_component() or s.confidence < self.confidence_threshold
 
     @staticmethod
     def _tier1_decision(t1: Tier1Result, rationale: str) -> TriageDecision:
@@ -106,7 +104,11 @@ class Pipeline:
                 decision=self._tier1_decision(t1, f"fallback: {exc}"), trace=trace
             )
         trace.append(
-            TierTrace(tier="judge", prediction=_as_prediction(suggestion), elapsed_ms=_ms(start))
+            TierTrace(
+                tier="judge",
+                prediction=self._as_prediction(suggestion),
+                elapsed_ms=_ms(start),
+            )
         )
         suggestion = _tier1_links(suggestion, t1)
 
@@ -119,16 +121,40 @@ class Pipeline:
                 trace.append(
                     TierTrace(tier="final", prediction=None, elapsed_ms=_ms(start), error=str(exc))
                 )
-                decision = _decision(suggestion, "judge", True, str(exc))
+                decision = self._decision(suggestion, "judge", True, str(exc))
             else:
                 trace.append(
                     TierTrace(
-                        tier="final", prediction=_as_prediction(decided), elapsed_ms=_ms(start)
+                        tier="final",
+                        prediction=self._as_prediction(decided),
+                        elapsed_ms=_ms(start),
                     )
                 )
-                decision = _decision(_tier1_links(decided, t1), "final", True, None)
+                decision = self._decision(_tier1_links(decided, t1), "final", True, None)
             return PipelineResult(decision=decision, trace=trace)
-        return PipelineResult(decision=_decision(suggestion, "judge", False, None), trace=trace)
+        return PipelineResult(
+            decision=self._decision(suggestion, "judge", False, None), trace=trace
+        )
+
+    def _as_prediction(self, s: TriageSuggestion) -> Prediction:
+        return Prediction(
+            component=s.component,
+            team=s.team,
+            assignee=self.tier1.contact(s.component),
+            duplicate_of=s.duplicate_of,
+            known_issue=s.known_issue,
+        )
+
+    def _decision(
+        self, s: TriageSuggestion, source: TierName, escalated: bool, final_error: str | None
+    ) -> TriageDecision:
+        return TriageDecision(
+            **s.model_dump(),
+            assignee=self.tier1.contact(s.component),
+            source=source,
+            escalated=escalated,
+            final_error=final_error,
+        )
 
 
 def _tier1_links(s: TriageSuggestion, t1: Tier1Result) -> TriageSuggestion:
@@ -139,21 +165,3 @@ def _tier1_links(s: TriageSuggestion, t1: Tier1Result) -> TriageSuggestion:
     judge/final output so the per-tier rows still show it.
     """
     return s.model_copy(update={"duplicate_of": t1.duplicate_of, "known_issue": t1.known_issue})
-
-
-def _as_prediction(s: TriageSuggestion) -> Prediction:
-    return Prediction(
-        component=s.component,
-        team=s.team,
-        assignee=s.assignee,
-        duplicate_of=s.duplicate_of,
-        known_issue=s.known_issue,
-    )
-
-
-def _decision(
-    s: TriageSuggestion, source: TierName, escalated: bool, final_error: str | None
-) -> TriageDecision:
-    return TriageDecision(
-        **s.model_dump(), source=source, escalated=escalated, final_error=final_error
-    )

@@ -231,7 +231,6 @@ def make_suggestion() -> Callable[..., TriageSuggestion]:
         data: dict[str, Any] = {
             "component": "auth-sso",
             "team": "Identity",
-            "assignee": "Tobias Wren",
             "duplicate_of": None,
             "known_issue": None,
             "severity": "medium",

@@ -37,8 +37,12 @@ class Tier1Result(BaseModel):
     def top_score(self) -> float
     def to_prediction(self) -> Prediction
 
-class TriageSuggestion(Prediction):  severity: Severity; confidence: float; rationale: str   # confidence in [0,1]
-class TriageDecision(TriageSuggestion):  source: TierName; escalated: bool; final_error: str | None = None
+class TriageSuggestion(BaseModel):  # LLM output: routes to a team, never a person
+    component: str; team: str; duplicate_of: str | None = None; known_issue: str | None = None
+    severity: Severity; confidence: float; rationale: str   # confidence in [0,1]
+class TriageDecision(TriageSuggestion):  assignee: str   # suggested contact = default owner of the decided component
+    source: TierName; escalated: bool; final_error: str | None = None
+    def to_prediction(self) -> Prediction
 
 class TierTrace(BaseModel):      tier: TierName; prediction: Prediction | None; elapsed_ms: float
                                  error: str | None = None
@@ -123,8 +127,11 @@ class Pipeline:
     def should_escalate(self, t1: Tier1Result, s: TriageSuggestion) -> bool
     def run(self, bug: Bug) -> PipelineResult
 ```
-Escalation (policy "on-disagreement"): judge component != t1.top_component(), or judge assignee != t1.assignee,
-or judge confidence < confidence_threshold. "always" → always; "never" → never (and when final is None).
+Tier1Like also has `contact(component) -> str` (the component's default owner); the pipeline uses it for the
+decision's `assignee` and for the judge/final trace predictions. Duplicate and known-issue links in the decision
+always come from Tier 1 (traces keep the raw LLM output).
+Escalation (policy "on-disagreement"): judge component != t1.top_component(), or judge confidence <
+confidence_threshold. "always" → always; "never" → never (and when final is None).
 Judge error → decision from Tier 1 (source "tier1", severity "medium", confidence = t1.top_score(),
 rationale "fallback: <error>"), trace has the error. Final error → keep the judge decision, `final_error` set.
 

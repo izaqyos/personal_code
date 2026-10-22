@@ -33,8 +33,8 @@ SYSTEM_ROLE = (
 )
 
 RULES = """Rules:
-- component and assignee must come ONLY from the roster below.
-- team must be the owner team of the chosen component; assignee must be a member of that team.
+- Route to a TEAM: component must come ONLY from the roster below, and team must be its owner team.
+  Do not pick a person: the owning team assigns internally.
 - duplicate_of: an original bug id taken ONLY from the similar past bugs listed, or null.
 - known_issue: an id taken ONLY from the known-issue hits listed, or null.
 - severity is one of low, medium, high, critical; confidence is a number in [0, 1].
@@ -69,7 +69,7 @@ class FinalTriager:
         """Single prompt: role, rules, bug, Tier-1 candidates, context, roster, judge output."""
         cands = "\n".join(f"- {c.label}: {c.score:.2f}" for c in t1.component_candidates)
         similar = "\n".join(
-            f"- {s.bug_id} (score {s.score:.2f}, component {s.component}, assignee {s.assignee}, "
+            f"- {s.bug_id} (score {s.score:.2f}, component {s.component}, "
             f"duplicate_of {s.duplicate_of}): {s.title}"
             for s in t1.similar_bugs
         )
@@ -84,8 +84,7 @@ class FinalTriager:
                 RULES,
                 f"<bug>\nid: {bug.id}\ntitle: {bug.title}\ndescription: {bug.description}\n"
                 f"logs: {bug.logs}\n</bug>",
-                f"Tier-1 component candidates:\n{cands or '(none)'}\n"
-                f"Tier-1 team: {t1.team}; assignee: {t1.assignee}",
+                f"Tier-1 component candidates:\n{cands or '(none)'}\nTier-1 team: {t1.team}",
                 f"Similar past bugs:\n{similar or '(none)'}",
                 "Known-issue hits:\n" + ("\n".join(hits) or "(none)"),
                 f"Roster:\n{self.kb.roster_text()}",
@@ -162,11 +161,7 @@ class FinalTriager:
         kb = self.kb
         if not kb.is_valid_component(s.component):
             raise FinalTriageError(f"unknown component: {s.component}")
-        if not kb.is_valid_assignee(s.assignee):
-            raise FinalTriageError(f"unknown assignee: {s.assignee}")
         owner = kb.owner_team(s.component)
-        if kb.team_of(s.assignee) != owner:
-            raise FinalTriageError(f"assignee {s.assignee} is not in team {owner}")
         if s.duplicate_of is not None and s.duplicate_of not in kb.history_ids():
             raise FinalTriageError(f"unknown duplicate_of: {s.duplicate_of}")
         if s.known_issue is not None and s.known_issue not in kb.known_issues:

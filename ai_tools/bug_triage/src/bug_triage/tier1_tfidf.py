@@ -148,6 +148,10 @@ class Tier1Classifier:
             for i in order
         ]
 
+    def contact(self, component: str) -> str:
+        """Suggested first contact for a component (its default owner)."""
+        return self.kb.default_assignee(component)
+
     def predict(self, bug: Bug) -> Tier1Result:
         """Classify a bug and retrieve similar bugs and known issues."""
         if not self._fitted:

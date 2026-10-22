@@ -21,6 +21,9 @@ class StubTier1:
     def predict(self, bug: Bug) -> Tier1Result:
         return self.result
 
+    def contact(self, component: str) -> str:
+        return f"contact-of-{component}"
+
 
 class StubJudge:
     def __init__(self, result: TriageSuggestion | Exception) -> None:
@@ -78,7 +81,6 @@ def test_judge_no_escalation(sample_bug: Bug, make_tier1_result: Mk1, make_sugge
     "override",
     [
         {"component": "web-ui"},
-        {"assignee": "Someone Else"},
         {"confidence": 0.5},
     ],
 )
@@ -204,6 +206,18 @@ def test_links_from_tier1_after_final(
     d = res.decision
     assert d.source == "final"
     assert (d.duplicate_of, d.known_issue) == (None, "KI-001")
+
+
+def test_routes_to_team_with_contact_of_decided_component(
+    sample_bug: Bug, make_tier1_result: Mk1, make_suggestion: MkS
+) -> None:
+    final = StubFinal(make_suggestion(component="web-ui", team="Experience", confidence=0.9))
+    res = Pipeline(
+        StubTier1(make_tier1_result()), StubJudge(make_suggestion(component="web-ui")), final
+    ).run(sample_bug)
+    assert res.decision.assignee == "contact-of-web-ui"
+    judge_trace = res.trace[1].prediction
+    assert judge_trace is not None and judge_trace.assignee == "contact-of-web-ui"
 
 
 @pytest.mark.parametrize("bad", [-0.1, 1.5])

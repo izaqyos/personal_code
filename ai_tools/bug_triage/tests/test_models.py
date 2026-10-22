@@ -90,11 +90,14 @@ def test_tier1_empty_candidates(make_tier1_result: Callable[..., Tier1Result]) -
 
 def test_decision_and_pipeline_result(make_suggestion: Callable[..., TriageSuggestion]) -> None:
     s = make_suggestion()
-    d = TriageDecision(**s.model_dump(), source="judge", escalated=False)
+    d = TriageDecision(**s.model_dump(), assignee="Tobias Wren", source="judge", escalated=False)
     assert d.final_error is None
+    assert d.to_prediction() == Prediction(
+        component="auth-sso", team="Identity", assignee="Tobias Wren"
+    )
     trace = TierTrace(
         tier="judge",
-        prediction=Prediction(**s.model_dump(include=set(Prediction.model_fields))),
+        prediction=d.to_prediction(),
         elapsed_ms=3.0,
     )
     assert trace.error is None
@@ -104,4 +107,6 @@ def test_decision_and_pipeline_result(make_suggestion: Callable[..., TriageSugge
 
 def test_decision_source_literal(make_suggestion: Callable[..., TriageSuggestion]) -> None:
     with pytest.raises(ValidationError):
-        TriageDecision(**make_suggestion().model_dump(), source="oracle", escalated=False)  # type: ignore[arg-type]
+        TriageDecision(
+            **make_suggestion().model_dump(), assignee="a", source="oracle", escalated=False
+        )  # type: ignore[arg-type]

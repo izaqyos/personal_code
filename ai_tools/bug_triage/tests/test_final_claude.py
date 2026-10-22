@@ -17,7 +17,6 @@ from bug_triage.models import Bug, Tier1Result, TriageSuggestion
 SUG = {
     "component": "auth-sso",
     "team": "Identity",
-    "assignee": "Tobias Wren",
     "duplicate_of": None,
     "known_issue": None,
     "severity": "high",
@@ -71,7 +70,12 @@ def test_structured_output(run: Callable[[Any], TriageSuggestion]) -> None:
 
 def test_json_in_result(run: Callable[[Any], TriageSuggestion]) -> None:
     out = run(proc(envelope(result=json.dumps(SUG))))
-    assert out.assignee == "Tobias Wren"
+    assert out.component == "auth-sso"
+
+
+def test_person_in_output_is_ignored(run: Callable[[Any], TriageSuggestion]) -> None:
+    out = run(proc(envelope(structured_output={**SUG, "assignee": "Nobody"})))
+    assert out.team == "Identity" and "assignee" not in out.model_dump()
 
 
 def test_fenced_result(run: Callable[[Any], TriageSuggestion]) -> None:
@@ -144,8 +148,6 @@ def test_prompt_unknown_ki_and_empty_context(
         (proc(envelope(result="plain text answer")), "not valid JSON"),
         (proc(envelope(structured_output={"component": "auth-sso"})), "schema validation"),
         (proc(envelope(structured_output={**SUG, "component": "nope"})), "unknown component"),
-        (proc(envelope(structured_output={**SUG, "assignee": "Nobody"})), "unknown assignee"),
-        (proc(envelope(structured_output={**SUG, "assignee": "x"})), "unknown assignee"),
         (proc(envelope(structured_output={**SUG, "duplicate_of": "BUG-X"})), "duplicate_of"),
         (proc(envelope(structured_output={**SUG, "known_issue": "KI-X"})), "known_issue"),
     ],
@@ -153,14 +155,6 @@ def test_prompt_unknown_ki_and_empty_context(
 def test_errors(run: Callable[[Any], TriageSuggestion], result: Any, match: str) -> None:
     with pytest.raises(FinalTriageError, match=match):
         run(result)
-
-
-def test_wrong_team_assignee(kb: KnowledgeBase, run: Callable[[Any], TriageSuggestion]) -> None:
-    owner = kb.owner_team("auth-sso")
-    other = next(t for t in kb.teams.values() if t.name != owner)
-    bad = {**SUG, "assignee": other.members[0]}
-    with pytest.raises(FinalTriageError, match="not in team"):
-        run(proc(envelope(structured_output=bad)))
 
 
 def test_team_autocorrect(run: Callable[[Any], TriageSuggestion], caplog: Any) -> None:

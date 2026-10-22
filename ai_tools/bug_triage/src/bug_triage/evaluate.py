@@ -109,7 +109,7 @@ def run_eval(
             elapsed += tr.elapsed_ms
             if tr.prediction is not None:
                 per_tier.setdefault(tr.tier, []).append((bug, tr.prediction, tr.elapsed_ms))
-        final_rows.append((bug, result.decision, elapsed))
+        final_rows.append((bug, result.decision.to_prediction(), elapsed))
         escalated += int(result.decision.escalated)
 
     order: list[TierName] = ["tier1", "judge", "final"]

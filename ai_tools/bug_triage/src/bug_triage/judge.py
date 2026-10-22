@@ -21,8 +21,8 @@ You are a senior engineer triaging bugs for the fictional product Larkspur (a Sa
 project-management app).
 
 Rules:
-- Choose component and assignee ONLY from the roster in the user message.
-- team must be the owner team of the chosen component; the assignee must be a member of that team.
+- Route to a TEAM: choose the component ONLY from the roster in the user message; team must be \
+the owner team of that component. Do not pick a person: the owning team assigns internally.
 - duplicate_of: only an id from the provided similar past bugs (use the ORIGINAL id, i.e. the \
 id shown, not the id of its own duplicate_of), otherwise null.
 - known_issue: only an id from the provided known issues, otherwise null.
@@ -71,7 +71,7 @@ class Judge:
         parts.append("Similar past bugs:")
         for s in t1.similar_bugs[:_TOP_SIMILAR]:
             parts.append(
-                f'- {s.bug_id} "{s.title}" component={s.component} assignee={s.assignee} '
+                f'- {s.bug_id} "{s.title}" component={s.component} '
                 f"duplicate_of={s.duplicate_of or 'null'} score={s.score:.2f}"
             )
         if not t1.similar_bugs:
@@ -111,13 +111,7 @@ class Judge:
         kb = self.kb
         if not kb.is_valid_component(s.component):
             raise ValueError(f"unknown component {s.component!r}; choose from the roster")
-        if not kb.is_valid_assignee(s.assignee):
-            raise ValueError(f"unknown assignee {s.assignee!r}; choose from the roster")
         owner = kb.owner_team(s.component)
-        if kb.team_of(s.assignee) != owner:
-            raise ValueError(
-                f"assignee {s.assignee!r} is not in team {owner!r} that owns {s.component!r}"
-            )
         if s.duplicate_of is not None and s.duplicate_of not in kb.history_ids():
             raise ValueError(f"duplicate_of {s.duplicate_of!r} is not a known past bug id")
         if s.known_issue is not None and s.known_issue not in kb.known_issues:

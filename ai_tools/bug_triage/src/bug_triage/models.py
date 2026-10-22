@@ -62,7 +62,11 @@ class KnownIssueHit(BaseModel):
 
 
 class Prediction(BaseModel):
-    """Triage labels predicted by a tier."""
+    """Triage labels predicted by a tier.
+
+    The routing decision is component -> team. ``assignee`` is only a suggested first contact
+    (the component's default owner from the KB); no tier tries to predict the person.
+    """
 
     component: str
     team: str
@@ -106,20 +110,35 @@ class Tier1Result(BaseModel):
         )
 
 
-class TriageSuggestion(Prediction):
-    """A prediction with severity, confidence and rationale (judge output)."""
+class TriageSuggestion(BaseModel):
+    """LLM output (judge and final tier): team routing plus severity and rationale, no person."""
 
+    component: str
+    team: str
+    duplicate_of: str | None = None
+    known_issue: str | None = None
     severity: Severity
     confidence: float = Field(ge=0.0, le=1.0)
     rationale: str
 
 
 class TriageDecision(TriageSuggestion):
-    """The final decision, with provenance."""
+    """The final decision, with provenance and the suggested first contact."""
 
+    assignee: str
     source: TierName
     escalated: bool
     final_error: str | None = None
+
+    def to_prediction(self) -> Prediction:
+        """The labels of this decision as a plain Prediction."""
+        return Prediction(
+            component=self.component,
+            team=self.team,
+            assignee=self.assignee,
+            duplicate_of=self.duplicate_of,
+            known_issue=self.known_issue,
+        )
 
 
 class TierTrace(BaseModel):

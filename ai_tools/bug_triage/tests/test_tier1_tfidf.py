@@ -164,3 +164,8 @@ def test_real_eval_error_rate_sane(fitted: Tier1Classifier) -> None:
         p = fitted.predict(b).to_prediction()
         wrong += int(p.component != b.component or p.assignee != b.assignee)
     assert 0.05 <= wrong / len(bugs) <= 0.6
+
+
+def test_contact_is_component_default(fitted: Tier1Classifier) -> None:
+    comp = next(iter(fitted.kb.components.values()))
+    assert fitted.contact(comp.name) == comp.default_assignee

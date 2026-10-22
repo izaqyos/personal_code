@@ -24,8 +24,12 @@ flowchart LR
 | **3. Final** (`final_claude.py`) | `claude -p --model sonnet --tools "" --output-format json --json-schema …`, called only when Tier 1 and the judge disagree or the judge's confidence is below 0.7 (`--final on-disagreement`). | paid, ~5–10 s |
 
 Design points:
+- **Route to the team, not the person:** the LLMs choose the component and its owner team; the owning team
+  assigns internally. The output also carries a suggested first contact (the component's default owner from
+  the KB), which is advisory: no tier tries to predict the person (see "Eval" for why).
 - **Cost tiering:** the expensive model only sees the bugs the cheap tiers disagree on.
-- **No hallucinated owners:** every name is checked against the ownership map before it's accepted.
+- **No hallucinated routing:** every component, duplicate and known-issue id is checked against the KB before
+  it's accepted, and the team is forced to the component's owner.
 - **Untrusted input:** the bug text is delimited as data and the prompts tell the model to ignore instructions
   inside it. The final tier runs with all tools disabled.
 - **Thresholds tuned on history, not on the eval set:** duplicate ≥ 0.9 and known issue ≥ 0.4 cosine.
@@ -55,25 +59,28 @@ the `claude` CLI) · `uv run ruff check . && uv run mypy`.
 component; the description reveals the real cause). `error` = routing error: component **or** team wrong. Assignee is reported separately (see below).
 
 Live run, 22/10/2026: `eval --tiers 3 --judge ollama --final on-disagreement` (judge `gemma4:12b`, thinking
-off; final tier = `claude` CLI). The `decision` row is what the pipeline actually returns.
+off; final tier = `claude` CLI). The `decision` row is what the pipeline actually returns. `assignee` here is the
+suggested contact (the decided component's default owner), shown for the analysis below; it is not part of `error`.
 
 | tier | n | comp | team | assignee | dup | KI | error | ms/bug |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
-| tier1 | 40 | 97.5% | 97.5% | 67.5% | 97.5% | 92.5% | 2.5% | 9 |
-| judge | 40 | 97.5% | 97.5% | 67.5% | 72.5% | 87.5% | 2.5% | 10,266 |
-| final (escalated only) | 2 | 100% | 100% | 100% | 100% | 100% | 0.0% | 7,626 |
-| **decision** | 40 | **100%** | **100%** | 70.0% | 97.5% | 92.5% | **0.0%** | 10,656 |
+| tier1 | 40 | 97.5% | 97.5% | 67.5% | 97.5% | 92.5% | 2.5% | 4 |
+| judge | 40 | 100% | 100% | 70.0% | 67.5% | 90.0% | 0.0% | 9,146 |
+| final (escalated only) | 1 | 100% | 100% | 100% | 100% | 100% | 0.0% | 6,838 |
+| **decision** | 40 | **100%** | **100%** | 70.0% | **97.5%** | **92.5%** | **0.0%** | 9,321 |
 
-Escalation rate 5% (2/40). Routing error: tier1 2.5% → judge 2.5% → final 0.0%. With n=40, one bug is 2.5 points.
+Escalation rate 2.5% (1/40). Routing error: tier1 2.5% → judge 0.0% → final 0.0%. With n=40, one bug is 2.5 points.
 
 **What the numbers say**
 - **Duplicates and known issues are a retrieval question, not a reasoning one.** The judge was worse at them
-  (dup 72.5% vs 97.5% for the tuned TF-IDF thresholds), so the pipeline keeps Tier 1's links and the LLMs decide
+  (dup 67.5–72.5% across runs vs 97.5% for the tuned TF-IDF thresholds), so the pipeline keeps Tier 1's links and the LLMs decide
   routing, severity and rationale. The traces keep the raw judge output, which is why the judge row still shows it.
 - **Assignee is limited by the data at about 70%.** Within one component, the history assigns bugs to several
   people, and nothing in the KB says who handles what. Checked without an LLM: the per-component default gets
   27/40, the nearest similar bug's assignee 18/40, a top-5 vote 21/40, and even an oracle that picks the right
-  person whenever they appear in the top 5 only 28/40. A real deployment needs an ownership signal (code owners,
-  on-call, sub-area), not a better model.
-- On this set the judge adds nothing over Tier 1 for routing. The gain comes from escalating disagreements to
-  the final tier. A harder or larger set is the next step before claiming more.
+  person whenever they appear in the top 5 only 28/40. Predicting the person needs an ownership signal (code
+  owners, on-call, sub-area), not a better model. That is why this pipeline routes to the team and lets it assign.
+- **Routing to the team, not the person, helped the judge.** When it also had to pick a person, it matched
+  Tier 1 on routing (2.5% error) and 2 bugs escalated. Asked only for component and team, it fixed the one
+  misleading bug Tier 1 missed (0.0%) and only 1 bug escalated. That's one bug on n=40 and may be partly
+  run-to-run variance; a larger set is the next step before claiming more.

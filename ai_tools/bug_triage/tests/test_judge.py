@@ -21,7 +21,6 @@ def valid(kb: KnowledgeBase) -> dict[str, Any]:
     return {
         "component": comp.name,
         "team": comp.owner_team,
-        "assignee": comp.default_assignee,
         "duplicate_of": None,
         "known_issue": None,
         "severity": "high",
@@ -166,7 +165,6 @@ def test_llm_error_exhausted(
     [
         ({"duplicate_of": "BUG-NOPE"}, "duplicate_of"),
         ({"known_issue": "KI-NOPE"}, "known_issue"),
-        ({"assignee": "Nobody Here"}, "unknown assignee"),
         ({"confidence": 1.5}, "confidence"),
         ({"confidence": -0.1}, "confidence"),
         ({"severity": "urgent"}, "severity"),
@@ -184,18 +182,6 @@ def test_rejected(
         Judge(FakeLLMClient([{**valid, **patch}]), kb, max_retries=0).suggest(
             sample_bug, make_tier1_result()
         )
-
-
-def test_assignee_from_other_team_rejected(
-    kb: KnowledgeBase,
-    valid: dict[str, Any],
-    make_tier1_result: Callable[..., Tier1Result],
-    sample_bug: Bug,
-) -> None:
-    other = next(t for t in kb.teams.values() if t.name != valid["team"])
-    bad = {**valid, "assignee": other.members[0]}
-    with pytest.raises(JudgeError, match="is not in team"):
-        Judge(FakeLLMClient([bad]), kb, max_retries=0).suggest(sample_bug, make_tier1_result())
 
 
 def test_known_dup_and_ki_accepted(
