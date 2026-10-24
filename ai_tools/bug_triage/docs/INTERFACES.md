@@ -41,12 +41,12 @@ class TriageSuggestion(BaseModel):  # LLM output: routes to a team, never a pers
     component: str; team: str; duplicate_of: str | None = None; known_issue: str | None = None
     severity: Severity; confidence: float; rationale: str   # confidence in [0,1]
 class TriageDecision(TriageSuggestion):  assignee: str   # suggested contact = default owner of the decided component
-    source: TierName; escalated: bool; final_error: str | None = None
+    source: TierName | "human"; escalated: bool
     def to_prediction(self) -> Prediction
 
 class TierTrace(BaseModel):      tier: TierName; prediction: Prediction | None; elapsed_ms: float
                                  error: str | None = None
-class PipelineResult(BaseModel): decision: TriageDecision; trace: list[TierTrace]
+class PipelineResult(BaseModel): decision: TriageDecision | None; trace: list[TierTrace]; needs_human: str | None = None
 ```
 Field validators: confidence/score clamp-or-reject outside [0, 1] (reject = ValidationError).
 
@@ -132,8 +132,9 @@ decision's `assignee` and for the judge/final trace predictions. Duplicate and k
 always come from Tier 1 (traces keep the raw LLM output).
 Escalation (policy "on-disagreement"): judge component != t1.top_component(), or judge confidence <
 confidence_threshold. "always" → always; "never" → never (and when final is None).
-Judge error → decision from Tier 1 (source "tier1", severity "medium", confidence = t1.top_score(),
-rationale "fallback: <error>"), trace has the error. Final error → keep the judge decision, `final_error` set.
+Judge error, or final error on an escalated bug → no decision: `PipelineResult(decision=None,
+needs_human="judge: <error>" | "final tier: <error>")`, trace has the error. No fallback to Tier 1: on a
+terminal the CLI asks a person to pick the component (decision source "human").
 
 ## evaluate.py (owner: Agent B)
 ```python
@@ -141,7 +142,7 @@ class RunnerLike(Protocol):  def run(self, bug: Bug) -> PipelineResult
 class TierMetrics(BaseModel):  tier: TierName; n: int; acc_component: float; acc_team: float; acc_assignee: float
                                acc_duplicate: float; acc_known_issue: float; error_rate: float; mean_ms: float
     # error_rate = share of bugs where component OR team is wrong (routing); assignee reported separately
-class EvalReport(BaseModel):   tiers: list[TierMetrics]; final_decision: TierMetrics; escalation_rate: float; n: int
+class EvalReport(BaseModel):   tiers: list[TierMetrics]; final_decision: TierMetrics; escalation_rate: float; n: int; human_rate: float = 0.0
 def run_eval(bugs: list[LabeledBug], *, tier1: Tier1Like, runner: RunnerLike | None = None,
              limit: int | None = None) -> EvalReport
     # runner None → Tier 1 only (tiers = [tier1], final_decision = tier1). Otherwise per-tier metrics from the trace.

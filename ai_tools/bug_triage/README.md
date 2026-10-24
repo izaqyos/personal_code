@@ -14,13 +14,14 @@ flowchart LR
     J -->|agree and confident| D[Decision]
     J -->|disagree or<br/>low confidence| F["Tier 3: final triage<br/>Claude Code CLI (Sonnet)"]
     F --> D
-    J -. invalid or failed twice .-> FB[Fallback to Tier 1] --> D
+    J -. invalid or failed twice .-> H["Human decides<br/>(CLI asks you to pick the component)"] --> D
+    F -. failed .-> H
 ```
 
 | Tier | What it does | Cost / latency |
 |---|---|---|
 | **1. TF-IDF** (`tier1_tfidf.py`) | Logistic regression over word 1–2 grams → top-3 components; owner team and default assignee from the ownership map. Cosine retrieval over past bugs (duplicates) and known issues. | free, ~1 ms |
-| **2. Judge** (`judge.py`, `llm/`) | One structured-output call with RAG context: the bug, Tier-1 candidates, similar past bugs with their *confirmed* triage, known issues, the team roster. Output is schema- and KB-validated (unknown names rejected, team corrected to the component owner); one retry with the error fed back, then fallback to Tier 1. | local model, seconds |
+| **2. Judge** (`judge.py`, `llm/`) | One structured-output call with RAG context: the bug, Tier-1 candidates, similar past bugs with their *confirmed* triage, known issues, the team roster. Output is schema- and KB-validated (unknown names rejected, team corrected to the component owner); one retry with the error fed back; if that fails too, a person decides. | local model, seconds |
 | **3. Final** (`final_claude.py`) | `claude -p --model sonnet --tools "" --output-format json --json-schema …`, called only when Tier 1 and the judge disagree or the judge's confidence is below 0.7 (`--final on-disagreement`). | paid, ~5–10 s |
 
 Design points:
@@ -72,16 +73,21 @@ Limits worth knowing:
 
 ## Failure handling: the "invalid or failed twice" arrow
 
-The dashed arrow from the judge to "Fallback to Tier 1" in the diagram is the safety net.
+When the tiers can't decide, a person does. Nothing falls back to Tier 1's guess.
 - Each judge answer must pass **schema validation** (all fields, right types, severity in the allowed set,
   confidence in [0, 1]) and **KB validation** (the component exists, duplicate and known-issue ids are real;
   the team is overwritten with the component's owner).
 - If the answer is invalid, or the call itself fails (Ollama down, timeout, non-JSON), the judge **retries once**
   with the error appended to the prompt ("Your previous answer was invalid: unknown component 'x'. Fix it.").
-- If the second attempt also fails, the pipeline **falls back to Tier 1's prediction** as the decision:
-  `source="tier1"`, severity `medium`, confidence = Tier 1's top probability, rationale
-  `"fallback: <error>"`. The final tier is skipped, and the trace records the judge error, so fallbacks can be counted.
-- Net effect: a misbehaving or unavailable LLM can make a decision less smart, never invalid or missing.
+- If the second attempt also fails, or the final tier fails on an escalated bug, the pipeline returns
+  **no decision**: `decision: null`, `needs_human: "<why>"`, and the trace records the error.
+- `bug-triage triage` on a terminal then **asks you**: it lists the components with their owner teams (Tier 1's
+  guess is shown as a hint only), and you type a number or a name, then the severity. Your answer becomes the decision
+  with `source="human"`. Enter leaves the bug undecided. Without a terminal (piped stdin), it prints the undecided
+  result.
+- `eval` reports the share **left for a human** separately; the decision row is scored over the rest.
+- Net effect: a misbehaving or unavailable LLM never produces a silent guess. The person stays the gate.
+- To see it: `DEMO_MODEL=no-such-model demo/run_demo.sh` (the judge gets HTTP 404 twice, then asks you).
 
 ## Run
 

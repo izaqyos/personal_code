@@ -49,16 +49,17 @@ class EvalReport(BaseModel):
     """Evaluation result over a labeled set."""
 
     tiers: list[TierMetrics]
-    final_decision: TierMetrics
+    final_decision: TierMetrics  # over the bugs the tiers decided; n can be below the report's n
     escalation_rate: float
     n: int
+    human_rate: float = 0.0  # share of bugs left for a person (no automatic decision)
 
 
 def _metrics(tier: TierName, rows: list[tuple[LabeledBug, Prediction, float]]) -> TierMetrics:
     n = len(rows)
 
     def share(flags: list[bool]) -> float:
-        return sum(flags) / n
+        return sum(flags) / n if n else 0.0
 
     return TierMetrics(
         tier=tier,
@@ -70,7 +71,7 @@ def _metrics(tier: TierName, rows: list[tuple[LabeledBug, Prediction, float]]) -
         acc_known_issue=share([p.known_issue == b.known_issue for b, p, _ in rows]),
         # Routing error. Assignee is reported separately: its labels are capped at ~70% by data.
         error_rate=share([p.component != b.component or p.team != b.team for b, p, _ in rows]),
-        mean_ms=sum(ms for _, _, ms in rows) / n,
+        mean_ms=sum(ms for _, _, ms in rows) / n if n else 0.0,
     )
 
 
@@ -102,6 +103,7 @@ def run_eval(
     per_tier: dict[TierName, list[tuple[LabeledBug, Prediction, float]]] = {}
     final_rows: list[tuple[LabeledBug, Prediction, float]] = []
     escalated = 0
+    human = 0
     for bug in subset:
         result = runner.run(bug)
         elapsed = 0.0
@@ -109,6 +111,9 @@ def run_eval(
             elapsed += tr.elapsed_ms
             if tr.prediction is not None:
                 per_tier.setdefault(tr.tier, []).append((bug, tr.prediction, tr.elapsed_ms))
+        if result.decision is None:
+            human += 1
+            continue
         final_rows.append((bug, result.decision.to_prediction(), elapsed))
         escalated += int(result.decision.escalated)
 
@@ -118,6 +123,7 @@ def run_eval(
         tiers=tiers,
         final_decision=_metrics("final", final_rows),
         escalation_rate=escalated / len(subset),
+        human_rate=human / len(subset),
         n=len(subset),
     )
 
@@ -140,6 +146,8 @@ def format_report(report: EvalReport) -> str:
     lines.extend(_row(m.tier, m) for m in report.tiers)
     lines.append(_row("decision", report.final_decision))
     lines.append(f"escalation rate: {report.escalation_rate:.1%} (n={report.n})")
+    if report.human_rate:
+        lines.append(f"left for a human: {report.human_rate:.1%} (decision row over the rest)")
     parts = [f"{m.tier} {m.error_rate:.1%}" for m in report.tiers if m.tier != "final"]
     parts.append(f"final {report.final_decision.error_rate:.1%}")
     lines.append("error: " + " → ".join(parts))

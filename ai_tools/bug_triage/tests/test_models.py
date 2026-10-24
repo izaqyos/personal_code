@@ -91,7 +91,6 @@ def test_tier1_empty_candidates(make_tier1_result: Callable[..., Tier1Result]) -
 def test_decision_and_pipeline_result(make_suggestion: Callable[..., TriageSuggestion]) -> None:
     s = make_suggestion()
     d = TriageDecision(**s.model_dump(), assignee="Tobias Wren", source="judge", escalated=False)
-    assert d.final_error is None
     assert d.to_prediction() == Prediction(
         component="auth-sso", team="Identity", assignee="Tobias Wren"
     )
@@ -102,7 +101,10 @@ def test_decision_and_pipeline_result(make_suggestion: Callable[..., TriageSugge
     )
     assert trace.error is None
     res = PipelineResult(decision=d, trace=[trace])
+    assert res.needs_human is None
     assert PipelineResult.model_validate_json(res.model_dump_json()) == res
+    undecided = PipelineResult(decision=None, trace=[trace], needs_human="judge failed: x")
+    assert PipelineResult.model_validate_json(undecided.model_dump_json()) == undecided
 
 
 def test_decision_source_literal(make_suggestion: Callable[..., TriageSuggestion]) -> None:

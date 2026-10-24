@@ -147,9 +147,10 @@ def test_runner_per_tier_metrics(make_tier1_result: Make) -> None:
                 TierTrace(tier="judge", prediction=_pred("a", "x"), elapsed_ms=100.0),
             ],
         ),
-        # judge failed (prediction None); decision from tier1; wrong
+        # judge failed (prediction None); no decision, left for a human
         "E2": PipelineResult(
-            decision=_decision("q", "y", False, "tier1"),
+            decision=None,
+            needs_human="judge failed: boom",
             trace=[
                 TierTrace(tier="tier1", prediction=_pred("q", "y"), elapsed_ms=3.0),
                 TierTrace(tier="judge", prediction=None, elapsed_ms=50.0, error="boom"),
@@ -177,10 +178,24 @@ def test_runner_per_tier_metrics(make_tier1_result: Make) -> None:
     assert final.mean_ms == 1000.0
     d = rep.final_decision
     assert d.tier == "final"
-    assert d.n == 3
-    assert d.error_rate == pytest.approx(1 / 3)
-    assert d.mean_ms == pytest.approx((101.0 + 53.0 + 1202.0) / 3)
+    assert d.n == 2  # E2 has no automatic decision
+    assert d.error_rate == 0.0
+    assert d.mean_ms == pytest.approx((101.0 + 1202.0) / 2)
     assert rep.escalation_rate == pytest.approx(1 / 3)
+    assert rep.human_rate == pytest.approx(1 / 3)
+    assert "left for a human: 33.3%" in format_report(rep)
+
+
+def test_runner_all_left_for_human(make_tier1_result: Make) -> None:
+    res = PipelineResult(
+        decision=None,
+        needs_human="judge failed: boom",
+        trace=[TierTrace(tier="tier1", prediction=_pred("a", "x"), elapsed_ms=1.0)],
+    )
+    rep = run_eval(BUGS[:1], tier1=_t1(make_tier1_result), runner=StubRunner({"E1": res}))
+    assert rep.human_rate == 1.0
+    assert (rep.final_decision.n, rep.final_decision.error_rate) == (0, 0.0)
+    assert rep.final_decision.mean_ms == 0.0
 
 
 def test_runner_tier_never_ran(make_tier1_result: Make) -> None:
@@ -220,6 +235,7 @@ def test_format_report_full() -> None:
     assert "90.0%" in text
     assert "12.3" in text
     assert "escalation rate: 25.0%" in text
+    assert "left for a human" not in text
     assert lines[-1] == "error: tier1 27.5% → judge 12.5% → final 5.0%"
 
 

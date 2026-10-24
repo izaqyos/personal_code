@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import io
 import json
 from pathlib import Path
 from typing import Any
@@ -13,6 +14,7 @@ from bug_triage.kb import KnowledgeBase
 from bug_triage.models import (
     Bug,
     PipelineResult,
+    Prediction,
     TierTrace,
     TriageDecision,
 )
@@ -52,7 +54,7 @@ def fake_build(monkeypatch: pytest.MonkeyPatch) -> dict[str, Any]:
 
     def build(judge: str, final: str, model: str) -> tuple[Any, Any, Any]:
         state["calls"].append((judge, final, model))
-        return state["pipeline"], None, state["tier1"]
+        return state["pipeline"], state.get("kb"), state["tier1"]
 
     monkeypatch.setattr(cli, "build_pipeline", build)
     return state
@@ -190,3 +192,92 @@ def test_build_pipeline_gemini(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(gc, "GeminiClient", FakeGemini)
     p, _, _ = cli.build_pipeline("gemini", "never", "m")
     assert isinstance(p.judge, Judge) and p.final is None
+
+
+def _undecided() -> PipelineResult:
+    return PipelineResult(
+        decision=None,
+        needs_human="judge failed: boom",
+        trace=[
+            TierTrace(
+                tier="tier1",
+                prediction=Prediction(
+                    component="auth", team="Alpha", assignee="Ada Quill", known_issue="KI-001"
+                ),
+                elapsed_ms=1.0,
+            ),
+            TierTrace(tier="judge", prediction=None, elapsed_ms=5.0, error="boom"),
+        ],
+    )
+
+
+def _stdin(monkeypatch: pytest.MonkeyPatch, text: str, tty: bool = True) -> None:
+    stream = io.StringIO(text)
+    stream.isatty = lambda: tty  # type: ignore[method-assign]
+    monkeypatch.setattr("sys.stdin", stream)
+
+
+def test_ask_human_by_number_and_severity(
+    monkeypatch: pytest.MonkeyPatch, tiny_kb: KnowledgeBase, capsys: pytest.CaptureFixture[str]
+) -> None:
+    _stdin(monkeypatch, "9\nnope\n3\nurgent\nhigh\n")
+    res = cli.ask_human(_undecided(), tiny_kb)
+    d = res.decision
+    assert d is not None
+    assert (d.component, d.team, d.assignee, d.severity) == ("ui", "Beta", "Cleo Marsh", "high")
+    assert (d.source, d.confidence, d.escalated) == ("human", 1.0, False)
+    assert d.known_issue == "KI-001" and d.rationale == "human decision (judge failed: boom)"
+    err = capsys.readouterr().err
+    assert "Tier 1 guessed auth" in err and " 3) ui -> Beta" in err
+    assert "unknown component: 9" in err and "unknown component: nope" in err
+    assert "unknown severity: urgent" in err
+
+
+def test_ask_human_by_name_default_severity(
+    monkeypatch: pytest.MonkeyPatch, tiny_kb: KnowledgeBase
+) -> None:
+    _stdin(monkeypatch, "api\n\n")
+    d = cli.ask_human(_undecided(), tiny_kb).decision
+    assert d is not None and (d.component, d.severity) == ("api", "medium")
+
+
+@pytest.mark.parametrize("text", ["\n", ""])
+def test_ask_human_skip_leaves_undecided(
+    monkeypatch: pytest.MonkeyPatch, tiny_kb: KnowledgeBase, text: str
+) -> None:
+    _stdin(monkeypatch, text)
+    res = cli.ask_human(_undecided(), tiny_kb)
+    assert res.decision is None and res.needs_human == "judge failed: boom"
+
+
+def test_ask_human_without_tier1_prediction(
+    monkeypatch: pytest.MonkeyPatch, tiny_kb: KnowledgeBase
+) -> None:
+    undecided = _undecided()
+    undecided.trace[0].prediction = None
+    _stdin(monkeypatch, "1\nlow\n")
+    d = cli.ask_human(undecided, tiny_kb).decision
+    assert d is not None and d.duplicate_of is None and d.known_issue is None
+
+
+class UndecidedPipeline:
+    def run(self, bug: Bug) -> PipelineResult:
+        return _undecided()
+
+
+@pytest.mark.parametrize(("tty", "decided"), [(True, True), (False, False)])
+def test_triage_asks_only_on_a_terminal(
+    fake_build: dict[str, Any],
+    monkeypatch: pytest.MonkeyPatch,
+    tiny_kb: KnowledgeBase,
+    capsys: pytest.CaptureFixture[str],
+    tty: bool,
+    decided: bool,
+) -> None:
+    fake_build["pipeline"] = UndecidedPipeline()
+    fake_build["kb"] = tiny_kb
+    _stdin(monkeypatch, "ui\n\n", tty=tty)
+    assert cli.main(["triage", "--title", "T", "--desc", "D"]) == 0
+    out = PipelineResult.model_validate_json(capsys.readouterr().out)
+    assert (out.decision is not None) == decided
+    assert out.needs_human == "judge failed: boom"

@@ -8,6 +8,7 @@ from pydantic import BaseModel, Field
 
 Severity = Literal["low", "medium", "high", "critical"]
 TierName = Literal["tier1", "judge", "final"]
+Source = Literal["tier1", "judge", "final", "human"]
 FinalPolicy = Literal["always", "on-disagreement", "never"]
 
 
@@ -126,9 +127,8 @@ class TriageDecision(TriageSuggestion):
     """The final decision, with provenance and the suggested first contact."""
 
     assignee: str
-    source: TierName
+    source: Source
     escalated: bool
-    final_error: str | None = None
 
     def to_prediction(self) -> Prediction:
         """The labels of this decision as a plain Prediction."""
@@ -151,7 +151,12 @@ class TierTrace(BaseModel):
 
 
 class PipelineResult(BaseModel):
-    """Final decision plus per-tier trace."""
+    """Final decision plus per-tier trace.
 
-    decision: TriageDecision
+    ``decision`` is None when the tiers could not decide (the judge failed twice, or the final tier
+    failed on an escalated bug); ``needs_human`` then says why, and a person picks the team.
+    """
+
+    decision: TriageDecision | None
     trace: list[TierTrace]
+    needs_human: str | None = None

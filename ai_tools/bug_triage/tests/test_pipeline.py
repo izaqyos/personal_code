@@ -93,7 +93,7 @@ def test_disagreement_escalates(
     ).run(sample_bug)
     d = res.decision
     assert final.calls == 1
-    assert (d.source, d.escalated, d.final_error) == ("final", True, None)
+    assert (d.source, d.escalated) == ("final", True)
     assert d.rationale == "final says" and d.severity == "critical"
     assert [t.tier for t in res.trace] == ["tier1", "judge", "final"]
     assert res.trace[2].prediction is not None
@@ -150,23 +150,24 @@ def test_no_final_no_escalation(
     assert res.decision.source == "judge" and not res.decision.escalated
 
 
-def test_judge_raises_fallback(
+def test_judge_raises_needs_human(
     sample_bug: Bug, make_tier1_result: Mk1, make_suggestion: MkS
 ) -> None:
     final = StubFinal(make_suggestion())
-    t1 = make_tier1_result()
     res = Pipeline(
-        StubTier1(t1), StubJudge(RuntimeError("ollama down")), final, policy="always"
+        StubTier1(make_tier1_result()),
+        StubJudge(RuntimeError("ollama down")),
+        final,
+        policy="always",
     ).run(sample_bug)
-    d = res.decision
-    assert (d.source, d.severity, d.escalated) == ("tier1", "medium", False)
-    assert d.rationale == "fallback: ollama down" and d.confidence == t1.top_score()
+    assert res.decision is None  # no fallback to Tier 1
+    assert res.needs_human == "judge: ollama down"
     assert final.calls == 0
     assert [t.tier for t in res.trace] == ["tier1", "judge"]
     assert res.trace[1].error == "ollama down" and res.trace[1].prediction is None
 
 
-def test_final_raises_keeps_judge(
+def test_final_raises_needs_human(
     sample_bug: Bug, make_tier1_result: Mk1, make_suggestion: MkS
 ) -> None:
     res = Pipeline(
@@ -175,9 +176,8 @@ def test_final_raises_keeps_judge(
         StubFinal(ValueError("claude down")),
         policy="always",
     ).run(sample_bug)
-    d = res.decision
-    assert (d.source, d.escalated, d.final_error) == ("judge", True, "claude down")
-    assert d.severity == "low"
+    assert res.decision is None  # escalated and unresolved: a person decides
+    assert res.needs_human == "final tier: claude down"
     assert res.trace[2].tier == "final" and res.trace[2].error == "claude down"
     assert res.trace[2].prediction is None
 

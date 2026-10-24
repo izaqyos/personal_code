@@ -96,13 +96,11 @@ class Pipeline:
         try:
             suggestion = self.judge.suggest(bug, t1)
         except Exception as exc:
-            logger.warning("judge failed, falling back to tier1: %s", exc)
+            logger.warning("judge failed, needs a human decision: %s", exc)
             trace.append(
                 TierTrace(tier="judge", prediction=None, elapsed_ms=_ms(start), error=str(exc))
             )
-            return PipelineResult(
-                decision=self._tier1_decision(t1, f"fallback: {exc}"), trace=trace
-            )
+            return PipelineResult(decision=None, trace=trace, needs_human=f"judge: {exc}")
         trace.append(
             TierTrace(
                 tier="judge",
@@ -117,24 +115,21 @@ class Pipeline:
             try:
                 decided = self.final.decide(bug, t1, suggestion)
             except Exception as exc:
-                logger.warning("final tier failed, keeping judge decision: %s", exc)
+                logger.warning("final tier failed, needs a human decision: %s", exc)
                 trace.append(
                     TierTrace(tier="final", prediction=None, elapsed_ms=_ms(start), error=str(exc))
                 )
-                decision = self._decision(suggestion, "judge", True, str(exc))
-            else:
-                trace.append(
-                    TierTrace(
-                        tier="final",
-                        prediction=self._as_prediction(decided),
-                        elapsed_ms=_ms(start),
-                    )
+                return PipelineResult(decision=None, trace=trace, needs_human=f"final tier: {exc}")
+            trace.append(
+                TierTrace(
+                    tier="final",
+                    prediction=self._as_prediction(decided),
+                    elapsed_ms=_ms(start),
                 )
-                decision = self._decision(_tier1_links(decided, t1), "final", True, None)
+            )
+            decision = self._decision(_tier1_links(decided, t1), "final", True)
             return PipelineResult(decision=decision, trace=trace)
-        return PipelineResult(
-            decision=self._decision(suggestion, "judge", False, None), trace=trace
-        )
+        return PipelineResult(decision=self._decision(suggestion, "judge", False), trace=trace)
 
     def _as_prediction(self, s: TriageSuggestion) -> Prediction:
         return Prediction(
@@ -145,15 +140,12 @@ class Pipeline:
             known_issue=s.known_issue,
         )
 
-    def _decision(
-        self, s: TriageSuggestion, source: TierName, escalated: bool, final_error: str | None
-    ) -> TriageDecision:
+    def _decision(self, s: TriageSuggestion, source: TierName, escalated: bool) -> TriageDecision:
         return TriageDecision(
             **s.model_dump(),
             assignee=self.tier1.contact(s.component),
             source=source,
             escalated=escalated,
-            final_error=final_error,
         )
 
 

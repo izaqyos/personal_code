@@ -13,7 +13,7 @@ from typing import TYPE_CHECKING, Any
 from pydantic import ValidationError
 
 from bug_triage.kb import KnowledgeBase
-from bug_triage.models import Bug, LabeledBug, PipelineResult
+from bug_triage.models import Bug, LabeledBug, PipelineResult, Severity, TriageDecision
 from bug_triage.pipeline import Pipeline
 
 if TYPE_CHECKING:
@@ -93,9 +93,67 @@ def _cmd_triage(args: argparse.Namespace, parser: argparse.ArgumentParser) -> in
     if args.file is None and (args.title is None or args.desc is None):
         parser.error("triage needs --title and --desc, or --file")
     bug = _load_bug(args)
-    pipeline, _, _ = build_pipeline(args.judge, args.final, args.model)
-    print(pipeline.run(bug).model_dump_json(indent=2))
+    pipeline, kb, _ = build_pipeline(args.judge, args.final, args.model)
+    result = pipeline.run(bug)
+    if result.needs_human is not None and sys.stdin.isatty():
+        result = ask_human(result, kb)
+    print(result.model_dump_json(indent=2))
     return 0
+
+
+SEVERITIES: tuple[Severity, ...] = ("low", "medium", "high", "critical")
+
+
+def _ask(prompt: str) -> str | None:
+    """Prompt on stderr (stdout carries the JSON); None on end of input."""
+    print(prompt, end="", file=sys.stderr, flush=True)
+    line = sys.stdin.readline()
+    return None if line == "" else line.strip()
+
+
+def ask_human(result: PipelineResult, kb: KnowledgeBase) -> PipelineResult:
+    """Ask a person to pick the component when the tiers could not decide.
+
+    The person's choice becomes the decision (source "human"); nothing falls back to Tier 1.
+    Empty input or end of input leaves the bug undecided.
+    """
+    names = sorted(kb.components)
+    print(f"\nNo automatic decision ({result.needs_human}). Pick the component:", file=sys.stderr)
+    for i, name in enumerate(names, 1):
+        print(f"  {i:>2}) {name} -> {kb.owner_team(name)}", file=sys.stderr)
+    t1 = result.trace[0].prediction
+    if t1 is not None:
+        print(f"  (Tier 1 guessed {t1.component}; a hint, not a decision)", file=sys.stderr)
+    component: str | None = None
+    while component is None:
+        answer = _ask("component (number or name, Enter = leave undecided): ")
+        if not answer:
+            return result
+        if answer.isdigit() and 1 <= int(answer) <= len(names):
+            component = names[int(answer) - 1]
+        elif kb.is_valid_component(answer):
+            component = answer
+        else:
+            print(f"  unknown component: {answer}", file=sys.stderr)
+    severity: Severity | None = None
+    while severity is None:
+        answer = _ask("severity (low/medium/high/critical, Enter = medium): ")
+        severity = next((s for s in SEVERITIES if s == (answer or "medium")), None)
+        if severity is None:
+            print(f"  unknown severity: {answer}", file=sys.stderr)
+    decision = TriageDecision(
+        component=component,
+        team=kb.owner_team(component),
+        assignee=kb.default_assignee(component),
+        duplicate_of=t1.duplicate_of if t1 else None,
+        known_issue=t1.known_issue if t1 else None,
+        severity=severity,
+        confidence=1.0,
+        rationale=f"human decision ({result.needs_human})",
+        source="human",
+        escalated=False,
+    )
+    return result.model_copy(update={"decision": decision})
 
 
 class _Progress:

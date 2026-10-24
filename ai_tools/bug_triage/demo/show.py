@@ -7,6 +7,9 @@ r = json.load(sys.stdin)
 d = r["decision"]
 t1 = r["trace"][0]["prediction"]
 print(f"  tier1:    {t1['component']} -> {t1['team']}")
+if d is None:
+    print(f"  decision: none, left for a human ({r['needs_human']})")
+    sys.exit(0)
 print(
     f"  decision: {d['component']} -> {d['team']}  "
     f"(source={d['source']}, escalated={d['escalated']}, confidence={d['confidence']:.2f})"
