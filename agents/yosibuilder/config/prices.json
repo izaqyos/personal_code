@@ -1,0 +1,6 @@
+{
+  "_note": "USD per million tokens, used to estimate non-Claude costs (Claude's cost comes from the CLI itself). Replace the numbers with your providers' published prices. 'unpriced' is a placeholder rate for any model not listed. 'weights' sets how much each provider's dollars count in weighted_usd: Claude quota is the scarce one, so it counts in full.",
+  "weights": {"claude": 1.0, "agy": 0.25, "local": 0.0},
+  "unpriced": {"input": 1.0, "output": 4.0},
+  "models": {}
+}

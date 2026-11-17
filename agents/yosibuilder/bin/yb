@@ -1,0 +1,549 @@
+#!/usr/bin/env python3
+"""YosiBuilder runner: a worker builds each card to green free gates, a lead reviews, merge. See ../YOSIBUILDER.md."""
+
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import re
+import shlex
+import subprocess
+import sys
+import time
+from dataclasses import dataclass, field
+from datetime import datetime
+from pathlib import Path
+
+HOME = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(HOME / "lib"))
+import ledger  # noqa: E402
+from mutate import surviving_mutants  # noqa: E402
+
+LEAN = '--strict-mcp-config --setting-sources "" --no-session-persistence --output-format json'
+CLAUDE_TOOLS = '--tools Read,Edit,Write,Bash --allowedTools Read Edit Write "Bash(uv run:*)" --permission-mode dontAsk'
+AGY = "agy --output-format json --print-timeout 600s"
+AGY_COMMANDS = ("uv", "ls", "cat", "grep", "find", "head")
+AGY_ALLOW = json.dumps({"permissions": {"allow": [f"command({name})" for name in AGY_COMMANDS]}})
+
+
+def claude_worker(model: str) -> str:
+    return f"claude -p --model {model} {CLAUDE_TOOLS} {LEAN}"
+
+
+def claude_lead(model: str) -> str:
+    return f'claude -p --model {model} --tools "" {LEAN}'
+
+
+def agy_worker(model: str) -> str:
+    return f"{AGY} --mode accept-edits --sandbox --model {model} --settings {shlex.quote(AGY_ALLOW)} -p \"$(cat)\""
+
+
+def agy_lead(model: str) -> str:
+    return f'{AGY} --mode plan --model {model} -p "$(cat)"'
+
+
+HYDROGEN, FLASH = "gemini-4-hydrogen-medium", "gemini-3.8-flash-medium"
+CREWS = {
+    "default": (claude_worker("haiku"), agy_lead(HYDROGEN)),
+    "no-claude": (agy_worker(HYDROGEN), agy_lead(HYDROGEN)),
+    "claude": (claude_worker("sonnet"), claude_lead("sonnet")),
+    "flash": (agy_worker(FLASH), agy_lead(HYDROGEN)),
+}
+TIEBREAK = (claude_worker("sonnet"), claude_lead("sonnet"))
+LOCAL_MODEL = os.environ.get("YB_LOCAL_MODEL", "qwen3-coder:30b")
+MAX_REVIEWS = int(os.environ.get("YB_MAX_REVIEWS", "3"))
+LOCAL_ROUNDS = int(os.environ.get("YB_LOCAL_ROUNDS", "5"))
+CLOUD_ROUNDS = int(os.environ.get("YB_CLOUD_ROUNDS", "2"))
+RED_STREAK = int(os.environ.get("YB_RED_STREAK", "2"))
+USE_TIEBREAK = os.environ.get("YB_TIEBREAK", "1") == "1"
+OLLAMA = os.environ.get("OLLAMA_API_BASE", "http://127.0.0.1:11434")
+MODES = ("cloud", "hybrid", "local")
+DIFF_LIMIT = 60_000
+FAILURE_LINE = re.compile(r"^(E |FAILED |ERROR |\S+\.py:\d+:\d+: )")
+TEST_NAME = re.compile(r"\btest_\w+(?![\w.])")
+LOCAL_JUNK = (".ybuild/", ".aider*", "__pycache__/", "*.pyc", ".pytest_cache/", ".ruff_cache/", ".mypy_cache/",
+              ".venv/", "uv.lock")
+TOKEN_KEYS = ("input_tokens", "cache_creation_input_tokens", "cache_read_input_tokens", "output_tokens")
+ALIASES = {"cache_read_tokens": "cache_read_input_tokens"}
+REPLY_KEYS = ("result", "response")
+
+
+class YbError(Exception):
+    pass
+
+
+@dataclass(frozen=True)
+class Crew:
+    """Who builds and who reviews: a named pair of headless commands (prompt on stdin)."""
+    name: str
+    worker: str
+    lead: str
+
+    @classmethod
+    def select(cls, name: str) -> Crew:
+        if name not in CREWS:
+            raise YbError(f"unknown crew '{name}'; choose from {', '.join(CREWS)}")
+        worker = os.environ.get("YB_FIX_CMD", CREWS[name][0])
+        lead = os.environ.get("YB_LEAD_CMD", CREWS[name][1])
+        custom = "YB_FIX_CMD" in os.environ or "YB_LEAD_CMD" in os.environ
+        return cls(f"{name}+custom" if custom else name, worker, lead)
+
+    def label(self) -> str:
+        return f"{self.name} (worker {model_of(self.worker)}, lead {model_of(self.lead)})"
+
+
+def model_of(command: str) -> str:
+    args = shlex.split(command)
+    return args[args.index("--model") + 1] if "--model" in args else Path(args[0]).name
+
+
+@dataclass(frozen=True)
+class Card:
+    path: Path
+    id: str
+    title: str
+    edit: list[str]
+    read: list[str]
+    test: str
+    lint: str
+    spec: str
+
+    @classmethod
+    def load(cls, path: Path) -> Card:
+        head, sep, spec = path.read_text().partition("\n---\n")
+        if not sep:
+            raise YbError(f"{path}: missing '---' between header and spec")
+        fields = dict(_split_field(line) for line in head.splitlines() if ":" in line)
+        for key in ("id", "edit", "test"):
+            if not fields.get(key):
+                raise YbError(f"{path}: header field '{key}' is required")
+        return cls(path, fields["id"], fields.get("title", fields["id"]), fields["edit"].split(),
+                   fields.get("read", "").split(), fields["test"], fields.get("lint", ""), spec.strip())
+
+    @property
+    def test_files(self) -> list[str]:
+        return [name for name in self.edit if Path(name).name.startswith("test_")]
+
+    @property
+    def source_files(self) -> list[str]:
+        return [name for name in self.edit if name.endswith(".py") and name not in self.test_files]
+
+    def planned_tests(self) -> list[str]:
+        _, _, plan = self.spec.partition("## Test plan")
+        return sorted(set(TEST_NAME.findall(plan)))
+
+
+def _split_field(line: str) -> tuple[str, str]:
+    key, value = line.split(":", 1)
+    return key.strip(), value.strip()
+
+
+@dataclass(frozen=True)
+class Gate:
+    ok: bool
+    output: str
+
+
+@dataclass(frozen=True)
+class Checks:
+    """Result of the free gates: hard gates (tests, lint, test plan) and mutation survivors."""
+    hard_ok: bool
+    findings: list[str]
+    survivors: list[str]
+    output: str
+
+    @property
+    def clean(self) -> bool:
+        return self.hard_ok and not self.survivors
+
+
+@dataclass
+class Step:
+    """Where calls happen: card, worktree, mode, crew, run id, review cycle and attempt number."""
+    card: Card
+    tree: Path
+    mode: str
+    crew: Crew
+    runs: Path
+    run_id: str
+    cycle: int = 1
+    attempt: int = 0
+    log: Path = field(init=False)
+
+    def next_attempt(self) -> None:
+        self.attempt += 1
+        self.log = self.runs / f"{self.card.id}-{self.attempt}.log"
+
+
+class Workspace:
+    """The repo, its state directory and one worktree per card."""
+
+    def __init__(self, repo: Path) -> None:
+        self.repo = repo.resolve()
+        self.state_dir = self.repo / ".ybuild"
+        self.runs = self.state_dir / "runs"
+        self.state_file = self.state_dir / "STATE.json"
+        self.usage_file = self.state_dir / "usage.jsonl"
+
+    def init(self) -> None:
+        self.runs.mkdir(parents=True, exist_ok=True)
+        for name in ("WORKLOG.md", "DECISIONS.md"):
+            (self.state_dir / name).touch()
+        exclude = self.repo / ".git" / "info" / "exclude"
+        if ".ybuild/" not in exclude.read_text():
+            exclude.write_text(exclude.read_text() + "\n" + "\n".join(LOCAL_JUNK) + "\n")
+
+    def log(self, message: str) -> None:
+        stamp = datetime.now().strftime("%Y-%m-%d %H:%M")
+        with (self.state_dir / "WORKLOG.md").open("a") as f:
+            f.write(f"- {stamp} {message}\n")
+        print(f"[yb] {message}", flush=True)
+
+    def state(self) -> dict:
+        return json.loads(self.state_file.read_text()) if self.state_file.exists() else {"cards": {}}
+
+    def update(self, card_id: str, next_action: str, **fields: object) -> None:
+        state = self.state()
+        state["cards"].setdefault(card_id, {}).update(fields)
+        state["next_action"] = next_action
+        self.state_file.write_text(json.dumps(state, indent=2) + "\n")
+
+    def record(self, step: Step, role: str, seconds: float, reply: dict, command: str = "") -> None:
+        usage = {ALIASES.get(key, key): value for key, value in reply.get("usage", {}).items()}
+        row = {"run": step.run_id, "card": step.card.id, "mode": step.mode, "crew": step.crew.name,
+               "cycle": step.cycle, "attempt": step.attempt, "role": role,
+               "provider": Path(shlex.split(command)[0]).name if command else "local",
+               "model": model_of(command) if command else LOCAL_MODEL, "seconds": round(seconds, 1),
+               "cost_usd": reply.get("total_cost_usd", 0.0), **{key: usage.get(key, 0) for key in TOKEN_KEYS}}
+        with self.usage_file.open("a") as f:
+            f.write(json.dumps(row) + "\n")
+
+    def usage(self, run_id: str | None = None) -> list[dict]:
+        rows = [json.loads(line) for line in self.usage_file.read_text().splitlines()] \
+            if self.usage_file.exists() else []
+        return [row for row in rows if run_id is None or row.get("run") == run_id]
+
+    def worktree(self, card: Card) -> Path:
+        path = self.repo.parent / f"{self.repo.name}-yb" / card.id
+        if not path.exists():
+            git(self.repo, "worktree", "add", "-b", f"yb/{card.id}", str(path), "HEAD")
+        return path
+
+
+def git(cwd: Path, *args: str) -> str:
+    result = subprocess.run(["git", "-C", str(cwd), *args], capture_output=True, text=True)
+    if result.returncode != 0:
+        raise YbError(f"git {' '.join(args)}: {result.stderr.strip()}")
+    return result.stdout
+
+
+def run_shell(command: str, cwd: Path, log: Path, stdin: str | None = None) -> Gate:
+    result = subprocess.run(command, shell=True, cwd=cwd, input=stdin, capture_output=True, text=True)
+    output = result.stdout + result.stderr
+    with log.open("a") as f:
+        f.write(f"\n$ {command}\n{output}\n[exit {result.returncode}]\n")
+    return Gate(result.returncode == 0, output)
+
+
+def cloud(ws: Workspace, step: Step, role: str, command: str, prompt: str) -> str:
+    """Run a headless cloud command, record its usage, return its reply text."""
+    started = time.monotonic()
+    output = run_shell(command, step.tree, step.log, stdin=prompt).output
+    reply = _json_reply(output)
+    ws.record(step, role, time.monotonic() - started, reply, command)
+    return next((str(reply[key]) for key in REPLY_KEYS if reply.get(key)), output)
+
+
+def _json_reply(output: str) -> dict:
+    """Return the JSON object a harness printed in json output mode, ignoring stderr noise around it."""
+    for line in output.splitlines():
+        if line.startswith("{"):
+            try:
+                reply = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if isinstance(reply, dict):
+                return reply
+    return {}
+
+
+# ---------- free gates ----------
+
+def failure_finding(label: str, output: str) -> str:
+    failures = [line for line in output.splitlines() if FAILURE_LINE.match(line)][:30]
+    return f"{label}:\n" + "\n".join(failures) + f"\n\nOutput tail:\n{output[-2000:]}"
+
+
+def missing_planned_tests(card: Card, tree: Path) -> list[str]:
+    written = "\n".join((tree / name).read_text() for name in card.test_files if (tree / name).exists())
+    return [name for name in card.planned_tests() if not re.search(rf"def {name}\(", written)]
+
+
+def hard_findings(card: Card, tree: Path, log: Path) -> tuple[list[str], str]:
+    tests = run_shell(card.test, tree, log)
+    lint = run_shell(card.lint, tree, log) if card.lint else Gate(True, "")
+    missing = missing_planned_tests(card, tree)
+    findings = [failure_finding(label, gate.output) for label, gate in
+                (("The tests fail", tests), ("The linter fails (fix every listed rule)", lint)) if not gate.ok]
+    if missing:
+        findings.append(f"Tests named in the card's test plan are missing; add them: {', '.join(missing)}")
+    return findings, tests.output + lint.output
+
+
+def weak_tests_finding(survivors: list[str]) -> str:
+    return ("Weak tests: each change below to the code leaves every test green. Add or sharpen a test so that "
+            "each one fails (keep the card's planned tests):\n" + "\n".join(survivors))
+
+
+def run_checks(step: Step) -> Checks:
+    hard, output = hard_findings(step.card, step.tree, step.log)
+    survivors = [] if hard else surviving_mutants(step.tree, step.card.source_files, step.card.test)
+    findings = hard + ([weak_tests_finding(survivors)] if survivors else [])
+    with step.log.open("a") as f:
+        f.write(f"\n[checks] hard_ok={not hard} survivors={survivors}\n")
+    return Checks(not hard, findings, survivors, output)
+
+
+# ---------- workers ----------
+
+def worker_message(card: Card, findings: list[str]) -> str:
+    role = (HOME / "roles" / "worker.md").read_text()
+    notes = "\n".join(f"- {item}" for item in findings)
+    review = f"\n\nFindings to fix now, all of them:\n{notes}" if findings else ""
+    files = f"\n\nEditable files: {' '.join(card.edit)}\nRead-only files: {' '.join(card.read) or '(none)'}"
+    gates = f"\nGates (must pass): {card.test}" + (f" && {card.lint}" if card.lint else "")
+    return f"{role}\nTask card {card.id}: {card.title}\n\n{card.spec}{files}{gates}{review}\n"
+
+
+def aider_command(card: Card, ws: Workspace, message_file: Path) -> str:
+    args = [
+        "aider", "--model", f"ollama_chat/{LOCAL_MODEL}",
+        "--model-settings-file", str(HOME / "config" / "aider.model.settings.yml"),
+        "--message-file", str(message_file), "--yes-always", "--no-auto-commits", "--no-gitignore",
+        "--no-check-update", "--analytics-disable", "--no-show-model-warnings", "--no-pretty",
+        "--no-suggest-shell-commands", "--no-detect-urls", "--no-fancy-input",
+        "--chat-history-file", str(ws.runs / f"{card.id}.chat.md"),
+        "--input-history-file", str(ws.runs / f"{card.id}.input"),
+        "--test-cmd", card.test, "--auto-test",
+    ]
+    if card.lint:
+        args += ["--lint-cmd", card.lint, "--auto-lint"]
+    for name in card.edit:
+        args += ["--file", name]
+    for name in card.read:
+        args += ["--read", name]
+    return shlex.join(args)
+
+
+def run_local(ws: Workspace, step: Step, role: str, message: str) -> None:
+    message_file = ws.runs / f"{step.card.id}.message.md"
+    message_file.write_text(message)
+    os.environ.setdefault("OLLAMA_API_BASE", OLLAMA)
+    started = time.monotonic()
+    run_shell(aider_command(step.card, ws, message_file), step.tree, step.log)
+    ws.record(step, role, time.monotonic() - started, {})
+
+
+def uses_cloud(step: Step, red: int) -> bool:
+    return step.mode == "cloud" or (step.mode == "hybrid" and red >= RED_STREAK)
+
+
+def converge(ws: Workspace, step: Step, review_findings: list[str]) -> Checks:
+    """Build until the free gates are clean, the budget runs out, or only the same mutants keep surviving."""
+    budget = CLOUD_ROUNDS if step.mode == "cloud" else LOCAL_ROUNDS
+    findings, red, last_survivors = list(review_findings), 0, None
+    for _ in range(budget):
+        step.next_attempt()
+        message = worker_message(step.card, findings)
+        if uses_cloud(step, red):
+            ws.log(f"{step.card.id} cycle {step.cycle} attempt {step.attempt}: {model_of(step.crew.worker)}")
+            cloud(ws, step, "worker", step.crew.worker, message)
+        else:
+            ws.log(f"{step.card.id} cycle {step.cycle} attempt {step.attempt}: {LOCAL_MODEL}")
+            run_local(ws, step, "local-worker", message)
+        checks = run_checks(step)
+        if checks.clean or (checks.hard_ok and checks.survivors == last_survivors):
+            return checks
+        red = 0 if checks.hard_ok else red + 1
+        last_survivors = checks.survivors if checks.hard_ok else None
+        findings = review_findings + checks.findings
+        heads = "; ".join(item.splitlines()[0][:70] for item in checks.findings)
+        ws.log(f"{step.card.id} attempt {step.attempt}: {heads}")
+    return checks
+
+
+def clean_up(ws: Workspace, step: Step, before: Checks) -> Checks:
+    """Local clean-up pass; keeps the pre-clean version if it breaks a gate or weakens the tests."""
+    card = step.card
+    git(step.tree, "add", "--", *card.edit)
+    cleaner = (HOME / "roles" / "cleaner.md").read_text()
+    run_local(ws, step, "local-cleaner", f"{cleaner}\nTask card {card.id}: {card.title}\n")
+    after = run_checks(step)
+    if after.hard_ok and len(after.survivors) <= len(before.survivors):
+        return after
+    git(step.tree, "checkout", "--", *card.edit)
+    return before
+
+
+# ---------- review and merge ----------
+
+def stage_card_files(card: Card, tree: Path) -> list[str]:
+    """Stage only the card's files; return the other tracked files the worker changed."""
+    git(tree, "reset", "-q")
+    git(tree, "add", "--", *card.edit)
+    changed = git(tree, "diff", "--name-only").split()
+    return [name for name in changed if name not in card.edit]
+
+
+def gate_report(checks: Checks) -> str:
+    survivors = "\n".join(checks.survivors) or "none"
+    return (f"Deterministic gates (tests, ruff incl. typing and docstring rules, test-plan names): "
+            f"{'green' if checks.hard_ok else 'RED'}.\nSurviving mutants (code changes no test catches): "
+            f"{survivors}\n\n{checks.output[-6000:]}")
+
+
+def review(ws: Workspace, step: Step, checks: Checks) -> tuple[bool, list[str]]:
+    stray = stage_card_files(step.card, step.tree)
+    if stray:
+        git(step.tree, "checkout", "--", *stray)
+    diff = git(step.tree, "diff", "--cached", "HEAD")[:DIFF_LIMIT]
+    prompt = (f"{(HOME / 'roles' / 'lead.md').read_text()}\n\n## Task card\n{step.card.path.read_text()}\n\n"
+              f"## Gate output\n{gate_report(checks)}\n\n## Diff\n{diff}\n")
+    return parse_verdict(cloud(ws, step, "lead", step.crew.lead, prompt))
+
+
+def parse_verdict(reply: str) -> tuple[bool, list[str]]:
+    for line in reversed(reply.strip().splitlines()):
+        if line.strip().startswith("{"):
+            verdict = json.loads(line)
+            return verdict["verdict"] == "accept", list(verdict.get("findings", []))
+    return False, ["lead reply had no JSON verdict line; see the run log"]
+
+
+def merge(card: Card, ws: Workspace, tree: Path) -> str:
+    git(tree, "commit", "-m", f"{card.title}\n\nTask card {card.id}, built with YosiBuilder.")
+    git(ws.repo, "merge", "--no-edit", f"yb/{card.id}")
+    git(ws.repo, "worktree", "remove", "--force", str(tree))
+    git(ws.repo, "branch", "-d", f"yb/{card.id}")
+    return git(ws.repo, "rev-parse", "--short", "HEAD").strip()
+
+
+def play_cycle(ws: Workspace, step: Step, findings: list[str]) -> tuple[bool, list[str]]:
+    """One review cycle: converge on the free gates, optional local clean-up, lead review."""
+    checks = converge(ws, step, findings)
+    if checks.hard_ok and step.mode != "cloud":
+        checks = clean_up(ws, step, checks)
+    if not checks.hard_ok:
+        ws.log(f"{step.card.id} cycle {step.cycle}: gates still red, no review")
+        return False, checks.findings
+    return review(ws, step, checks)
+
+
+def run_cycles(ws: Workspace, step: Step) -> tuple[bool, list[str]]:
+    """Up to MAX_REVIEWS cycles with the chosen crew, then one tie-break cycle with Sonnet if enabled."""
+    findings: list[str] = []
+    for cycle in range(1, MAX_REVIEWS + 1):
+        step.cycle = cycle
+        ws.update(step.card.id, f"{step.card.id}: cycle {cycle}", status="in_progress", cycle=cycle)
+        accepted, findings = play_cycle(ws, step, findings)
+        if accepted:
+            return True, []
+        ws.log(f"{step.card.id} cycle {cycle}: not accepted, {len(findings)} findings")
+    if not USE_TIEBREAK:
+        return False, findings
+    step.cycle, step.crew = MAX_REVIEWS + 1, Crew(f"{step.crew.name}>tiebreak", *TIEBREAK)
+    ws.log(f"{step.card.id}: tie-break cycle with {step.crew.label()}")
+    return play_cycle(ws, step, findings)
+
+
+def build_card(card: Card, ws: Workspace, mode: str, crew: Crew) -> bool:
+    run_id = datetime.now().strftime("%Y%m%d-%H%M%S") + f"-{card.id}"
+    step = Step(card, ws.worktree(card), mode, crew, ws.runs, run_id)
+    started = time.monotonic()
+    accepted, findings = run_cycles(ws, step)
+    commit = merge(card, ws, step.tree) if accepted else None
+    status = "done" if accepted else "blocked"
+    ws.update(card.id, "next card" if accepted else f"{card.id}: blocked, escalate to architect", status=status,
+              commit=commit, reviews=step.cycle, attempts=step.attempt, findings=findings)
+    log_result(ws, step, status, time.monotonic() - started, findings)
+    return accepted
+
+
+def log_result(ws: Workspace, step: Step, status: str, seconds: float, findings: list[str]) -> None:
+    """Write the card's ledger entry and print the crew's rolling acceptance and cost."""
+    cost = ledger.cost_summary(ws.usage(step.run_id), ledger.load_prices())
+    ledger.append({"repo": ws.repo.name, "card": step.card.id, "title": step.card.title, "crew": step.crew.name,
+                   "worker": model_of(step.crew.worker), "lead": model_of(step.crew.lead), "mode": step.mode,
+                   "status": status, "reviews": step.cycle, "attempts": step.attempt, "seconds": round(seconds),
+                   "cost": cost, "blocked_on": [f.splitlines()[0][:200] for f in findings][:3]})
+    stats = ledger.rolling(step.crew.name)
+    ws.log(f"{step.card.id}: {status} after {step.cycle} review(s), {round(seconds)}s, claude "
+           f"${cost['usd'].get('claude', 0):.3f}, weighted ${cost['weighted_usd']:.3f}, tokens {cost['tokens']}")
+    ws.log(f"crew {step.crew.name}, last {stats['cards']} cards: {stats['accepted']:.0%} accepted, "
+           f"{stats['first_review']:.0%} at first review, ${stats['weighted_usd_per_card']:.3f} weighted per card")
+    warning = ledger.alert(step.crew.name, stats)
+    if warning:
+        ws.log(f"WARNING {warning}")
+
+
+# ---------- commands ----------
+
+def cmd_run(args: argparse.Namespace) -> int:
+    ws = Workspace(Path(args.repo))
+    ws.init()
+    crew = Crew.select(args.crew)
+    ws.log(f"run: crew {crew.label()}, mode {args.mode}")
+    for path in args.cards:
+        if not build_card(Card.load(Path(path).resolve()), ws, args.mode, crew):
+            return 1
+    return 0
+
+
+def cmd_status(args: argparse.Namespace) -> int:
+    print(json.dumps(Workspace(Path(args.repo)).state(), indent=2))
+    return 0
+
+
+def cmd_usage(args: argparse.Namespace) -> int:
+    rows = Workspace(Path(args.repo)).usage()
+    by_card: dict[str, list[dict]] = {}
+    for row in rows:
+        by_card.setdefault(f"{row['card']} [{row.get('crew', row['mode'])}]", []).append(row)
+    prices = ledger.load_prices()
+    print(json.dumps({name: ledger.cost_summary(group, prices) for name, group in by_card.items()}, indent=2))
+    return 0
+
+
+def cmd_report(args: argparse.Namespace) -> int:
+    print(f"ledger: {ledger.LEDGER}")
+    print(json.dumps(ledger.report(args.last), indent=2))
+    return 0
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(prog="yb", description=__doc__)
+    parser.add_argument("--repo", default=".", help="git repository to build in (default: cwd)")
+    sub = parser.add_subparsers(dest="command", required=True)
+    run = sub.add_parser("run", help="build cards in order: build to green gates, lead review, merge")
+    run.add_argument("--crew", default=os.environ.get("YB_CREW", "default"), help=f"one of: {', '.join(CREWS)}")
+    run.add_argument("--mode", choices=MODES, default="cloud",
+                     help="cloud: the crew's worker builds (default); hybrid: local Qwen first, the crew's worker "
+                          "after repeated red gates; local: local Qwen only")
+    run.add_argument("cards", nargs="+")
+    run.set_defaults(func=cmd_run)
+    sub.add_parser("status", help="print .ybuild/STATE.json").set_defaults(func=cmd_status)
+    sub.add_parser("usage", help="cost and tokens per card in this repo").set_defaults(func=cmd_usage)
+    report = sub.add_parser("report", help="acceptance and cost per crew across all builds (the ledger)")
+    report.add_argument("--last", type=int, default=None, help="only the last N cards of each crew")
+    report.set_defaults(func=cmd_report)
+    args = parser.parse_args()
+    try:
+        return int(args.func(args))
+    except YbError as error:
+        print(f"yb: {error}", file=sys.stderr)
+        return 2
+
+
+if __name__ == "__main__":
+    sys.exit(main())

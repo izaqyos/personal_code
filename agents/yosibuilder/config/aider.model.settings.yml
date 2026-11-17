@@ -1,0 +1,11 @@
+- name: ollama_chat/qwen3-coder:30b
+  edit_format: whole
+  use_repo_map: true
+  extra_params:
+    num_ctx: 32768
+
+- name: ollama_chat/qwen2.5-coder:14b
+  edit_format: diff
+  use_repo_map: true
+  extra_params:
+    num_ctx: 32768
