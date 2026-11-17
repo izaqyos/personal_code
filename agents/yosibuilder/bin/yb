@@ -18,7 +18,7 @@ from pathlib import Path
 HOME = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(HOME / "lib"))
 import ledger  # noqa: E402
-from mutate import surviving_mutants  # noqa: E402
+from mutate import exit_on_signals, surviving_mutants  # noqa: E402
 
 LEAN = '--strict-mcp-config --setting-sources "" --no-session-persistence --output-format json'
 CLAUDE_TOOLS = '--tools Read,Edit,Write,Bash --allowedTools Read Edit Write "Bash(uv run:*)" --permission-mode dontAsk'
@@ -524,6 +524,7 @@ def cmd_report(args: argparse.Namespace) -> int:
 
 
 def main() -> int:
+    exit_on_signals()
     parser = argparse.ArgumentParser(prog="yb", description=__doc__)
     parser.add_argument("--repo", default=".", help="git repository to build in (default: cwd)")
     sub = parser.add_subparsers(dest="command", required=True)

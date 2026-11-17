@@ -3,14 +3,18 @@
 from __future__ import annotations
 
 import ast
+import contextlib
 import os
 import signal
 import subprocess
+import time
 from collections.abc import Iterator
 from pathlib import Path
 
 LIMIT = 40
 TIMEOUT_SECONDS = 20
+MEMORY_LIMIT_MB = int(os.environ.get("YB_MUTANT_MEM_MB", "2048"))
+POLL_SECONDS = 0.25
 FLIPS: dict[type[ast.cmpop], type[ast.cmpop]] = {
     ast.Lt: ast.LtE, ast.LtE: ast.Lt, ast.Gt: ast.GtE, ast.GtE: ast.Gt, ast.Eq: ast.NotEq, ast.NotEq: ast.Eq,
 }
@@ -92,12 +96,45 @@ class _ReplaceWithPass(ast.NodeTransformer):
 
 
 def _passes(test_cmd: str, cwd: Path) -> bool:
-    """Run the tests in their own process group; a timeout (a mutant that loops forever) kills the whole group."""
+    """Run the tests in their own process group and kill the whole group on every way out.
+
+    A mutant can loop forever or allocate without bound (e.g. `start = end` replaced by pass in an
+    append loop), so the group is killed when it times out, when it outgrows MEMORY_LIMIT_MB, and in
+    `finally` when this process is interrupted (Ctrl-C, or SIGTERM via exit_on_signals) -- otherwise the
+    group, being in its own session, outlives us and eats the machine (17/11 kernel panic).
+    """
     proc = subprocess.Popen(test_cmd, shell=True, cwd=cwd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
                             start_new_session=True)
+    deadline = time.monotonic() + TIMEOUT_SECONDS
     try:
-        return proc.wait(timeout=TIMEOUT_SECONDS) == 0
-    except subprocess.TimeoutExpired:
-        os.killpg(proc.pid, signal.SIGKILL)
-        proc.wait()
+        while time.monotonic() < deadline:
+            try:
+                return proc.wait(timeout=POLL_SECONDS) == 0
+            except subprocess.TimeoutExpired:
+                if _group_rss_mb(proc.pid) > MEMORY_LIMIT_MB:
+                    return False
         return False
+    finally:
+        _kill_group(proc)
+
+
+def _kill_group(proc: subprocess.Popen[bytes]) -> None:
+    with contextlib.suppress(ProcessLookupError):
+        os.killpg(proc.pid, signal.SIGKILL)
+    proc.wait()
+
+
+def _group_rss_mb(pgid: int) -> float:
+    """Resident memory of every process in the group, in MB (macOS has no enforced RLIMIT_AS)."""
+    out = subprocess.run(["ps", "-axo", "pgid=,rss="], capture_output=True, text=True).stdout
+    kb = sum(int(rss) for group, rss in (line.split() for line in out.splitlines() if line.strip())
+             if int(group) == pgid)
+    return kb / 1024
+
+
+def exit_on_signals() -> None:
+    """Turn SIGTERM/SIGHUP into SystemExit so `finally` blocks run: mutant groups die, sources are restored."""
+    def handler(signum: int, _frame: object) -> None:
+        raise SystemExit(128 + signum)
+    for sig in (signal.SIGTERM, signal.SIGHUP):
+        signal.signal(sig, handler)
