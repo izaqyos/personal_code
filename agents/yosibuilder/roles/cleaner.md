@@ -4,5 +4,6 @@ files you were given:
 - Replace multi-line Args/Returns/Raises docstrings with one line, or delete them where the name says enough.
 - Collapse needless temporaries and reassignments; inline a variable used once right after it is set.
 - Remove unused imports, dead code, commented-out code and trailing whitespace.
-- In tests, turn repeated near-identical asserts into one pytest.mark.parametrize table.
+- In tests, turn repeated near-identical asserts into one table-driven test (pytest.mark.parametrize, test.each,
+  @ParameterizedTest, a table loop in Rust or C, TEST_P in GoogleTest), using what the tests already use.
 Do not add anything new.

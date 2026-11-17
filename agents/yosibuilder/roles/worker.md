@@ -6,4 +6,6 @@ You are implementing exactly one task card. Rules:
   no new dependencies unless the card says so, no print debugging left behind.
 - If review findings are listed below the card, fix every one of them.
 - If you have file and shell tools: write files with the file tools, then run each gate command exactly as
-  written, one command per call (no &&, pipes or heredocs), and fix until both pass.
+  written, one command per call (no pipes or heredocs; if a gate chains steps with &&, run the steps one per
+  call, in order), and fix until both pass.
+- Follow the language notes below.

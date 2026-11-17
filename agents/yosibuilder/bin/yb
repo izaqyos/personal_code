@@ -6,7 +6,6 @@ from __future__ import annotations
 import argparse
 import json
 import os
-import re
 import shlex
 import subprocess
 import sys
@@ -18,13 +17,15 @@ from pathlib import Path
 HOME = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(HOME / "lib"))
 import ledger  # noqa: E402
+from lang import LANGUAGES, Language, UnknownLanguage, gate_programs, language_for, planned_tests  # noqa: E402
 from mutate import exit_on_signals, surviving_mutants  # noqa: E402
 
 LEAN = '--strict-mcp-config --setting-sources "" --no-session-persistence --output-format json'
-CLAUDE_TOOLS = '--tools Read,Edit,Write,Bash --allowedTools Read Edit Write "Bash(uv run:*)" --permission-mode dontAsk'
+GATES = "@YB_GATES@"  # replaced per card by the programs its test and lint commands run
+AGY_SETTINGS = "@YB_AGY_SETTINGS@"
+CLAUDE_TOOLS = f"--tools Read,Edit,Write,Bash --allowedTools Read Edit Write {GATES} --permission-mode dontAsk"
 AGY = "agy --output-format json --print-timeout 600s"
-AGY_COMMANDS = ("uv", "ls", "cat", "grep", "find", "head")
-AGY_ALLOW = json.dumps({"permissions": {"allow": [f"command({name})" for name in AGY_COMMANDS]}})
+AGY_READ_COMMANDS = ("ls", "cat", "grep", "find", "head")
 
 
 def claude_worker(model: str) -> str:
@@ -36,7 +37,7 @@ def claude_lead(model: str) -> str:
 
 
 def agy_worker(model: str) -> str:
-    return f"{AGY} --mode accept-edits --sandbox --model {model} --settings {shlex.quote(AGY_ALLOW)} -p \"$(cat)\""
+    return f"{AGY} --mode accept-edits --sandbox --model {model} --settings {AGY_SETTINGS} -p \"$(cat)\""
 
 
 def agy_lead(model: str) -> str:
@@ -60,10 +61,7 @@ USE_TIEBREAK = os.environ.get("YB_TIEBREAK", "1") == "1"
 OLLAMA = os.environ.get("OLLAMA_API_BASE", "http://127.0.0.1:11434")
 MODES = ("cloud", "hybrid", "local")
 DIFF_LIMIT = 60_000
-FAILURE_LINE = re.compile(r"^(E |FAILED |ERROR |\S+\.py:\d+:\d+: )")
-TEST_NAME = re.compile(r"\btest_\w+(?![\w.])")
-LOCAL_JUNK = (".ybuild/", ".aider*", "__pycache__/", "*.pyc", ".pytest_cache/", ".ruff_cache/", ".mypy_cache/",
-              ".venv/", "uv.lock")
+LOCAL_JUNK = (".ybuild/", ".aider*", *dict.fromkeys(junk for lang in LANGUAGES.values() for junk in lang.junk))
 TOKEN_KEYS = ("input_tokens", "cache_creation_input_tokens", "cache_read_input_tokens", "output_tokens")
 ALIASES = {"cache_read_tokens": "cache_read_input_tokens"}
 REPLY_KEYS = ("result", "response")
@@ -108,6 +106,9 @@ class Card:
     test: str
     lint: str
     spec: str
+    language: Language
+    setup: str = ""
+    mutation: dict[str, float] = field(default_factory=dict)
 
     @classmethod
     def load(cls, path: Path) -> Card:
@@ -118,20 +119,46 @@ class Card:
         for key in ("id", "edit", "test"):
             if not fields.get(key):
                 raise YbError(f"{path}: header field '{key}' is required")
+        try:
+            language = language_for(fields.get("lang", ""), fields["edit"].split())
+        except UnknownLanguage as error:
+            raise YbError(f"{path}: {error}") from error
         return cls(path, fields["id"], fields.get("title", fields["id"]), fields["edit"].split(),
-                   fields.get("read", "").split(), fields["test"], fields.get("lint", ""), spec.strip())
+                   fields.get("read", "").split(), fields["test"], fields.get("lint", ""), spec.strip(), language,
+                   fields.get("setup", ""), _mutation_budget(path, fields))
 
     @property
     def test_files(self) -> list[str]:
-        return [name for name in self.edit if Path(name).name.startswith("test_")]
+        return [name for name in self.edit if self.language.is_test(name)]
 
     @property
     def source_files(self) -> list[str]:
-        return [name for name in self.edit if name.endswith(".py") and name not in self.test_files]
+        return [name for name in self.edit if self.language.owns(name) and name not in self.test_files]
 
     def planned_tests(self) -> list[str]:
         _, _, plan = self.spec.partition("## Test plan")
-        return sorted(set(TEST_NAME.findall(plan)))
+        return planned_tests(plan)
+
+    def mutation_args(self) -> dict[str, float]:
+        """Limit, timeout and memory cap for this card's mutants: card header, then environment, then language."""
+        env_mem = os.environ.get("YB_MUTANT_MEM_MB")
+        defaults = {"timeout": self.language.mutation_timeout,
+                    "mem_mb": float(env_mem) if env_mem else self.language.mutant_mem_mb}
+        return {**defaults, **self.mutation}
+
+
+MUTATION_FIELDS = {"mutants": "limit", "mutation_timeout": "timeout", "mutant_mem_mb": "mem_mb"}
+
+
+def _mutation_budget(path: Path, fields: dict[str, str]) -> dict[str, float]:
+    budget: dict[str, float] = {}
+    for header, arg in MUTATION_FIELDS.items():
+        if header in fields:
+            try:
+                budget[arg] = int(fields[header]) if arg == "limit" else float(fields[header])
+            except ValueError as error:
+                raise YbError(f"{path}: '{header}' must be a number, got '{fields[header]}'") from error
+    return budget
 
 
 def _split_field(line: str) -> tuple[str, str]:
@@ -228,7 +255,17 @@ class Workspace:
         path = self.repo.parent / f"{self.repo.name}-yb" / card.id
         if not path.exists():
             git(self.repo, "worktree", "add", "-b", f"yb/{card.id}", str(path), "HEAD")
+            self.prepare(card, path)
         return path
+
+    def prepare(self, card: Card, tree: Path) -> None:
+        """Make a fresh worktree buildable (e.g. `npm ci`): the card's `setup:`, else the language's default."""
+        setup = card.setup or card.language.default_setup(tree)
+        if not setup:
+            return
+        self.log(f"{card.id}: setup `{setup}`")
+        if not run_shell(setup, tree, self.runs / f"{card.id}-setup.log").ok:
+            raise YbError(f"{card.id}: setup failed (`{setup}`), see {self.runs / f'{card.id}-setup.log'}")
 
 
 def git(cwd: Path, *args: str) -> str:
@@ -270,21 +307,22 @@ def _json_reply(output: str) -> dict:
 
 # ---------- free gates ----------
 
-def failure_finding(label: str, output: str) -> str:
-    failures = [line for line in output.splitlines() if FAILURE_LINE.match(line)][:30]
+def failure_finding(label: str, output: str, language: Language) -> str:
+    failures = [line for line in output.splitlines() if language.failure_line.match(line)][:30]
     return f"{label}:\n" + "\n".join(failures) + f"\n\nOutput tail:\n{output[-2000:]}"
 
 
 def missing_planned_tests(card: Card, tree: Path) -> list[str]:
-    written = "\n".join((tree / name).read_text() for name in card.test_files if (tree / name).exists())
-    return [name for name in card.planned_tests() if not re.search(rf"def {name}\(", written)]
+    """Planned tests not found in the card's files (all of them: Rust and C keep unit tests next to the code)."""
+    written = "\n".join((tree / name).read_text() for name in card.edit if (tree / name).is_file())
+    return [name for name in card.planned_tests() if not card.language.defines_test(name, written)]
 
 
 def hard_findings(card: Card, tree: Path, log: Path) -> tuple[list[str], str]:
     tests = run_shell(card.test, tree, log)
     lint = run_shell(card.lint, tree, log) if card.lint else Gate(True, "")
     missing = missing_planned_tests(card, tree)
-    findings = [failure_finding(label, gate.output) for label, gate in
+    findings = [failure_finding(label, gate.output, card.language) for label, gate in
                 (("The tests fail", tests), ("The linter fails (fix every listed rule)", lint)) if not gate.ok]
     if missing:
         findings.append(f"Tests named in the card's test plan are missing; add them: {', '.join(missing)}")
@@ -298,7 +336,8 @@ def weak_tests_finding(survivors: list[str]) -> str:
 
 def run_checks(step: Step) -> Checks:
     hard, output = hard_findings(step.card, step.tree, step.log)
-    survivors = [] if hard else surviving_mutants(step.tree, step.card.source_files, step.card.test)
+    survivors = [] if hard else surviving_mutants(step.tree, step.card.source_files, step.card.test,
+                                                  **step.card.mutation_args())
     findings = hard + ([weak_tests_finding(survivors)] if survivors else [])
     with step.log.open("a") as f:
         f.write(f"\n[checks] hard_ok={not hard} survivors={survivors}\n")
@@ -307,8 +346,22 @@ def run_checks(step: Step) -> Checks:
 
 # ---------- workers ----------
 
+def idioms(card: Card) -> str:
+    path = HOME / "roles" / "lang" / f"{card.language.name}.md"
+    return f"\n{path.read_text()}" if path.exists() else ""
+
+
+def bind_gates(command: str, card: Card) -> str:
+    """Fill a worker command's allow-list with the programs the card's gates run (custom commands pass through)."""
+    programs = gate_programs(card.test, *([card.lint] if card.lint else []))
+    claude_rules = " ".join(shlex.quote(f"Bash({program}:*)") for program in programs)
+    commands = dict.fromkeys([*(program.split()[0] for program in programs), *AGY_READ_COMMANDS])
+    agy = json.dumps({"permissions": {"allow": [f"command({name})" for name in commands]}})
+    return command.replace(GATES, claude_rules).replace(AGY_SETTINGS, shlex.quote(agy))
+
+
 def worker_message(card: Card, findings: list[str]) -> str:
-    role = (HOME / "roles" / "worker.md").read_text()
+    role = (HOME / "roles" / "worker.md").read_text() + idioms(card)
     notes = "\n".join(f"- {item}" for item in findings)
     review = f"\n\nFindings to fix now, all of them:\n{notes}" if findings else ""
     files = f"\n\nEditable files: {' '.join(card.edit)}\nRead-only files: {' '.join(card.read) or '(none)'}"
@@ -358,7 +411,7 @@ def converge(ws: Workspace, step: Step, review_findings: list[str]) -> Checks:
         message = worker_message(step.card, findings)
         if uses_cloud(step, red):
             ws.log(f"{step.card.id} cycle {step.cycle} attempt {step.attempt}: {model_of(step.crew.worker)}")
-            cloud(ws, step, "worker", step.crew.worker, message)
+            cloud(ws, step, "worker", bind_gates(step.crew.worker, step.card), message)
         else:
             ws.log(f"{step.card.id} cycle {step.cycle} attempt {step.attempt}: {LOCAL_MODEL}")
             run_local(ws, step, "local-worker", message)
@@ -398,7 +451,7 @@ def stage_card_files(card: Card, tree: Path) -> list[str]:
 
 def gate_report(checks: Checks) -> str:
     survivors = "\n".join(checks.survivors) or "none"
-    return (f"Deterministic gates (tests, ruff incl. typing and docstring rules, test-plan names): "
+    return (f"Deterministic gates (the card's tests and lint command, test-plan names): "
             f"{'green' if checks.hard_ok else 'RED'}.\nSurviving mutants (code changes no test catches): "
             f"{survivors}\n\n{checks.output[-6000:]}")
 
@@ -408,7 +461,8 @@ def review(ws: Workspace, step: Step, checks: Checks) -> tuple[bool, list[str]]:
     if stray:
         git(step.tree, "checkout", "--", *stray)
     diff = git(step.tree, "diff", "--cached", "HEAD")[:DIFF_LIMIT]
-    prompt = (f"{(HOME / 'roles' / 'lead.md').read_text()}\n\n## Task card\n{step.card.path.read_text()}\n\n"
+    lead_role = (HOME / "roles" / "lead.md").read_text() + idioms(step.card)
+    prompt = (f"{lead_role}\n\n## Task card\n{step.card.path.read_text()}\n\n"
               f"## Gate output\n{gate_report(checks)}\n\n## Diff\n{diff}\n")
     return parse_verdict(cloud(ws, step, "lead", step.crew.lead, prompt))
 

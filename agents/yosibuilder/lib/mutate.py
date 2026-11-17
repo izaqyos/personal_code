@@ -1,4 +1,4 @@
-"""Tiny deterministic mutation tester: finds code changes that no test catches."""
+"""Tiny deterministic mutation tester: finds code changes that no test catches (Python AST, C-like lexical)."""
 
 from __future__ import annotations
 
@@ -11,6 +11,8 @@ import time
 from collections.abc import Iterator
 from pathlib import Path
 
+import mutate_lex
+
 LIMIT = 40
 TIMEOUT_SECONDS = 20
 MEMORY_LIMIT_MB = int(os.environ.get("YB_MUTANT_MEM_MB", "2048"))
@@ -20,20 +22,28 @@ FLIPS: dict[type[ast.cmpop], type[ast.cmpop]] = {
 }
 
 
-def surviving_mutants(tree: Path, sources: list[str], test_cmd: str) -> list[str]:
+def surviving_mutants(tree: Path, sources: list[str], test_cmd: str, *, limit: int | None = None,
+                      timeout: float | None = None, mem_mb: float | None = None) -> list[str]:
     """Return a description of every mutant of the source files that the test command does not kill."""
     survivors: list[str] = []
     for name in sources:
         path = tree / name
         original = path.read_text()
         try:
-            for description, mutant in list(mutants(original))[:LIMIT]:
+            for description, mutant in list(mutants_for(name, original))[:LIMIT if limit is None else limit]:
                 path.write_text(mutant)
-                if _passes(test_cmd, tree):
+                if _passes(test_cmd, tree, timeout, mem_mb):
                     survivors.append(f"{name}:{description}")
         finally:
             path.write_text(original)
     return survivors
+
+
+def mutants_for(name: str, source: str) -> Iterator[tuple[str, str]]:
+    """Mutants of one source file: Python through its AST, every other language lexically."""
+    if name.endswith(".py"):
+        return mutants(source)
+    return mutate_lex.mutants(source, rust=name.endswith(".rs"))
 
 
 def mutants(source: str) -> Iterator[tuple[str, str]]:
@@ -95,7 +105,7 @@ class _ReplaceWithPass(ast.NodeTransformer):
         return super().visit(node)
 
 
-def _passes(test_cmd: str, cwd: Path) -> bool:
+def _passes(test_cmd: str, cwd: Path, timeout: float | None = None, mem_mb: float | None = None) -> bool:
     """Run the tests in their own process group and kill the whole group on every way out.
 
     A mutant can loop forever or allocate without bound (e.g. `start = end` replaced by pass in an
@@ -104,18 +114,26 @@ def _passes(test_cmd: str, cwd: Path) -> bool:
     group, being in its own session, outlives us and eats the machine (17/11 kernel panic).
     """
     proc = subprocess.Popen(test_cmd, shell=True, cwd=cwd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-                            start_new_session=True)
-    deadline = time.monotonic() + TIMEOUT_SECONDS
+                            start_new_session=True, env=_mutant_env())
+    deadline = time.monotonic() + (TIMEOUT_SECONDS if timeout is None else timeout)
+    limit = MEMORY_LIMIT_MB if mem_mb is None else mem_mb
     try:
         while time.monotonic() < deadline:
             try:
                 return proc.wait(timeout=POLL_SECONDS) == 0
             except subprocess.TimeoutExpired:
-                if _group_rss_mb(proc.pid) > MEMORY_LIMIT_MB:
+                if _group_rss_mb(proc.pid) > limit:
                     return False
         return False
     finally:
         _kill_group(proc)
+
+
+def _mutant_env() -> dict[str, str]:
+    """No build daemons: a Gradle daemon leaves the process group, so killing the group would not stop it."""
+    env = dict(os.environ)
+    env["GRADLE_OPTS"] = f"{env.get('GRADLE_OPTS', '')} -Dorg.gradle.daemon=false".strip()
+    return env
 
 
 def _kill_group(proc: subprocess.Popen[bytes]) -> None:

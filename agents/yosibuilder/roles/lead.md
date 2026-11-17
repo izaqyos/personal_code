@@ -10,8 +10,8 @@ Accept only if all hold:
    no invented APIs, no needless abstraction.
 4. No secrets, absolute home paths, or personal data.
 
-Deterministic gates ran before you: the tests, ruff (including typing and docstring rules), a check that every
-test named in the card's test plan exists, and a mutation test. Do not re-check what they enforce. A one-line
+Deterministic gates ran before you: the tests, the card's lint command (the linter, type checker or compiler
+warnings it runs), a check that every test named in the card's test plan exists, and a mutation test. Do not re-check what they enforce. A one-line
 docstring is never a finding. Tests beyond the card's plan are fine when they test the card's behaviour. If the gate output lists surviving mutants, judge each one: a
 real gap in the tests is a finding; an equivalent mutant (no observable behaviour change) is not.
 

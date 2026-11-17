@@ -43,8 +43,8 @@ Both are kept for private or offline work; measured, they did not save usage (EX
 
 1. **Architect: frame.** Goal, constraints, non-functional budget, two designs and the choice, interfaces,
    failure modes, test list. Write `PLAN.md` in `.ybuild/` and get the user's approval.
-2. **Architect: contracts first.** Shared types and interfaces, the scaffold and the gates config (ruff with
-   `ANN`, `D`, `C901`; pytest). Commit before any card runs.
+2. **Architect: contracts first.** Shared types and interfaces, the scaffold and the gates config for the
+   language (see Languages below). Commit before any card runs.
 3. **Architect: design and test plan.** `.ybuild/SDD.md`: modules, classes, signatures with types, errors,
    constants, the algorithm in a few lines each. `.ybuild/DTP.md`: every test by name with inputs and exact
    expected output or error. Check that the design fits the gates (for example, a loop the design puts in one
@@ -52,8 +52,9 @@ Both are kept for private or offline work; measured, they did not save usage (EX
 4. **Architect: cards.** From `templates/task-card.md`, each carrying its full slice of the SDD and DTP: one
    module and its tests, the exact import line, a test command that runs in seconds, no open design decisions.
 5. **Runner: `yb run [--crew C] [--mode M] <cards...>`.** Per card: worktree and branch `yb/<id>`; the worker
-   builds until the **free gates** are clean (tests; ruff; every test named in the test plan exists; mutation
-   test of the card's source: each statement replaced by `pass` and each comparison flipped must fail a test);
+   builds until the **free gates** are clean (tests; the card's lint command; every test named in the test plan
+   exists; mutation test of the card's source: in Python each statement replaced by `pass`, in C-like languages
+   each simple statement deleted, and each comparison or `&&`/`||` flipped must fail a test);
    then the lead reviews; accept merges. Up to `YB_MAX_REVIEWS` cycles, then one Sonnet tie-break cycle, then
    `blocked`. The run stops at the first blocked card.
 6. **Monitoring.** After each card `yb` prints its cost and the crew's rolling acceptance and cost, and warns
@@ -63,6 +64,34 @@ Both are kept for private or offline work; measured, they did not save usage (EX
    plan. Record the decision in `DECISIONS.md`.
 8. **Milestone review (architect).** Full gates on main, read the merged diff for drift and slop, read
    `yb report`, adjust crews, prices or card style, update the plan, report to the user.
+
+## Languages
+
+Python, Node.js (JavaScript, TypeScript, NestJS and the rest of the npm ecosystem), Rust, Java, C and C++. A card
+names its language with `lang:` (`python`, `node`/`ts`/`js`/`nestjs`, `rust`, `java`, `c`, `cpp`) or `yb` infers it
+from the `edit:` files (`.h` counts as C++ when any C++ file is present). The language decides which edited files
+are tests, how failures are pulled out of gate output, the idioms appended to the worker and lead prompts
+(`roles/lang/<lang>.md`), and the mutation budget. The gates themselves are always the card's `test:` and `lint:`
+commands, and the worker may run exactly the programs those commands start (`uv run`, `npx jest`, `cargo test`,
+`cmake`, `ctest`, `./gradlew`...), nothing else.
+
+| Language | Example `test:` | Example `lint:` | Mutant timeout, memory |
+|---|---|---|---|
+| Python | `uv run pytest tests/unit/test_x.py -q` | `uv run ruff check src tests` | 20 s, 2 GB |
+| Node / TS / Nest | `npx jest src/users --ci` or `npx vitest run src/x` | `npx tsc --noEmit && npx eslint src/users` | 60 s, 4 GB |
+| Rust | `cargo test -q --lib x::` | `cargo clippy -q -- -D warnings` | 120 s, 4 GB |
+| Java | `mvn -q test -Dtest=XTest` or `./gradlew test --tests XTest` | `mvn -q -DskipTests verify` (checkstyle/spotbugs) | 180 s, 4 GB |
+| C | `cmake -S . -B build && cmake --build build && ctest --test-dir build -R x` | `-Wall -Wextra -Werror` in the build, or `clang-tidy` | 120 s, 4 GB |
+| C++ | same as C, GoogleTest or Catch2 | same as C | 120 s, 4 GB |
+
+Optional card headers: `setup:` runs once in a new worktree (default for Node: `npm ci`/`pnpm install`/`yarn
+install` from the lockfile, since worktrees have no `node_modules`; none for the others: uv, cargo, Maven and
+Gradle use their caches); `mutants:` caps the mutants per file (default 40, `0` turns the mutation gate off);
+`mutation_timeout:` seconds per mutant run; `mutant_mem_mb:` memory cap per mutant run (card, then
+`YB_MUTANT_MEM_MB`, then the language default). Compiled languages rebuild per mutant, so keep their test commands
+narrow (one module, incremental build) or lower `mutants:`. Test plans name tests the way the language does:
+`test_x`, `fn x()`, `void x()`, `TEST(Suite, X)`, or quoted titles `it("...")`/`test("...")`/`TEST_CASE("...")`.
+Gradle's daemon is turned off for mutant runs (a daemon outlives the killed process group).
 
 ## Results and pricing ledger
 
@@ -92,7 +121,7 @@ tokens, weighted cost, and the first lines of the findings it blocked on.
   --setting-sources "" --no-session-persistence --output-format json`): a default headless call carries about
   44k tokens of overhead, a lean one under 1k.
 - Antigravity CLI `agy` signed in; `agy models` lists the Gemini models. Workers run `--mode accept-edits
-  --sandbox` with `command(uv|ls|cat|grep|find|head)` allowed: in headless mode a denied command ends the turn
+  --sandbox` with the card's gate programs plus `command(ls|cat|grep|find|head)` allowed: in headless mode a denied command ends the turn
   with no output, so the allow-list must cover harmless read commands. Leads run `--mode plan`.
 - Optional, for `--mode hybrid` or `local`: Ollama with `qwen3-coder:30b`, Aider, `config/aider.model.settings.yml`.
 - `bin/yb` on the PATH or called by its full path.
@@ -107,5 +136,6 @@ tokens, weighted cost, and the first lines of the findings it blocked on.
 | `YB_CLOUD_ROUNDS` | `2` | Worker attempts per cycle to reach clean free gates |
 | `YB_TIEBREAK` | `1` | `0` disables the Sonnet tie-break cycle |
 | `YB_LEDGER` | `~/.local/share/yosibuilder/ledger.jsonl` | Results and pricing ledger |
+| `YB_MUTANT_MEM_MB` | language default | Memory cap per mutant test run, unless the card sets `mutant_mem_mb:` |
 | `YB_WINDOW`, `YB_ALERT_ACCEPT` | `20`, `0.8` | Rolling window and acceptance alert threshold |
 | `YB_LOCAL_MODEL`, `YB_LOCAL_ROUNDS`, `YB_RED_STREAK` | `qwen3-coder:30b`, `5`, `2` | Hybrid and local modes |
