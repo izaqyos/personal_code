@@ -37,17 +37,20 @@ built-in mutation test), the worker loops on them before any review; three harde
 T5 token bucket with injected clock, T6 typed retry decorator). Every crew built T1-T6 from the same commit, one
 run each, `--mode cloud` unless noted. Results are in the ledger (`yb report`, source `experiment-2026-11-16`).
 
-| Crew (worker / lead) | Accepted | At first review | Claude $ / card | Weighted $ / accepted card | Gemini tokens |
+| Crew (worker / lead) | Accepted | At first review | Claude $ / card | Gemini $ / card | Weighted $ / accepted card |
 |---|---|---|---|---|---|
-| Sonnet / Sonnet | 5/6 | 5 | 0.136 | 0.163 | 0 |
-| Qwen hybrid, Sonnet fixes / Sonnet | 5/6 | 1 | 0.090 | 0.108 | 0 |
-| Hydrogen / Sonnet | 5/6 | 4 | 0.036 | 0.117 | 1.3M |
-| Hydrogen / Hydrogen | 6/6 | 4 | 0.000 | 0.068 | 1.5M |
-| **Haiku / Hydrogen** | **6/6** | **6** | **0.007** | **0.012** | 0.08M |
-| Flash / Hydrogen | 5/6 | 3 | 0.000 | 0.272 | 5.0M |
+| Sonnet / Sonnet | 5/6 | 5 | 0.136 | 0.000 | 0.163 |
+| Qwen hybrid, Sonnet fixes / Sonnet | 5/6 | 1 | 0.090 | 0.000 | 0.108 |
+| Hydrogen / Sonnet | 5/6 | 4 | 0.036 | 0.158 | 0.091 |
+| Hydrogen / Hydrogen | 6/6 | 4 | 0.000 | 0.221 | 0.055 |
+| **Haiku / Hydrogen** | **6/6** | **6** | **0.007** | **0.030** | **0.015** |
+| Flash / Hydrogen | 5/6 | 3 | 0.000 | 0.304 | 0.091 |
 
-Weighted dollars use `config/prices.json` (Gemini at the placeholder rate, weight 0.25). Wall times are not
-compared: the machine slept overnight during several runs.
+Gemini dollars are list-price estimates from token counts (`config/prices.json`: Hydrogen $1.50 / $7.50 per
+million in / out, cached input $0.075; Flash $0.75 / $3.75 introductory). Weighted = Claude + 0.25 x Gemini.
+At list prices an `agy` call is not cheap: about 10k tokens of agent overhead per call puts Hydrogen-only above
+Sonnet-only in raw dollars. On a flat-rate Gemini plan this is quota, not spend, hence the lower weight. Wall
+times are not compared: the machine slept overnight during several runs.
 
 Findings:
 - Haiku with a full design and test plan matched or beat every other worker, at about 1/20 of Sonnet's Claude

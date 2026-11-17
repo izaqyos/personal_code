@@ -1,0 +1,263 @@
+<title>YosiBuilder Flow</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@600&display=swap">
+<style>
+/* Layout: one build lane top to bottom, with return loops on the right edge; ledger loop and tables below. */
+:root {
+  --paper: #f5f6f8;
+  --panel: #ffffff;
+  --ink: #1b2230;
+  --muted: #5d6677;
+  --rule: #d9dde5;
+  --claude: #b4542f;
+  --claude-soft: #f6e6de;
+  --gemini: #2f62c9;
+  --gemini-soft: #e2eafb;
+  --free: #2b7d55;
+  --free-soft: #dff0e6;
+  --local: #6b7280;
+  --local-soft: #eceef1;
+  --warn: #9a5b00;
+  --display: "IBM Plex Sans Condensed", "Arial Narrow", system-ui, sans-serif;
+  --body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #12161e; --panel: #1a2029; --ink: #e6e9ef; --muted: #9aa3b2; --rule: #2c3442;
+    --claude: #e58a63; --claude-soft: #3a2620; --gemini: #7ea2f0; --gemini-soft: #1e2a44;
+    --free: #5fc08f; --free-soft: #1a3226; --local: #a3aab6; --local-soft: #262c36; --warn: #e0a64a;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #12161e; --panel: #1a2029; --ink: #e6e9ef; --muted: #9aa3b2; --rule: #2c3442;
+  --claude: #e58a63; --claude-soft: #3a2620; --gemini: #7ea2f0; --gemini-soft: #1e2a44;
+  --free: #5fc08f; --free-soft: #1a3226; --local: #a3aab6; --local-soft: #262c36; --warn: #e0a64a;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--paper); color: var(--ink); font: 15px/1.55 var(--body);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 32px 56px;
+}
+.wrap { max-width: 860px; margin: 0 auto; display: flex; flex-direction: column; gap: 36px; }
+h1, h2 { font-family: var(--display); font-weight: 600; letter-spacing: 0.01em; text-wrap: balance; margin: 0; }
+h1 { font-size: 2.2rem; line-height: 1.1; }
+h2 { font-size: 1.35rem; }
+p { margin: 0; }
+.lede { color: var(--muted); max-width: 64ch; margin-top: 8px; }
+code, .mono { font-family: var(--mono); font-size: 0.86em; }
+
+.legend { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+.chip { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px;
+  font-size: 0.8rem; font-weight: 500; border: 1px solid transparent; white-space: nowrap; }
+.chip::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+.q-claude { color: var(--claude); background: var(--claude-soft); }
+.q-gemini { color: var(--gemini); background: var(--gemini-soft); }
+.q-free { color: var(--free); background: var(--free-soft); }
+.q-local { color: var(--local); background: var(--local-soft); }
+
+/* Build lane */
+.lane { display: flex; flex-direction: column; }
+.stage { display: grid; grid-template-columns: minmax(0, 1fr) 210px; gap: 14px; align-items: stretch; }
+.node { background: var(--panel); border: 1px solid var(--rule); border-left: 4px solid var(--edge, var(--rule));
+  border-radius: 8px; padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.node-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 10px; }
+.role { font-family: var(--display); font-weight: 600; font-size: 1.12rem; }
+.who { font-family: var(--mono); font-size: 0.82rem; color: var(--muted); }
+.node .chip { margin-left: auto; }
+.node p { color: var(--muted); font-size: 0.92rem; }
+.e-claude { --edge: var(--claude); }
+.e-gemini { --edge: var(--gemini); }
+.e-free { --edge: var(--free); }
+.e-local { --edge: var(--local); }
+.gates { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 2px; }
+.gate { font-family: var(--mono); font-size: 0.78rem; padding: 2px 8px; border-radius: 4px;
+  background: var(--free-soft); color: var(--free); }
+.loop { align-self: center; font-size: 0.82rem; color: var(--muted); border: 1px dashed var(--rule);
+  border-radius: 8px; padding: 8px 10px; position: relative; }
+.loop strong { color: var(--ink); font-weight: 600; display: block; }
+.loop::before { content: "\21BA"; position: absolute; left: -22px; top: 50%; transform: translateY(-50%);
+  color: var(--muted); font-size: 1.1rem; }
+.spacer { visibility: hidden; }
+.arrow { display: grid; grid-template-columns: minmax(0, 1fr) 210px; gap: 14px; }
+.arrow span { justify-self: start; margin-left: 28px; border-left: 2px solid var(--rule); height: 28px;
+  position: relative; font-size: 0.75rem; color: var(--muted); padding-left: 10px; line-height: 28px; }
+.arrow span::after { content: ""; position: absolute; left: -6px; bottom: -2px; border: 5px solid transparent;
+  border-top: 7px solid var(--rule); }
+.outcomes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.out { border-radius: 8px; padding: 12px 14px; border: 1px solid var(--rule); background: var(--panel);
+  display: flex; flex-direction: column; gap: 4px; }
+.out b { font-family: var(--display); font-size: 1.02rem; }
+.out p { font-size: 0.86rem; color: var(--muted); }
+.out.ok { border-top: 3px solid var(--free); }
+.out.tie { border-top: 3px solid var(--claude); }
+.out.block { border-top: 3px solid var(--warn); }
+
+/* Ledger loop */
+.ledger { background: var(--panel); border: 1px solid var(--rule); border-radius: 10px; padding: 18px;
+  display: flex; flex-direction: column; gap: 14px; }
+.cycle { display: flex; flex-wrap: wrap; align-items: stretch; gap: 8px; }
+.cell { flex: 1 1 150px; min-width: 0; background: var(--paper); border-radius: 6px; padding: 10px 12px; }
+.cell b { display: block; font-size: 0.9rem; }
+.cell span { font-size: 0.82rem; color: var(--muted); }
+.cell .mono { color: var(--ink); }
+.join { align-self: center; color: var(--muted); }
+
+/* Tables */
+.table-box { overflow-x: auto; border: 1px solid var(--rule); border-radius: 8px; background: var(--panel); }
+table { border-collapse: collapse; width: 100%; font-size: 0.88rem; min-width: 640px; }
+th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--rule); }
+th { font-weight: 600; font-size: 0.76rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+tr:last-child td { border-bottom: 0; }
+td.num { font-variant-numeric: tabular-nums; text-align: right; font-family: var(--mono); font-size: 0.84rem; }
+th.num { text-align: right; }
+tr.best td { background: var(--free-soft); }
+.note { font-size: 0.82rem; color: var(--muted); max-width: 72ch; }
+section { display: flex; flex-direction: column; gap: 14px; }
+
+@media (max-width: 640px) {
+  .stage, .arrow { grid-template-columns: minmax(0, 1fr); }
+  .loop { margin-left: 24px; }
+  .spacer { display: none; }
+  .outcomes { grid-template-columns: minmax(0, 1fr); }
+  .join { transform: rotate(90deg); align-self: flex-start; margin-left: 12px; }
+  h1 { font-size: 1.8rem; }
+}
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>YosiBuilder</h1>
+    <p class="lede">How <code>yb</code> builds one task card: the architect specifies it fully, a cheap worker builds it until free
+      deterministic gates pass, a reviewer from another provider judges it, and every call's tokens and cost go to a ledger
+      used to tune the setup.</p>
+    <div class="legend" aria-label="Which quota each step spends">
+      <span class="chip q-claude">Claude quota</span>
+      <span class="chip q-gemini">Gemini quota</span>
+      <span class="chip q-free">Free, deterministic</span>
+      <span class="chip q-local">Script, no model</span>
+    </div>
+  </header>
+
+  <section aria-labelledby="flow-h">
+    <h2 id="flow-h">Build flow, per card</h2>
+    <div class="lane">
+      <div class="stage">
+        <div class="node e-claude">
+          <div class="node-head"><span class="role">Architect</span><span class="who">Opus, interactive</span><span class="chip q-claude">Claude</span></div>
+          <p>Frames the goal, writes <code>SDD.md</code> (signatures, steps) and <code>DTP.md</code> (every test by name, inputs,
+            expected output), and cuts task cards that each carry their slice. Checks the design fits the gates.</p>
+        </div>
+        <div class="spacer"></div>
+      </div>
+      <div class="arrow"><span>cards in .ybuild/cards</span></div>
+
+      <div class="stage">
+        <div class="node e-local">
+          <div class="node-head"><span class="role">Runner</span><span class="who">bin/yb run --crew default</span><span class="chip q-local">script</span></div>
+          <p>Creates worktree and branch <code>yb/&lt;id&gt;</code>, picks the crew, keeps <code>STATE.json</code> and
+            <code>WORKLOG.md</code> so any session can resume.</p>
+        </div>
+        <div class="spacer"></div>
+      </div>
+      <div class="arrow"><span>card spec + findings</span></div>
+
+      <div class="stage">
+        <div class="node e-claude">
+          <div class="node-head"><span class="role">Worker</span><span class="who">Haiku, lean claude -p</span><span class="chip q-claude">Claude</span></div>
+          <p>Writes the tests and code the card specifies, runs the gate commands itself. File tools and <code>uv run</code> only.</p>
+        </div>
+        <div class="spacer"></div>
+      </div>
+      <div class="arrow"><span>diff</span></div>
+
+      <div class="stage">
+        <div class="node e-free">
+          <div class="node-head"><span class="role">Free gates</span><span class="who">no model, $0</span><span class="chip q-free">Free</span></div>
+          <div class="gates">
+            <span class="gate">pytest</span>
+            <span class="gate">ruff ANN · D · C901 ≤ 5</span>
+            <span class="gate">test-plan names present</span>
+            <span class="gate">mutation test</span>
+          </div>
+          <p>Each mutant replaces a statement with <code>pass</code> or flips a comparison; a mutant no test catches is a weak test.</p>
+        </div>
+        <div class="loop"><strong>Red or weak tests</strong>back to the worker with the failures, up to 2 attempts per cycle</div>
+      </div>
+      <div class="arrow"><span>green</span></div>
+
+      <div class="stage">
+        <div class="node e-gemini">
+          <div class="node-head"><span class="role">Lead</span><span class="who">Gemini Hydrogen, agy plan mode</span><span class="chip q-gemini">Gemini</span></div>
+          <p>Reads the card, the gate report and the diff; skips what the gates already enforce; returns
+            <code>{"verdict", "findings"}</code>.</p>
+        </div>
+        <div class="loop"><strong>Reject</strong>findings go back to the worker, up to 3 review cycles</div>
+      </div>
+      <div class="arrow"><span>verdict</span></div>
+
+      <div class="outcomes">
+        <div class="out ok"><b>Accept: merge</b><p>Commit on <code>yb/&lt;id&gt;</code>, merge to main, remove the worktree, next card.</p></div>
+        <div class="out tie"><b>Tie-break</b><p>After 3 cycles, one more cycle with Sonnet as worker and lead (Claude quota).</p></div>
+        <div class="out block"><b>Blocked</b><p>Back to the architect: re-scope, split, or sharpen the card. The run stops here.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="ledger-h">
+    <h2 id="ledger-h">Results and pricing loop</h2>
+    <div class="ledger">
+      <div class="cycle">
+        <div class="cell"><b>Every model call</b><span>role, provider, model, tokens, Claude cost → <span class="mono">.ybuild/usage.jsonl</span></span></div>
+        <div class="join" aria-hidden="true">→</div>
+        <div class="cell"><b>Every card</b><span>status, reviews, tokens per model → <span class="mono">~/.local/share/yosibuilder/ledger.jsonl</span></span></div>
+        <div class="join" aria-hidden="true">→</div>
+        <div class="cell"><b>Priced at report time</b><span><span class="mono">config/prices.json</span>; weights Claude 1.0, Gemini 0.25, local 0</span></div>
+        <div class="join" aria-hidden="true">→</div>
+        <div class="cell"><b>Monitor</b><span>crew line after each card; warning below 80% accepted over the last 20; <span class="mono">yb report</span></span></div>
+      </div>
+      <p class="note">The architect reads <code>yb report --last 20</code> at each milestone and changes one thing at a time: the crew, the card
+        style, a gate, or a prompt. Results that win go into <code>EXPERIMENTS.md</code>.</p>
+    </div>
+  </section>
+
+  <section aria-labelledby="crews-h">
+    <h2 id="crews-h">Crews</h2>
+    <div class="table-box">
+      <table>
+        <thead><tr><th>Crew</th><th>Worker</th><th>Lead</th><th>Use when</th></tr></thead>
+        <tbody>
+          <tr class="best"><td class="mono">default</td><td>Haiku <span class="chip q-claude">Claude</span></td><td>Hydrogen <span class="chip q-gemini">Gemini</span></td><td>Normal work</td></tr>
+          <tr><td class="mono">no-claude</td><td>Hydrogen <span class="chip q-gemini">Gemini</span></td><td>Hydrogen <span class="chip q-gemini">Gemini</span></td><td>Claude quota is low</td></tr>
+          <tr><td class="mono">claude</td><td>Sonnet <span class="chip q-claude">Claude</span></td><td>Sonnet <span class="chip q-claude">Claude</span></td><td>Gemini unavailable, or to check the Hydrogen lead</td></tr>
+          <tr><td class="mono">flash</td><td>Flash <span class="chip q-gemini">Gemini</span></td><td>Hydrogen <span class="chip q-gemini">Gemini</span></td><td>Experiments only</td></tr>
+          <tr><td class="mono">--mode hybrid</td><td>Qwen 30B, then crew worker <span class="chip q-local">local</span></td><td>crew lead</td><td>Private or offline work</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section aria-labelledby="results-h">
+    <h2 id="results-h">Measured on six cards</h2>
+    <div class="table-box">
+      <table>
+        <thead><tr><th>Worker / lead</th><th class="num">Accepted</th><th class="num">1st review</th><th class="num">Claude $/card</th><th class="num">Gemini $/card</th><th class="num">Weighted $/accepted</th></tr></thead>
+        <tbody>
+          <tr><td>Sonnet / Sonnet</td><td class="num">5/6</td><td class="num">5</td><td class="num">0.136</td><td class="num">0.000</td><td class="num">0.163</td></tr>
+          <tr><td>Qwen hybrid / Sonnet</td><td class="num">5/6</td><td class="num">1</td><td class="num">0.090</td><td class="num">0.000</td><td class="num">0.108</td></tr>
+          <tr><td>Hydrogen / Sonnet</td><td class="num">5/6</td><td class="num">4</td><td class="num">0.036</td><td class="num">0.158</td><td class="num">0.091</td></tr>
+          <tr><td>Hydrogen / Hydrogen</td><td class="num">6/6</td><td class="num">4</td><td class="num">0.000</td><td class="num">0.221</td><td class="num">0.055</td></tr>
+          <tr class="best"><td>Haiku / Hydrogen</td><td class="num">6/6</td><td class="num">6</td><td class="num">0.007</td><td class="num">0.030</td><td class="num">0.015</td></tr>
+          <tr><td>Flash / Hydrogen</td><td class="num">5/6</td><td class="num">3</td><td class="num">0.000</td><td class="num">0.304</td><td class="num">0.091</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note">One run per card, toy cards, 16–17 Nov 2026. Claude dollars are the CLI's list-price figure, a stand-in for subscription
+      usage. Gemini dollars are list-price estimates from token counts (Hydrogen $1.50 / $7.50 per million in / out, Flash $0.75 / $3.75
+      introductory); on a flat-rate plan they measure quota, not spend.</p>
+  </section>
+</div>

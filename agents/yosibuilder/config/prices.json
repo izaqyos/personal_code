@@ -1,6 +1,14 @@
 {
-  "_note": "USD per million tokens, used to estimate non-Claude costs (Claude's cost comes from the CLI itself). Replace the numbers with your providers' published prices. 'unpriced' is a placeholder rate for any model not listed. 'weights' sets how much each provider's dollars count in weighted_usd: Claude quota is the scarce one, so it counts in full.",
+  "_note": "USD per million tokens, used to estimate non-Claude costs (Claude's cost comes from the CLI itself). Gemini rates are the public Gemini API list prices as reported in Nov 2026 (mostly secondary sources; check ai.google.dev pricing). Flash is an introductory rate until 2026-12-31, then 1.50/7.50. Thinking tokens bill as output. 'unpriced' is a placeholder for any model not listed. 'weights' sets how much each provider's dollars count in weighted_usd: Claude quota is the scarce one, so it counts in full.",
   "weights": {"claude": 1.0, "agy": 0.25, "local": 0.0},
-  "unpriced": {"input": 1.0, "output": 4.0},
-  "models": {}
+  "unpriced": {"input": 1.0, "cached_input": 0.1, "output": 4.0},
+  "models": {
+    "gemini-4-hydrogen-low": {"input": 1.5, "cached_input": 0.075, "output": 7.5},
+    "gemini-4-hydrogen-medium": {"input": 1.5, "cached_input": 0.075, "output": 7.5},
+    "gemini-4-hydrogen-high": {"input": 1.5, "cached_input": 0.075, "output": 7.5},
+    "gemini-4-hydrogen-xhigh": {"input": 1.5, "cached_input": 0.075, "output": 7.5},
+    "gemini-3.8-flash-low": {"input": 0.75, "cached_input": 0.075, "output": 3.75},
+    "gemini-3.8-flash-medium": {"input": 0.75, "cached_input": 0.075, "output": 3.75},
+    "gemini-3.8-flash-high": {"input": 0.75, "cached_input": 0.075, "output": 3.75}
+  }
 }

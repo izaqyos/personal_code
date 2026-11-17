@@ -472,11 +472,12 @@ def build_card(card: Card, ws: Workspace, mode: str, crew: Crew) -> bool:
 
 def log_result(ws: Workspace, step: Step, status: str, seconds: float, findings: list[str]) -> None:
     """Write the card's ledger entry and print the crew's rolling acceptance and cost."""
-    cost = ledger.cost_summary(ws.usage(step.run_id), ledger.load_prices())
+    models = ledger.model_breakdown(ws.usage(step.run_id))
+    cost = ledger.price(models, ledger.load_prices())
     ledger.append({"repo": ws.repo.name, "card": step.card.id, "title": step.card.title, "crew": step.crew.name,
                    "worker": model_of(step.crew.worker), "lead": model_of(step.crew.lead), "mode": step.mode,
                    "status": status, "reviews": step.cycle, "attempts": step.attempt, "seconds": round(seconds),
-                   "cost": cost, "blocked_on": [f.splitlines()[0][:200] for f in findings][:3]})
+                   "models": models, "blocked_on": [f.splitlines()[0][:200] for f in findings][:3]})
     stats = ledger.rolling(step.crew.name)
     ws.log(f"{step.card.id}: {status} after {step.cycle} review(s), {round(seconds)}s, claude "
            f"${cost['usd'].get('claude', 0):.3f}, weighted ${cost['weighted_usd']:.3f}, tokens {cost['tokens']}")
@@ -511,7 +512,8 @@ def cmd_usage(args: argparse.Namespace) -> int:
     for row in rows:
         by_card.setdefault(f"{row['card']} [{row.get('crew', row['mode'])}]", []).append(row)
     prices = ledger.load_prices()
-    print(json.dumps({name: ledger.cost_summary(group, prices) for name, group in by_card.items()}, indent=2))
+    print(json.dumps({name: ledger.price(ledger.model_breakdown(group), prices) for name, group in by_card.items()},
+                     indent=2))
     return 0
 
 
