@@ -109,10 +109,12 @@ import redis
 import time
 
 class SlidingWindowCounter:
-    def __init__(self, redis_client):
+    def __init__(self, redis_client: redis.Redis) -> None:
         self.redis = redis_client
     
-    def is_allowed(self, key, limit, window):
+    def is_allowed(self, key: str, limit: int, window: int) -> tuple[bool, int]:
+        # Wall clock on purpose: window keys are shared by every host via Redis, and
+        # monotonic clocks are per process. Hosts need NTP; skew blurs window edges.
         now = time.time()
         current_window = int(now // window) * window
         prev_window = current_window - window
@@ -282,18 +284,19 @@ With multiple Redis nodes, counts may be slightly off.
 
 ```python
 class RateLimitService:
-    def __init__(self):
-        self.rules_cache = {}
-        self.rules_ttl = 300  # 5 minutes
-    
-    def get_rule(self, tier, endpoint):
+    def __init__(self, rules_ttl: float = 300.0) -> None:
+        self.rules_cache: dict[str, tuple[float, Rule]] = {}  # key -> (expires_at, rule)
+        self.rules_ttl = rules_ttl  # 5 minutes
+
+    def get_rule(self, tier: str, endpoint: str) -> Rule:
         cache_key = f"{tier}:{endpoint}"
-        
-        if cache_key not in self.rules_cache:
+        now = time.monotonic()  # local TTL: monotonic is right here
+        hit = self.rules_cache.get(cache_key)
+        if hit is None or hit[0] <= now:
             rule = db.query_rule(tier, endpoint)
-            self.rules_cache[cache_key] = rule
-        
-        return self.rules_cache[cache_key]
+            self.rules_cache[cache_key] = (now + self.rules_ttl, rule)
+            return rule
+        return hit[1]
 ```
 
 ### Connection Pooling

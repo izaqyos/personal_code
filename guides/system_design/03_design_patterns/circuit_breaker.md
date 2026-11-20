@@ -69,72 +69,89 @@ CLOSED ─┼───> Failures exceed threshold ───> OPEN  │
 ### Basic Implementation
 
 ```python
+from __future__ import annotations
+
 import time
+from collections.abc import Callable
 from enum import Enum
 from threading import Lock
+from typing import ParamSpec, TypeVar
+
+P = ParamSpec("P")
+T = TypeVar("T")
+
 
 class State(Enum):
     CLOSED = "closed"
     OPEN = "open"
     HALF_OPEN = "half_open"
 
+
+class CircuitOpenError(RuntimeError):
+    """Raised instead of calling the dependency while the circuit is open."""
+
+
 class CircuitBreaker:
     def __init__(
         self,
-        failure_threshold=5,
-        recovery_timeout=30,
-        half_open_requests=3
-    ):
+        failure_threshold: int = 5,
+        recovery_timeout: float = 30.0,
+        half_open_requests: int = 3,
+        # monotonic: immune to NTP/wall-clock jumps
+        clock: Callable[[], float] = time.monotonic,
+    ) -> None:
         self.failure_threshold = failure_threshold
         self.recovery_timeout = recovery_timeout
         self.half_open_requests = half_open_requests
-        
+        self._clock = clock
+
         self.state = State.CLOSED
-        self.failure_count = 0
-        self.success_count = 0
-        self.last_failure_time = None
+        self.failure_count = 0  # consecutive failures, reset on success
+        self.success_count = 0  # consecutive probe successes in HALF_OPEN
+        self.opened_at = 0.0
+        self.probe_in_flight = False
         self.lock = Lock()
-    
-    def call(self, func, *args, **kwargs):
-        with self.lock:
-            if self.state == State.OPEN:
-                if self._should_attempt_reset():
-                    self.state = State.HALF_OPEN
-                    self.success_count = 0
-                else:
-                    raise CircuitOpenError()
-        
+
+    def call(self, func: Callable[P, T], *args: P.args, **kwargs: P.kwargs) -> T:
+        self._before_call()
         try:
             result = func(*args, **kwargs)
-            self._on_success()
-            return result
-        except Exception as e:
+        except Exception:
             self._on_failure()
             raise
-    
-    def _should_attempt_reset(self):
-        return (
-            time.time() - self.last_failure_time 
-            >= self.recovery_timeout
-        )
-    
-    def _on_success(self):
+        self._on_success()
+        return result
+
+    def _before_call(self) -> None:
         with self.lock:
-            if self.state == State.HALF_OPEN:
+            if self.state is State.OPEN:
+                if self._clock() - self.opened_at < self.recovery_timeout:
+                    raise CircuitOpenError("circuit open")
+                self.state = State.HALF_OPEN
+                self.success_count = 0
+            if self.state is State.HALF_OPEN:
+                # One probe at a time; everyone else keeps failing fast.
+                if self.probe_in_flight:
+                    raise CircuitOpenError("half-open probe in flight")
+                self.probe_in_flight = True
+
+    def _on_success(self) -> None:
+        with self.lock:
+            self.failure_count = 0
+            if self.state is State.HALF_OPEN:
+                self.probe_in_flight = False
                 self.success_count += 1
                 if self.success_count >= self.half_open_requests:
                     self.state = State.CLOSED
-                    self.failure_count = 0
-    
-    def _on_failure(self):
+
+    def _on_failure(self) -> None:
         with self.lock:
             self.failure_count += 1
-            self.last_failure_time = time.time()
-            
-            if self.state == State.HALF_OPEN:
+            self.probe_in_flight = False
+            tripped = self.failure_count >= self.failure_threshold
+            if self.state is State.HALF_OPEN or tripped:
                 self.state = State.OPEN
-            elif self.failure_count >= self.failure_threshold:
-                self.state = State.OPEN
+                self.opened_at = self._clock()
 ```
 
 ### Usage
@@ -174,24 +191,31 @@ def get_data_with_fallback():
 Count failures over a time window, not just total.
 
 ```python
+from collections import deque  # plus the imports from the basic implementation
+
+
 class SlidingWindowCircuitBreaker:
-    def __init__(self, window_size=60, failure_rate_threshold=0.5):
+    def __init__(
+        self,
+        window_size: float = 60.0,
+        failure_rate_threshold: float = 0.5,
+        clock: Callable[[], float] = time.monotonic,
+    ) -> None:
         self.window_size = window_size  # seconds
         self.failure_rate_threshold = failure_rate_threshold
-        self.calls = []  # (timestamp, success/failure)
-    
-    def _failure_rate(self):
-        now = time.time()
-        # Keep only calls within window
-        self.calls = [
-            c for c in self.calls 
-            if now - c[0] < self.window_size
-        ]
-        
+        self._clock = clock
+        self.calls: deque[tuple[float, bool]] = deque()  # (timestamp, succeeded)
+
+    def _failure_rate(self) -> float:
+        now = self._clock()
+        # Drop calls that left the window (oldest first)
+        while self.calls and now - self.calls[0][0] >= self.window_size:
+            self.calls.popleft()
+
         if not self.calls:
-            return 0
-        
-        failures = sum(1 for c in self.calls if not c[1])
+            return 0.0
+
+        failures = sum(1 for _, ok in self.calls if not ok)
         return failures / len(self.calls)
 ```
 
@@ -215,10 +239,10 @@ Count slow calls as failures.
 
 ```python
 def call(self, func, *args, **kwargs):
-    start = time.time()
+    start = time.monotonic()  # durations: monotonic, never wall clock
     try:
         result = func(*args, **kwargs)
-        duration = time.time() - start
+        duration = time.monotonic() - start
         
         if duration > self.slow_threshold:
             self._on_slow_call()

@@ -67,27 +67,36 @@ Time 2: 5 + 2 = 7 tokens
 - Memory: O(1) per key
 
 ```python
+from __future__ import annotations
+
+import time
+from collections import deque
+from collections.abc import Callable
+
+Clock = Callable[[], float]
+
+
 class TokenBucket:
-    def __init__(self, capacity, refill_rate):
+    def __init__(
+        self, capacity: int, refill_rate: float, clock: Clock = time.monotonic
+    ) -> None:
         self.capacity = capacity
         self.refill_rate = refill_rate  # tokens per second
-        self.tokens = capacity
-        self.last_refill = time.time()
-    
-    def allow(self, tokens=1):
+        self.tokens = float(capacity)
+        self._clock = clock  # monotonic: elapsed time, immune to clock jumps
+        self.last_refill = clock()
+
+    def allow(self, tokens: int = 1) -> bool:
         self._refill()
-        
         if self.tokens >= tokens:
             self.tokens -= tokens
             return True
         return False
-    
-    def _refill(self):
-        now = time.time()
+
+    def _refill(self) -> None:
+        now = self._clock()
         elapsed = now - self.last_refill
-        refill = elapsed * self.refill_rate
-        
-        self.tokens = min(self.capacity, self.tokens + refill)
+        self.tokens = min(self.capacity, self.tokens + elapsed * self.refill_rate)
         self.last_refill = now
 ```
 
@@ -139,18 +148,19 @@ Track exact timestamp of each request.
 
 ```python
 class SlidingWindowLog:
-    def __init__(self, limit, window_size):
+    def __init__(
+        self, limit: int, window_size: float, clock: Clock = time.monotonic
+    ) -> None:
         self.limit = limit
         self.window_size = window_size
-        self.requests = []  # list of timestamps
-    
-    def allow(self):
-        now = time.time()
+        self._clock = clock
+        self.requests: deque[float] = deque()  # timestamps, oldest first
+
+    def allow(self) -> bool:
+        now = self._clock()
         cutoff = now - self.window_size
-        
-        # Remove old requests
-        self.requests = [r for r in self.requests if r > cutoff]
-        
+        while self.requests and self.requests[0] <= cutoff:
+            self.requests.popleft()  # O(expired), not O(window) per call
         if len(self.requests) < self.limit:
             self.requests.append(now)
             return True
@@ -177,30 +187,29 @@ Limit: 100
 
 ```python
 class SlidingWindowCounter:
-    def __init__(self, limit, window_size):
+    def __init__(
+        self, limit: int, window_size: float, clock: Clock = time.monotonic
+    ) -> None:
         self.limit = limit
         self.window_size = window_size
+        self._clock = clock
         self.prev_count = 0
         self.curr_count = 0
-        self.window_start = time.time()
-    
-    def allow(self):
-        now = time.time()
-        window_progress = (now - self.window_start) / self.window_size
-        
-        # New window?
-        if window_progress >= 1:
-            self.prev_count = self.curr_count
+        self.window_start = clock()
+
+    def allow(self) -> bool:
+        now = self._clock()
+        windows_passed = int((now - self.window_start) // self.window_size)
+        if windows_passed >= 1:
+            # After 2+ idle windows the previous window is empty, not curr_count.
+            self.prev_count = self.curr_count if windows_passed == 1 else 0
             self.curr_count = 0
-            self.window_start = now
-            window_progress = 0
-        
+            self.window_start += windows_passed * self.window_size
+        window_progress = (now - self.window_start) / self.window_size
+
         # Weighted count
-        count = (
-            self.prev_count * (1 - window_progress) + 
-            self.curr_count
-        )
-        
+        count = self.prev_count * (1 - window_progress) + self.curr_count
+
         if count < self.limit:
             self.curr_count += 1
             return True
@@ -235,10 +244,11 @@ Service 3 ─┘
 **Redis Implementation:**
 
 ```python
-def check_rate_limit(user_id, limit, window):
+def check_rate_limit(user_id: str, limit: int, window: int) -> bool:
     key = f"ratelimit:{user_id}"
     
-    # Atomic increment with expiry
+    # Increment with expiry. Caveat: EXPIRE on every call pushes the window out under
+    # steady traffic, so the key may never reset; the Lua script below sets it once.
     pipe = redis.pipeline()
     pipe.incr(key)
     pipe.expire(key, window)

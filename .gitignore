@@ -708,3 +708,7 @@ code/practice/09_2026_job_hunt_practice/amiio/RealEstateMultiAgentMgmt/meta/
 .python_history
 .viminfo
 *.hup
+
+# private, never public
+agents/senior_dev_craft/RESUME.md
+scripts/bash/manual-attach-instruction.txt

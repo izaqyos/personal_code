@@ -1,5 +1,7 @@
 # TypeScript Implementation Examples
 
+> ⚠️ **Do not copy this code (graded D in the craft-suite audit, 2026-11-03).** It says it validates input but doesn't, swallows errors (`catch` → 500 with no log and no `next(err)`), and uses unsafe `as` casts on request bodies (`req.body.status as Order['status']`). The design ideas still hold. For current TypeScript/Node idioms (strict + `erasableSyntaxOnly`, zod at the boundary, errors with `cause`, `next(err)`), use `~/work/git/personal_KB/typescript/typescript-node-playbook.md`.
+
 ## Service Interfaces and Types
 
 ### Common Types
