@@ -109,3 +109,12 @@ def test_killing_the_runner_mid_mutation_leaves_no_test_process(tmp_path, sig):
     finally:  # never leave an orphan behind, even when this test fails
         with contextlib.suppress(ProcessLookupError):
             os.killpg(test_pid, signal.SIGKILL)
+
+
+@pytest.mark.parametrize("error", [ProcessLookupError, PermissionError])
+def test_group_already_gone_is_not_an_error(tmp_path, monkeypatch, error):
+    """macOS killpg raises EPERM when only zombies remain in the group (crashed a C build on 17/11)."""
+    def gone(_pgid, _sig):
+        raise error()
+    monkeypatch.setattr(mutate.os, "killpg", gone)
+    assert mutate._passes(f'{PY} -c "pass"', tmp_path) is True

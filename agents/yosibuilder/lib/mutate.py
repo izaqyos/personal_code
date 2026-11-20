@@ -137,7 +137,8 @@ def _mutant_env() -> dict[str, str]:
 
 
 def _kill_group(proc: subprocess.Popen[bytes]) -> None:
-    with contextlib.suppress(ProcessLookupError):
+    # The group may be gone already; macOS reports EPERM instead of ESRCH when only zombies remain in it.
+    with contextlib.suppress(ProcessLookupError, PermissionError):
         os.killpg(proc.pid, signal.SIGKILL)
     proc.wait()
 
