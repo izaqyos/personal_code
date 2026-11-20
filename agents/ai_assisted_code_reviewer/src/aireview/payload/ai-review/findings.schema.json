@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "AI review findings",
+  "type": "object",
+  "required": ["findings"],
+  "additionalProperties": false,
+  "properties": {
+    "findings": {
+      "type": "array",
+      "maxItems": 15,
+      "items": {
+        "type": "object",
+        "required": ["rule", "title", "confidence"],
+        "additionalProperties": false,
+        "properties": {
+          "rule": {"type": "string", "pattern": "^([A-Z]{2,6}-\\d{3}|general)$", "description": "Wiki rule ID or 'general'"},
+          "severity": {"enum": ["blocker", "major", "minor", "nit"], "description": "Defaults to the rule's severity"},
+          "title": {"type": "string", "maxLength": 120},
+          "file": {"type": ["string", "null"], "description": "Repo-relative path in the new tree; omit for PR-level findings"},
+          "line": {"type": ["integer", "null"], "minimum": 1, "description": "Line in the new file; must be inside a changed hunk"},
+          "evidence": {"type": "string", "description": "Exact quoted code"},
+          "why": {"type": "string"},
+          "fix": {"type": "string"},
+          "confidence": {"type": "number", "minimum": 0, "maximum": 1}
+        }
+      }
+    }
+  }
+}

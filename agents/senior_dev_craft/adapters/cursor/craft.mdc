@@ -1,0 +1,12 @@
+---
+description: Senior-engineer coding loop (frame → build → test → harden → review) grounded in the user's audited wiki. Use for non-trivial coding tasks.
+globs:
+alwaysApply: false
+---
+
+# craft
+
+Follow `~/work/git/personal_code/agents/senior_dev_craft/skills/craft/SKILL.md` and the phase skill files it lists
+(`skills/craft-frame`, `craft-build`, `craft-test`, `craft-harden`, `craft-review`). Ground decisions in
+`wiki/index.md` (read ≤3 routed sources, grade A first) and the playbooks in `playbooks/`.
+Gates after frame and after each increment; evidence (tests, lint, types) over claims.

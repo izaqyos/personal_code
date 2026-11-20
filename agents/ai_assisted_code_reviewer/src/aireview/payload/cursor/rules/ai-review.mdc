@@ -1,0 +1,18 @@
+---
+description: Team code review procedure. Use when the user asks to review code, a diff, a branch, or a PR.
+globs:
+alwaysApply: false
+---
+
+# Team code review
+
+Follow `.ai-review/REVIEW.md` exactly (procedure, severity rubric, output format).
+Rules live in `.ai-review/wiki/`; route via `.ai-review/wiki/index.md`.
+
+- Gather context with `aireview context --base origin/main` and read
+  `.ai-review/out/context.md`; if the CLI is missing, use REVIEW.md's fallback steps.
+- Every finding cites a wiki rule ID or `general`, with exact evidence from a changed line.
+- Write `.ai-review/out/findings.json`, run `aireview validate`, show the report.
+- Do not edit files during the review.
+
+@.ai-review/REVIEW.md

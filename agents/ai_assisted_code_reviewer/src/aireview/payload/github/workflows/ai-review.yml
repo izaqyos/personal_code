@@ -1,0 +1,84 @@
+# AI code review on every PR. Same procedure (.ai-review/REVIEW.md) and wiki as local reviews.
+#
+# Setup:
+#   1. Add repo/org secret ANTHROPIC_API_KEY (CI-only; developers don't need API access).
+#   2. Point AIREVIEW_PIP at where you host the aireview package.
+#   3. Start with gate "advisory" in .ai-review/config.json; switch to "blocker" once findings are trusted.
+name: AI Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, edited, labeled, unlabeled]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: ai-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+env:
+  AIREVIEW_PIP: "aireview @ git+https://github.com/YOUR_ORG/ai_assisted_code_reviewer@v0.1.0"
+
+jobs:
+  deterministic:
+    name: Deterministic checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install "$AIREVIEW_PIP"
+      - run: aireview wiki-lint
+      - name: Checks (secrets, PR template, tests touched, size)
+        run: aireview checks --base "origin/${{ github.base_ref }}" --quiet --gate advisory
+
+  llm-review:
+    name: LLM review
+    needs: deterministic
+    # Fork PRs get no secrets; never run the agent with secrets on untrusted forks.
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - run: npm install -g @anthropic-ai/claude-code
+      - run: pip install "$AIREVIEW_PIP"
+
+      - name: Review
+        id: review
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          # Pass labels via env, never interpolate PR-controlled text into the script.
+          LABELS: ${{ join(github.event.pull_request.labels.*.name, ',') }}
+        # PR title/body are read from $GITHUB_EVENT_PATH by aireview.
+        run: aireview run --runner claude --base "origin/${{ github.base_ref }}" --labels "$LABELS" --quiet
+
+      - name: Post / update PR comment
+        if: always() && hashFiles('.ai-review/out/report.md') != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh pr comment "${{ github.event.pull_request.number }}" \
+            --body-file .ai-review/out/report.md --edit-last --create-if-none
+
+      - name: Upload artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ai-review
+          path: .ai-review/out/
+          if-no-files-found: ignore

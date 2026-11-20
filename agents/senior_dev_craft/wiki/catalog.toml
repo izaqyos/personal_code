@@ -1,0 +1,391 @@
+# craft wiki catalog: every candidate source, its grade, and where it is routed.
+# Grades: A exemplar (full) · B ok (only `use` sections) · C weak · D legacy (C/D not routed).
+# Edit this file, then: python3 wiki/audit.py render && python3 wiki/audit.py check
+audited = "2026-11-03"
+
+[roots]
+KB = "~/work/git/personal_KB"
+CODE = "~/work/git/personal_code"
+PRACTICE = "~/work/practice"
+SUITE = "."
+
+[routes]
+ai-collab = "any phase: how to drive the AI (plan, gates, decisions, verification)"
+design = "frame: API contract, data model, trade-offs, design note"
+resilience = "timeouts, retries, circuit breakers, idempotency, availability, failure modes"
+performance = "latency budgets, complexity, concurrency, profiling, benchmarks"
+scalability = "statelessness, caching, queues, partitioning, backpressure"
+rate-limiting = "token bucket / sliding window, quotas, 429 handling"
+security = "input validation, injection, secrets, authz, deserialization, supply chain"
+extensibility = "seams, events, sagas, provider-agnostic layers, config over code"
+observability = "structured logs, metrics, traces, correlation ids, health checks"
+testing = "test strategy, fakes, property tests, fault injection, contract tests"
+python = "Python idioms, typing, asyncio, logging, tooling"
+typescript-node = "TypeScript/Node idioms, strict typing, async, streams, tooling"
+llm-apps = "code that calls LLMs: cost, latency, determinism, evals, guardrails"
+
+[[source]]
+id = "ai-principles"
+path = "KB/ml-and-ai/agentic/working-with-ai-on-prod-grade-projects.md"
+kind = "doc"
+grade = "A"
+routes = ["ai-collab"]
+note = "your own protocol: plan first, MCQ decisions, hard gates, LLM at the edges, design for swaps, docs are claims"
+
+[[source]]
+id = "langgraph-recipe"
+path = "KB/ml-and-ai/agentic/multi-agent-saas-recipe-langgraph.md"
+kind = "doc"
+grade = "A"
+routes = ["llm-apps", "design"]
+note = "your distilled recipe: data contract first, LLM layer, resilience chain before the happy path, scale-out order"
+
+[[source]]
+id = "sd-availability"
+path = "CODE/guides/system_design/01_fundamentals/availability_reliability.md"
+kind = "doc"
+grade = "B"
+routes = ["resilience"]
+note = "nines, SLA/SLO/SLI, serial vs parallel availability math"
+use = "Availability Metrics, Calculating Availability, Fault Tolerance Strategies"
+
+[[source]]
+id = "sd-latency"
+path = "CODE/guides/system_design/01_fundamentals/latency_throughput.md"
+kind = "doc"
+grade = "B"
+routes = ["performance"]
+note = "percentiles, tail latency, Little's law, latency numbers"
+use = "Relationship, Latency Percentiles, Latency Numbers"
+
+[[source]]
+id = "sd-scalability"
+path = "CODE/guides/system_design/01_fundamentals/scalability.md"
+kind = "doc"
+grade = "B"
+routes = ["scalability"]
+note = "scale up vs out, stateless services, common bottlenecks"
+use = "Types of Scaling, Scaling Strategies, Common Bottlenecks"
+
+[[source]]
+id = "sd-caching"
+path = "CODE/guides/system_design/02_building_blocks/caching.md"
+kind = "doc"
+grade = "B"
+routes = ["scalability", "performance"]
+note = "cache-aside/read-through/write-behind, invalidation; snippets untyped"
+use = "Caching Strategies, Cache Invalidation (prose only)"
+
+[[source]]
+id = "sd-queues"
+path = "CODE/guides/system_design/02_building_blocks/message_queues.md"
+kind = "doc"
+grade = "B"
+routes = ["scalability", "resilience"]
+note = "delivery guarantees, ordering, DLQ concepts"
+use = "Delivery Guarantees, Message Ordering"
+
+[[source]]
+id = "sd-circuit-breaker"
+path = "CODE/guides/system_design/03_design_patterns/circuit_breaker.md"
+kind = "doc"
+grade = "B"
+routes = ["resilience"]
+note = "states and parameters are right; Basic Implementation fixed 2026-11-03 (monotonic, consecutive failures, single half-open probe, typed); fallback/usage snippets still untyped"
+use = "The Problem, States, Basic Implementation, Configuration Parameters, Advanced Features"
+
+[[source]]
+id = "sd-rate-limiting"
+path = "CODE/guides/system_design/03_design_patterns/rate_limiting.md"
+kind = "doc"
+grade = "B"
+routes = ["rate-limiting"]
+note = "algorithm comparison; in-memory limiters fixed 2026-11-03 (monotonic, injected clock, typed, deque log, idle-window bug in sliding counter); mostly prose"
+use = "Rate Limiting Algorithms (prose, diagrams and the in-memory code), response headers"
+
+[[source]]
+id = "sd-rate-limiter-case"
+path = "CODE/guides/system_design/04_case_studies/rate_limiter.md"
+kind = "doc"
+grade = "B"
+routes = ["rate-limiting", "design"]
+note = "requirements, capacity estimate, distributed counter design; Redis limiter uses wall clock on purpose (shared across hosts, commented; scan flag is expected); rules cache TTL fixed"
+use = "Requirements, Capacity Estimation, High-Level Design"
+
+[[source]]
+id = "sd-event-driven"
+path = "CODE/guides/system_design/03_design_patterns/event_driven.md"
+kind = "doc"
+grade = "B"
+routes = ["extensibility"]
+note = "event vs command, choreography vs orchestration, CQRS"
+use = "Core Concepts, Architecture Patterns, Event Flow Patterns"
+
+[[source]]
+id = "sd-saga"
+path = "CODE/guides/system_design/03_design_patterns/saga_pattern.md"
+kind = "doc"
+grade = "B"
+routes = ["extensibility", "resilience"]
+note = "saga types, compensating transactions; code swallows causes (B904)"
+use = "Why Not 2PC, Saga Types, Compensating Transactions"
+
+[[source]]
+id = "perf-concurrency"
+path = "CODE/guides/performance/02_software_fundamentals/concurrency.md"
+kind = "doc"
+grade = "B"
+routes = ["performance"]
+note = "Amdahl, threads vs async, GIL; one snippet uses a global (PLW0603)"
+use = "Amdahl's Law, Threading Models, Python GIL"
+
+[[source]]
+id = "perf-big-o"
+path = "CODE/guides/performance/02_software_fundamentals/big_o_analysis.md"
+kind = "doc"
+grade = "B"
+routes = ["performance"]
+note = "constants and cache effects beyond Big-O"
+use = "Beyond Big-O"
+
+[[source]]
+id = "perf-microbench"
+path = "CODE/guides/performance/03_benchmarking/microbenchmarks.md"
+kind = "doc"
+grade = "C"
+routes = []
+note = "useful but snippets have a late-binding bug (B023), print debugging, CommonJS JS; superseded by KB/system-design/performance-and-latency.md"
+
+[[source]]
+id = "ops-error-handling"
+path = "CODE/code/system_design/OrderProcessingSystem/Error_Handling_Design.md"
+kind = "doc"
+grade = "B"
+routes = ["resilience"]
+note = "error taxonomy and test strategy; code is any-typed Express"
+use = "Error Categories, Testing Strategy"
+
+[[source]]
+id = "ops-idempotency"
+path = "CODE/code/system_design/OrderProcessingSystem/Idempotency_Design.md"
+kind = "doc"
+grade = "B"
+routes = ["resilience", "design"]
+note = "idempotency at API/event/status/DB/queue layers + how to test it; code uses `any`"
+use = "Current State Analysis, section headings 1-5 (concepts), 8. Testing Idempotency"
+
+[[source]]
+id = "ops-reliability"
+path = "CODE/code/system_design/OrderProcessingSystem/Reliability_Eventual_Consistency_Design.md"
+kind = "doc"
+grade = "B"
+routes = ["resilience"]
+note = "failure scenarios and recovery, eventual-consistency patterns"
+use = "Failure Scenarios & Recovery Mechanisms, Eventual Consistency Patterns"
+
+[[source]]
+id = "ops-scalability"
+path = "CODE/code/system_design/OrderProcessingSystem/Scalability_Auto_Scaling_Design.md"
+kind = "doc"
+grade = "C"
+routes = []
+note = "AWS auto-scaling configs: infra-level, not code-level; not needed for coding rounds"
+
+[[source]]
+id = "ops-security-oauth2"
+path = "CODE/code/system_design/OrderProcessingSystem/Security_OAuth2_Design.md"
+kind = "doc"
+grade = "C"
+routes = []
+note = "not reviewed in depth for JWT pitfalls; not routed until it is"
+
+[[source]]
+id = "ops-ts-examples"
+path = "CODE/code/system_design/OrderProcessingSystem/TypeScript_Implementation_Examples.md"
+kind = "doc"
+grade = "D"
+routes = []
+note = "says 'validate input' but doesn't; catch blocks swallow errors; unvalidated `as` casts; not idempotent"
+
+[[source]]
+id = "kb-xss"
+path = "KB/xss-cross-site-scripting.md"
+kind = "doc"
+grade = "A"
+routes = ["security"]
+note = "compiled, code-review lens, defense layers, 1-page safe-coding sheet"
+
+[[source]]
+id = "kb-deserialization"
+path = "KB/insecure-deserialization.md"
+kind = "doc"
+grade = "A"
+routes = ["security"]
+note = "compiled, per-language danger map (pickle/yaml/JSON revivers), prevention in priority order"
+
+[[source]]
+id = "kb-ts-saga"
+path = "KB/typescript/saga-pattern.md"
+kind = "doc"
+grade = "B"
+routes = ["extensibility", "typescript-node"]
+note = "typed SagaStep/orchestrator interfaces; compensations idempotent"
+use = "the interfaces and Key points (not a full implementation)"
+
+[[source]]
+id = "kb-py-concurrency"
+path = "KB/python/kb-python/56-multi-threading-parallelism-concurrency.md"
+kind = "doc"
+grade = "D"
+routes = []
+note = "legacy raw capture (tagged legacy, capture_type source); superseded by KB/python/modern-python-playbook.md"
+
+[[source]]
+id = "kb-py-logging"
+path = "KB/python/kb-python/12-logging.md"
+kind = "doc"
+grade = "D"
+routes = []
+note = "pasted chat answer with basicConfig-style logging; superseded by KB/system-design/observability-in-code.md"
+
+[[source]]
+id = "kb-py-collections"
+path = "KB/python/kb-python/67-python-data-structures-and-collections.md"
+kind = "doc"
+grade = "D"
+routes = []
+note = "legacy raw capture; superseded by KB/python/modern-python-playbook.md"
+
+[[source]]
+id = "idiomatic-python"
+path = "PRACTICE/study/idiomatic-python-cheatsheet.md"
+kind = "doc"
+grade = "C"
+routes = []
+note = "good modern content but framed as interview prep: not showcase-safe on a shared screen; folded into KB/python/modern-python-playbook.md"
+
+[[source]]
+id = "epc-context"
+path = "CODE/agents/expert_python_coder/AGENT_CONTEXT.md"
+kind = "doc"
+grade = "A"
+routes = ["python", "testing"]
+note = "your Python tooling (uv/ruff/mypy/pytest-cov), testing + review checklists, Python traps table"
+
+[[source]]
+id = "kb-node-patterns"
+path = "KB/kb-nodejs/17-nodejs-design-patterns.md"
+kind = "doc"
+grade = "D"
+routes = []
+note = "legacy raw capture: var, callbacks, CommonJS; superseded by KB/typescript/typescript-node-playbook.md"
+
+[[source]]
+id = "kb-node-idioms"
+path = "KB/kb-nodejs/21-commonly-used-patterns-and-idioms.md"
+kind = "doc"
+grade = "D"
+routes = []
+note = "legacy one-liners (JSON.stringify); superseded by KB/typescript/typescript-node-playbook.md"
+
+[[source]]
+id = "kb-node-timers"
+path = "KB/kb-nodejs/10-timers.md"
+kind = "doc"
+grade = "D"
+routes = []
+note = "legacy raw capture; superseded by KB/typescript/typescript-node-playbook.md (AbortSignal.timeout)"
+
+[[source]]
+id = "kb-node-testing"
+path = "KB/kb-nodejs/03-testing-frameworks.md"
+kind = "doc"
+grade = "D"
+routes = []
+note = "3,000-line legacy dump of old frameworks; superseded by KB/typescript/typescript-node-playbook.md (vitest)"
+
+[[source]]
+id = "bug-triage"
+path = "CODE/ai_tools/bug_triage"
+kind = "code"
+grade = "A"
+routes = ["python", "llm-apps", "testing"]
+note = "Python LLM tool: tiered classifier -> judge -> RAG, pydantic models, mypy strict, ruff clean, 172 tests"
+test_cmd = "uv run --quiet pytest -q"
+lint_paths = ["src", "tests"]
+
+[[source]]
+id = "code-reviewer"
+path = "CODE/agents/ai_assisted_code_reviewer"
+kind = "code"
+grade = "A"
+routes = ["python", "testing", "llm-apps", "security"]
+note = "stdlib CLI: LLM-as-untrusted-proposer + validation layer, prompt-injection boundary, ruff clean, 140 tests"
+test_cmd = ".venv/bin/pytest -p no:cacheprovider"
+lint_paths = ["src", "tests"]
+
+# ---------------------------------------------------------------- gap fills (written for this suite, now canonical in the KB)
+
+[[source]]
+id = "gap-resilience"
+path = "KB/system-design/resilience-patterns.md"
+kind = "gap"
+grade = "A"
+routes = ["resilience"]
+note = "rules + levels; retry with full jitter inside a deadline, a correct circuit breaker, idempotency key, fetch timeout+retry (all executed in tests)"
+
+[[source]]
+id = "gap-performance"
+path = "KB/system-design/performance-and-latency.md"
+kind = "gap"
+grade = "A"
+routes = ["performance"]
+note = "budget -> complexity -> less I/O -> measure; streaming, bounded TaskGroup fan-out, honest timeit, TS mapLimit"
+
+[[source]]
+id = "gap-scalability"
+path = "KB/system-design/scalability-in-code.md"
+kind = "gap"
+grade = "A"
+routes = ["scalability"]
+note = "stateless, idempotent consumers, backpressure (bounded asyncio.Queue), capped cursor pagination, scale-out order"
+
+[[source]]
+id = "gap-rate-limiting"
+path = "KB/system-design/rate-limiting-in-code.md"
+kind = "gap"
+grade = "A"
+routes = ["rate-limiting", "llm-apps"]
+note = "server vs client side; monotonic token bucket with Retry-After; bounded LLM client honoring 429"
+
+[[source]]
+id = "gap-extensibility"
+path = "KB/system-design/extensibility-seams.md"
+kind = "gap"
+grade = "A"
+routes = ["extensibility", "design", "llm-apps"]
+note = "seams not frameworks, rule of three; LLMProvider Protocol; typed versioned event bus"
+
+[[source]]
+id = "gap-observability"
+path = "KB/system-design/observability-in-code.md"
+kind = "gap"
+grade = "A"
+routes = ["observability"]
+note = "levels; stdlib JSON logging + contextvars request id + redaction; Node AsyncLocalStorage"
+
+[[source]]
+id = "gap-typescript-node"
+path = "KB/typescript/typescript-node-playbook.md"
+kind = "gap"
+grade = "A"
+routes = ["typescript-node", "security"]
+note = "TS>=5.8/Node>=20 baseline (strict, erasableSyntaxOnly), idioms, Result/union/cause examples, traps table"
+
+[[source]]
+id = "suite-python"
+path = "KB/python/modern-python-playbook.md"
+kind = "doc"
+grade = "A"
+routes = ["python"]
+note = "modern-Python tells, TaskGroup/timeout async, value objects + boundary validation; builds on epc-context"

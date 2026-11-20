@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>craft cheat card</title>
+<style>
+  @page { size: A4; margin: 9mm; }
+  :root { --ink:#16191d; --mute:#5b6470; --line:#d6dbe2; --acc:#2557d6; --soft:#f3f5f8; }
+  * { box-sizing: border-box; }
+  body { font: 8.4pt/1.32 -apple-system, "Helvetica Neue", Arial, sans-serif; color: var(--ink); margin: 0; background: #fff; }
+  h1 { font-size: 13pt; margin: 0 0 1mm; }
+  .sub { color: var(--mute); margin-bottom: 2mm; }
+  h2 { font-size: 9.4pt; margin: 2.2mm 0 1mm; color: var(--acc); border-bottom: 1.4px solid var(--acc); padding-bottom: .4mm; }
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 4mm; }
+  table { width: 100%; border-collapse: collapse; }
+  td, th { border: 1px solid var(--line); padding: .7mm 1.2mm; vertical-align: top; text-align: left; }
+  th { background: var(--soft); font-size: 7.8pt; }
+  code { font: 7.6pt "SF Mono", Menlo, monospace; background: var(--soft); padding: 0 .6mm; border-radius: .6mm; }
+  ul, ol { margin: .5mm 0 .5mm 4mm; padding: 0; } li { margin: .3mm 0; }
+  .say { color: #1d3c8f; font-style: italic; }
+  .box { border: 1px solid var(--line); border-left: 3px solid var(--acc); padding: 1.2mm 2mm; border-radius: 1mm; background: #f8faff; }
+</style>
+</head>
+<body>
+<h1>craft: coding with an LLM, senior style</h1>
+<div class="sub">Frame → Build → Test → Harden → Review → Wrap · evidence over claims · proportionate NFRs · grounded in my graded wiki</div>
+
+<div class="cols">
+<div>
+<h2>Commands</h2>
+<table>
+<tr><td><code>/craft showcase &lt;task&gt;</code></td><td>live loop: gates, narration, time boxes</td></tr>
+<tr><td><code>/craft-frame</code></td><td>restate · trace example · ≤3 MCQs · <b>NFR budget</b> · 2 designs → pick · tests list</td></tr>
+<tr><td><code>/craft-build</code></td><td>tests first · ≤30 lines · gates green each step</td></tr>
+<tr><td><code>/craft-test fault|property|concurrency</code></td><td>prove the NFRs (fake clock, flaky fake)</td></tr>
+<tr><td><code>/craft-harden</code></td><td>lens pass: finding → fix → proving test</td></tr>
+<tr><td><code>/craft-review</code></td><td>critic persona; triggering input per finding</td></tr>
+</table>
+
+<h2>45-minute boxes</h2>
+<table><tr><th>0–2</th><th>2–10</th><th>10–32</th><th>32–38</th><th>38–43</th><th>43–45</th></tr>
+<tr><td>set frame</td><td>frame + NFR table</td><td>build ×3 increments</td><td>test + harden</td><td>review</td><td>wrap</td></tr></table>
+
+<h2>NFR lenses: ask → basic (critical if a requirement drives it)</h2>
+<table>
+<tr><td><b>Security</b></td><td>untrusted input? → validate at boundary, param. queries, no secrets/PII in logs (crit: authz per resource, safe deserialization)</td></tr>
+<tr><td><b>Resilience</b></td><td>dep slow/down? → timeout everywhere, retry transient+idempotent only, full jitter, deadline (crit: breaker, idempotency key, fallback)</td></tr>
+<tr><td><b>Perf/latency</b></td><td>budget? n? → right complexity, no N+1, stream (crit: bounded fan-out, measure, cache+TTL)</td></tr>
+<tr><td><b>Scalability</b></td><td>10× breaks what? → stateless, capped pages, bounded queues (crit: partition, async workers)</td></tr>
+<tr><td><b>Rate limits</b></td><td>whose quota? → honor Retry-After, semaphore (crit: token bucket per key, 429 contract)</td></tr>
+<tr><td><b>Observability</b></td><td>3am? → module loggers, structured fields, error once w/ traceback (crit: request id, RED, traces)</td></tr>
+<tr><td><b>Extensibility</b></td><td>what changes? → DI via ctor, config over code (crit: Protocol seams, versioned events)</td></tr>
+<tr><td><b>LLM in code</b></td><td>output untrusted → parse+validate+fallback, token/latency limits, eval set, cheap-first routing</td></tr>
+</table>
+</div>
+
+<div>
+<h2>Expert moves with the model</h2>
+<ol>
+<li><b>Context first</b>: task + constraints + files + standards. Prompt = spec.</li>
+<li><b>Plan before code</b>; ask for <b>2 options + trade-offs</b>, I decide.</li>
+<li><b>Trace one example by hand</b> before designing.</li>
+<li><b>Tests = the oracle / eval set</b>; green gates, not "done".</li>
+<li><b>Read every line</b>; one "why" per non-obvious choice.</li>
+<li>Catch: invented APIs · dead guards · swallowed errors · hollow tests · over-abstraction · docs that lie.</li>
+<li><b>Take the keyboard</b> for 2-line fixes or after 2 identical failures.</li>
+<li><b>Critic persona</b> second pass; verify each claim by running.</li>
+<li><b>Proportionate</b>: build the budget, <i>name</i> the rest.</li>
+</ol>
+
+<h2>Lines to say</h2>
+<ul>
+<li class="say">"Constraints up front: models follow specs far better than they guess them."</li>
+<li class="say">"Two designs first: I want the trade-off before it commits."</li>
+<li class="say">"Tests first so I have an oracle; the model's confidence isn't one."</li>
+<li class="say">"That API doesn't exist in this version: checking the real signature."</li>
+<li class="say">"Different persona for review: different framing, different failures."</li>
+<li class="say">"Not building a breaker at this scope; it's the next step if outages last minutes."</li>
+<li class="say">"Its output is untrusted input: parse, validate, fall back."</li>
+</ul>
+
+<h2>Red flags to spot (Python / TS)</h2>
+<table>
+<tr><td><code>time.time()</code> for durations · naive datetime · mutable default · <code>except: pass</code> · blocking call in <code>async def</code> · unbounded <code>gather</code></td></tr>
+<tr><td><code>req.body as T</code> · floating promise · <code>forEach(async)</code> · no <code>AbortSignal.timeout</code> · catch → 200 · sync I/O in handler</td></tr>
+<tr><td>no timeout · <code>while True</code> retry · retrying 4xx · unbounded queue/page · secrets/PII in logs · string-built SQL</td></tr>
+</table>
+
+<h2>Recovery</h2>
+<div class="box">Off track → <span class="say">"Stop. Back to the plan, step 2 only."</span> · Red test → read, hypothesize, fix (no random patches) · Late → most important NFR test, then the not-built list · Their tool → paste <code>adapters/PROMPT.md</code>.</div>
+</div>
+</div>
+</body>
+</html>

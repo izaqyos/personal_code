@@ -1,0 +1,22 @@
+{
+  "placeholders": ["TODO", "TBD", "N/A", "NA", "-", "...", "none", "<describe>"],
+  "sections": [
+    {"heading": "Summary", "min_chars": 30, "rule": "PR-001"},
+    {"heading": "How was this tested", "min_chars": 20, "rule": "PR-001"},
+    {"heading": "Risk & Rollback", "min_chars": 10, "rule": "PR-001"}
+  ],
+  "conditional": [
+    {
+      "paths": ["migrations/**", "**/migrations/**"],
+      "section": "Risk & Rollback",
+      "min_chars": 60,
+      "rule": "PR-003",
+      "message": "PR touches migrations but 'Risk & Rollback' has no real rollback plan"
+    }
+  ],
+  "checkboxes": [
+    {"text": "I added or updated tests", "rule": "PR-002"},
+    {"text": "No secrets or PII in code or logs", "rule": "PR-002"}
+  ],
+  "ticket": {"pattern": "\\b[A-Z][A-Z0-9]+-\\d+\\b", "rule": "PR-004"}
+}

@@ -1,0 +1,16 @@
+{
+  "base": "origin/main",
+  "gate": "advisory",
+  "override_label": "ai-review-override",
+  "min_confidence": 0.6,
+  "max_findings": 15,
+  "max_pr_lines": 600,
+  "source_globs": ["src/**"],
+  "test_globs": ["tests/**", "test/**", "**/*.test.*", "**/*.spec.*", "**/__tests__/**"],
+  "ignore_globs": ["**/*.lock", "**/package-lock.json", "**/dist/**", "**/*.min.js", "**/*.snap"],
+  "claude": {
+    "model": null,
+    "max_turns": 12,
+    "timeout_s": 600
+  }
+}

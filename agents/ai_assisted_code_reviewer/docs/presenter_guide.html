@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>AI Code Reviewer — Presenter Guide</title>
+<style>
+  @page { size: A4; margin: 14mm 14mm 16mm; }
+  :root { --ink:#1b1f24; --mute:#5b6470; --line:#d9dee5; --soft:#f4f6f9; --acc:#2557d6; --red:#c0392b; --amb:#b7791f; --grn:#2f855a; }
+  * { box-sizing: border-box; }
+  body { font: 10.3pt/1.45 -apple-system, "Helvetica Neue", Arial, sans-serif; color: var(--ink); margin: 0; background:#fff; }
+  h1 { font-size: 22pt; margin: 0 0 2mm; letter-spacing: -.3px; }
+  h2 { font-size: 14pt; margin: 7mm 0 2.5mm; padding-bottom: 1.2mm; border-bottom: 2px solid var(--acc); }
+  h3 { font-size: 11pt; margin: 4mm 0 1.5mm; }
+  p { margin: 1.5mm 0; }
+  .sub { color: var(--mute); font-size: 11pt; margin-bottom: 4mm; }
+  code, .mono { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 8.6pt; }
+  code { background: var(--soft); padding: .3mm 1mm; border-radius: 1mm; }
+  pre { background: #0f1720; color: #e6edf3; padding: 3mm 3.5mm; border-radius: 2mm; font: 8.4pt/1.4 "SF Mono", Menlo, monospace; white-space: pre-wrap; margin: 2mm 0; }
+  table { width: 100%; border-collapse: collapse; margin: 2mm 0; }
+  th, td { border: 1px solid var(--line); padding: 1.6mm 2mm; vertical-align: top; text-align: left; }
+  th { background: var(--soft); font-size: 9pt; }
+  td { font-size: 9.3pt; }
+  .box { border: 1px solid var(--line); border-left: 4px solid var(--acc); background: #f8faff; padding: 3mm 4mm; border-radius: 1.5mm; margin: 2.5mm 0; }
+  .warn { border-left-color: var(--amb); background: #fffaf0; }
+  .good { border-left-color: var(--grn); background: #f3fbf6; }
+  .say { color: #1d3c8f; font-style: italic; }
+  .pill { display:inline-block; font-size: 8pt; font-weight: 600; padding: .4mm 2mm; border-radius: 3mm; background: var(--soft); border:1px solid var(--line); margin-right: 1mm; }
+  .step { break-inside: avoid; border: 1px solid var(--line); border-radius: 2mm; padding: 2.5mm 3.5mm; margin: 2.5mm 0; }
+  .step h3 { margin-top: 0; }
+  .step .n { display:inline-block; width: 7mm; height: 7mm; line-height: 7mm; text-align:center; border-radius: 50%; background: var(--acc); color:#fff; font-size: 9pt; margin-right: 2mm; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 3mm; }
+  .flow { display: flex; flex-wrap: wrap; align-items: stretch; gap: 1.5mm; margin: 3mm 0; }
+  .flow .b { flex: 1 1 0; min-width: 24mm; border: 1.5px solid var(--acc); border-radius: 2mm; padding: 2mm; text-align: center; font-size: 8.6pt; background: #f8faff; }
+  .flow .b b { display:block; font-size: 9.2pt; margin-bottom: .8mm; }
+  .flow .a { align-self: center; color: var(--acc); font-weight: 700; }
+  .flow .b.llm { border-color: var(--amb); background: #fffaf0; }
+  .flow .b.val { border-color: var(--grn); background: #f3fbf6; }
+  .pb { break-before: page; }
+  ul { margin: 1mm 0 1mm 5mm; padding: 0; } li { margin: .6mm 0; }
+  .summary { font-size: 11pt; border: 2px solid var(--acc); border-radius: 2mm; padding: 4mm 5mm; }
+  .foot { color: var(--mute); font-size: 8.5pt; margin-top: 6mm; border-top: 1px solid var(--line); padding-top: 2mm; }
+</style>
+</head>
+<body>
+
+<h1>AI Code Reviewer: Presenter Guide</h1>
+<div class="sub">How the tool works, how to demo it step by step, and what to say at each step. Includes likely questions with answers and a command cheat sheet.</div>
+
+<div class="box">
+<b>Project:</b> <code>~/work/git/personal_code/agents/ai_assisted_code_reviewer</code><br>
+<b>README:</b> <code>~/work/git/personal_code/agents/ai_assisted_code_reviewer/README.md</code><br>
+<b>Demo script:</b> <code>demo/present.sh</code> (pauses between steps) · <code>--live</code> for real Claude · <code>--auto</code> to rehearse
+</div>
+
+<h2>1. The 30-second pitch</h2>
+<p class="say">"Our developers use different AI agents: Claude Code, Cursor, Copilot. None of them have API keys, so a classic RAG review bot isn't possible. This tool gives the whole team <b>one review standard</b>. One procedure file and a wiki of team rules live in the repo, every agent follows them, and CI runs the same review on every PR. The LLM <b>proposes</b> findings and a deterministic layer <b>checks</b> them. That means no hallucinated line numbers, no made-up rules, and only rule-backed blockers can stop a merge."</p>
+
+<h3>Three ideas to get across</h3>
+<table>
+<tr><th style="width:28%">Idea</th><th>One-line explanation</th></tr>
+<tr><td><b>Works with any agent</b></td><td><code>.ai-review/REVIEW.md</code> is the single source of truth. The Claude, Cursor, Copilot and AGENTS.md files are 5-line pointers to it.</td></tr>
+<tr><td><b>A wiki instead of RAG</b></td><td>The team writes rules as markdown pages. A routing table maps file paths to the pages that apply. The agent reads only those pages. It's deterministic and explainable, and it needs no embeddings or API.</td></tr>
+<tr><td><b>The LLM is an untrusted proposer</b></td><td>Every finding must cite a real rule and point at a line the PR actually changed. Anything else is dropped, and the report lists what was dropped and why.</td></tr>
+</table>
+
+<h2>2. How it works: the pipeline</h2>
+<div class="flow">
+  <div class="b"><b>1. Diff</b>git diff vs base<br>(+ uncommitted)</div><div class="a">→</div>
+  <div class="b"><b>2. Tool checks</b>secrets · PR template · tests touched · size</div><div class="a">→</div>
+  <div class="b"><b>3. Route wiki</b>paths → rule pages via index.md</div><div class="a">→</div>
+  <div class="b"><b>4. Bundle</b>procedure + rules + tool results | untrusted: PR text + diff</div><div class="a">→</div>
+  <div class="b llm"><b>5. LLM review</b>dev's agent · <code>claude -p</code> in CI · mock</div><div class="a">→</div>
+  <div class="b val"><b>6. Validate</b>rule? changed line? confidence? suppressed? dup? cap</div><div class="a">→</div>
+  <div class="b"><b>7. Report + gate</b>PR comment · exit code · override label</div>
+</div>
+
+<div class="grid2">
+<div>
+<h3>Who uses it</h3>
+<ul>
+<li><b>Author</b>, before pushing: <code>/ai-review</code> in their own agent. This is where most of the value is, because problems get fixed before a human ever sees them.</li>
+<li><b>CI</b>, on every PR: posts one PR comment and keeps it updated, then gates on blockers.</li>
+<li><b>Human reviewer</b>: reads a ranked list and can spend their attention on design.</li>
+<li><b>Tech lead / owners</b>: maintain the wiki. That is how the reviewer improves over time.</li>
+</ul>
+</div>
+<div>
+<h3>What it checks</h3>
+<ul>
+<li><b>Tools (no LLM):</b> committed secrets, PR template filled, a rollback plan for migrations, tests changed, PR size.</li>
+<li><b>LLM, grounded in the wiki:</b> authz/IDOR, injection, PII in logs, swallowed errors, async pitfalls, destructive migrations, missing negative tests, team conventions, past-incident pitfalls, whether the description matches the diff, prompt injection.</li>
+</ul>
+</div>
+</div>
+
+<div class="pb"></div>
+<h2>3. The demo, step by step</h2>
+<p>Run <code>demo/present.sh</code> and press Enter to advance. Each card shows <span class="pill">screen</span> what appears, <span class="pill">say</span> the talking point, and <span class="pill">land</span> the point the audience should take away.</p>
+
+<div class="step"><h3><span class="n">0</span>The problem</h3>
+<span class="pill">screen</span> Two framing lines.<br>
+<span class="pill">say</span> <span class="say">"Different agents, no API keys, inconsistent reviews. We want one standard that runs locally before push and in CI on every PR."</span><br>
+<span class="pill">land</span> Constraints drive the design: no RAG, and it has to work with any agent.</div>
+
+<div class="step"><h3><span class="n">1</span>A team repo with a PR</h3>
+<span class="pill">screen</span> 3 commits: the base service, the kit installed, and the feature branch (+68 lines across 5 files).<br>
+<span class="pill">say</span> <span class="say">"A small TypeScript/Express billing service. A dev opened 'Invoices API + overdue reminders'."</span><br>
+<span class="pill">land</span> A realistic, small PR. Most real PRs look like this.</div>
+
+<div class="step"><h3><span class="n">2</span>Spot the bugs yourself</h3>
+<span class="pill">screen</span> <code>invoices.ts</code> lines 13–26 and the new <code>app.use("/invoices", …)</code>.<br>
+<span class="pill">say</span> <span class="say">"Take 20 seconds. How many problems do you see?"</span> (Usually people find 2–3. The PR has more than 12.)<br>
+<span class="pill">land</span> Humans miss things in a skim. This motivates the tool without blaming anyone.</div>
+
+<div class="step"><h3><span class="n">3</span>The kit in the repo</h3>
+<span class="pill">screen</span> <code>.ai-review/</code> (REVIEW.md, wiki, configs) and the adapters: <code>.claude/commands</code>, <code>.cursor/rules</code>, <code>AGENTS.md</code>, Copilot prompt, CI workflow.<br>
+<span class="pill">say</span> <span class="say">"One command, <code>aireview install</code>, drops this in. Look at the Claude command: it only says 'follow REVIEW.md'. Every agent gets the same procedure."</span><br>
+<span class="pill">land</span> A single source of truth. Changing the process means editing one file.</div>
+
+<div class="step"><h3><span class="n">4</span>The wiki</h3>
+<span class="pill">screen</span> Rule <code>SEC-002</code> (ID, severity, Why, Bad/Good examples) and the routing table. <code>wiki-lint</code> reports 28 rules and 0 errors.<br>
+<span class="pill">say</span> <span class="say">"These are our rules in plain markdown: code review comments turned into documentation. The routing table says which pages apply to which paths. It's linted like code."</span><br>
+<span class="pill">land</span> The team owns the reviewer's knowledge. Delete a rule and the check is off; write a rule and it's on.</div>
+
+<div class="step"><h3><span class="n">5</span>Routing</h3>
+<span class="pill">screen</span> <code>aireview route …</code> lists each page and the file that caused it to be read.<br>
+<span class="pill">say</span> <span class="say">"For this diff, the agent reads 9 pages, and we can see why: authz.md because of <code>src/routes/**</code>, migrations.md because of the SQL file."</span><br>
+<span class="pill">land</span> This replaces RAG. It's deterministic, explainable, and costs nothing.</div>
+
+<div class="step"><h3><span class="n">6</span>Deterministic checks</h3>
+<span class="pill">screen</span> 6 tool findings: the Stripe key (blocker), no tests, no rollback plan, PR template placeholders, an unticked checkbox, no ticket.<br>
+<span class="pill">say</span> <span class="say">"Before any LLM runs, cheap code checks run. They're repeatable and give the same answer every time. We never pay an LLM to do what a regex can."</span><br>
+<span class="pill">land</span> Tools first, LLM for judgment calls.</div>
+
+<div class="step"><h3><span class="n">7</span>The context bundle</h3>
+<span class="pill">screen</span> The bundle's section headings. Above <code>=== UNTRUSTED INPUT ===</code>: procedure, schema, tool results, wiki pages. Below it: PR text and diff.<br>
+<span class="pill">say</span> <span class="say">"Everything the agent needs is in one file. PR text and code are marked as data, never instructions. That matters because this PR's description hides an 'ignore previous instructions' comment."</span><br>
+<span class="pill">land</span> Prompt-injection defense is part of the design.</div>
+
+<div class="step"><h3><span class="n">8</span>LLM review</h3>
+<span class="pill">screen</span> Mock: the "model" proposes 24 findings. With <code>--live</code>, real Claude Code runs headless with read-only tools (about 1–2 minutes).<br>
+<span class="pill">say</span> <span class="say">"In CI this is <code>claude -p</code> with Read/Grep/Glob only: no shell, no edits, no network. Locally, it's whatever agent the dev already uses. For the demo I use a recorded response that includes typical model mistakes."</span><br>
+<span class="pill">land</span> Same procedure locally and in CI. The runner can be swapped.</div>
+
+<div class="step"><h3><span class="n">9</span>Validation (the key moment)</h3>
+<span class="pill">screen</span> 22 kept, 8 dropped. The dropped ones: a hallucinated line 88, unknown rule SEC-999, a file not in the diff, confidence 0.35, a suppression with a reason, duplicates, a schema error. A blocker without a rule gets downgraded.<br>
+<span class="pill">say</span> <span class="say">"This is what makes it trustworthy. The model is a proposer. Every finding must cite a real rule and point at a changed line. Everything dropped is listed, nothing is hidden."</span><br>
+<span class="pill">land</span> Trust comes from verification, not from the model.</div>
+
+<div class="step"><h3><span class="n">10</span>Report and gate</h3>
+<span class="pill">screen</span> "❌ Changes requested", 5 blockers, and exit code 1.<br>
+<span class="pill">say</span> <span class="say">"This exact markdown is the PR comment. Only blockers backed by a wiki rule can fail the build. Teams start in advisory mode and switch to gating once they trust it."</span><br>
+<span class="pill">land</span> Gating is narrow and opt-in.</div>
+
+<div class="step"><h3><span class="n">11</span>Human override</h3>
+<span class="pill">screen</span> The same findings with label <code>ai-review-override</code> give exit code 0 and a warning.<br>
+<span class="pill">say</span> <span class="say">"The tool advises and people decide. An override is a visible, auditable label, not a hidden bypass."</span><br>
+<span class="pill">land</span> Humans stay accountable.</div>
+
+<div class="step"><h3><span class="n">12</span>In the dev's own agent</h3>
+<span class="pill">screen</span> <code>cd &lt;demo repo&gt; &amp;&amp; claude</code> → <code>/ai-review main</code> (optional live).<br>
+<span class="pill">say</span> <span class="say">"A dev types /ai-review. The agent runs <code>aireview context</code>, reviews, writes findings.json, and runs <code>aireview validate</code>. Same report as CI, before anyone else sees the code."</span><br>
+<span class="pill">land</span> Most of the value comes before the PR exists.</div>
+
+<div class="box good"><b>Live-run result to quote:</b> real Claude Code on this PR found every seeded issue (5 blockers, 11 major), had 0 findings dropped by validation, and flagged the prompt-injection comment on its own. The sample is in <code>demo/sample_reports/live_claude_report.md</code>.</div>
+
+<div class="pb"></div>
+<h2>4. Concepts to explain if asked to go deeper</h2>
+<table>
+<tr><th style="width:24%">Concept</th><th>Explanation</th></tr>
+<tr><td>Single source of truth</td><td>All behavior lives in <code>REVIEW.md</code> (procedure, review passes, verification step, JSON schema, severity rubric). Adapters stay thin, and a test enforces that they're under 30 lines and reference REVIEW.md. Without the CLI, REVIEW.md has fallback steps (plain <code>git diff</code>, manual routing), so it still works in any agent.</td></tr>
+<tr><td>Wiki rule format</td><td><code>### SEC-002: title</code> + <code>**Severity:**</code> + <code>**Why:**</code> + Bad/Good code. The rule's severity is the default for its findings. <code>wiki-lint</code> checks IDs are unique, severities are valid, Why is present, examples exist, and every page is reachable from the index.</td></tr>
+<tr><td>Validation rules</td><td>Each finding goes through these checks: schema, then rule exists (or <code>general</code>), then file is in the diff, then line is inside a changed hunk, then confidence ≥ 0.6, then no <code>review-ignore RULE: reason</code> comment (reason mandatory), then dedupe (tool beats LLM), then the cap of 15, which trims nits first and never drops blockers.</td></tr>
+<tr><td>Gate</td><td><code>advisory</code> always exits 0. <code>blocker</code> exits 1 if there's a rule-backed blocker, unless the PR has the override label. <code>general</code> findings can never block; to enforce one, write a rule for it.</td></tr>
+<tr><td>CI hardening</td><td>Triggers on <code>pull_request</code> (not <code>_target</code>). Fork PRs are skipped, so there are no secrets on untrusted code. <code>contents: read</code> only. PR text is never interpolated into the shell script. Claude gets only Read/Grep/Glob. The API key exists only in CI.</td></tr>
+<tr><td>Suppressions</td><td><code>// review-ignore CONV-003: boot banner, removed in PAY-530</code>. Each suppression applies to one rule on one line, and needs a reason so it's a decision, not a mute button.</td></tr>
+</table>
+
+<h2>5. Likely questions and answers</h2>
+<table>
+<tr><th style="width:30%">Question</th><th>Answer</th></tr>
+<tr><td>Why not RAG?</td><td>Devs have no API access, and IDE agents can already read files. Routing by path is deterministic and explainable, and a team wiki is a few dozen pages, not millions of documents. If it grows to hundreds of pages, split it per service and keep shared security pages always routed.</td></tr>
+<tr><td>What about hallucinations?</td><td>Validation drops anything not tied to a real rule and a changed line, and lists what it dropped. In the live run, 0 findings were dropped, but the safety net exists for runs where the model gets things wrong.</td></tr>
+<tr><td>It's nondeterministic. Can it gate merges?</td><td>Only rule-backed blockers gate. Deterministic checks catch the most critical items (like secrets) without an LLM. Start in advisory mode, measure, then gate. There's always a label override.</td></tr>
+<tr><td>What if devs skip the local review?</td><td>CI runs the same review anyway. The PR template has a "ran /ai-review" checkbox. Local review is about speed for the dev, not enforcement.</td></tr>
+<tr><td>How does the wiki stay current?</td><td>When a finding is disputed and the dev is right, the agent proposes a wiki edit (REVIEW.md "After the review"). Every incident adds a <code>PIT-*</code> rule. Wiki edits go through normal PR review and lint.</td></tr>
+<tr><td>Cost?</td><td>One headless run per PR push, and routing keeps the context small. Deterministic checks are free. Concurrency settings cancel stale runs.</td></tr>
+<tr><td>Large PRs or monorepos?</td><td>The diff has a size budget, and truncated files are listed in the report. PR-005 flags oversized PRs. For monorepos, add routing rows per package, or keep one wiki per service plus a shared core.</td></tr>
+<tr><td>Doesn't this replace SAST and linters?</td><td>No. Keep semgrep, gitleaks, eslint and npm audit as their own CI steps. REVIEW.md tells the agent not to repeat what tools already catch. This covers what they can't: authz logic, migration risk, whether tests are meaningful.</td></tr>
+<tr><td>Why Python for the CLI?</td><td>Standard library only, so nothing to install beyond Python, and it's easy to read. It's language-agnostic about the code under review; the demo service is TypeScript.</td></tr>
+<tr><td>How do we know it's working?</td><td>Track the share of findings acted on versus dismissed, overrides per week, escaped defects that map to an existing rule, and time to first review.</td></tr>
+</table>
+
+<div class="pb"></div>
+<h2>6. Before you present: checklist</h2>
+<ul>
+<li>Run <code>cd ~/work/git/personal_code/agents/ai_assisted_code_reviewer && demo/present.sh --auto</code> once as a rehearsal. It should end at STEP 12 with gate exit code 1.</li>
+<li>Use <b>mock mode</b> for the talk: offline and predictable. Use <code>--live</code> only if there's network and time (about 1–2 minutes of waiting in step 8). Have <code>demo/sample_reports/live_claude_report.md</code> open as a backup.</li>
+<li>Use a large terminal font and a dark theme. Clear the screen before you start.</li>
+<li>Optional finale: <code>export PATH="$PWD/.venv/bin:$PATH"; cd $TMPDIR/aireview-present && claude</code> → <code>/ai-review main</code>.</li>
+<li>If something breaks: <code>.venv/bin/pytest</code> (140 tests, about 3 seconds) proves the pipeline, and the sample reports show the output.</li>
+</ul>
+
+<h2>7. Rollout story (to close with)</h2>
+<table>
+<tr><th>Phase</th><th>What</th><th>Exit criterion</th></tr>
+<tr><td>1. Pilot</td><td>One team, gate set to <code>advisory</code>, CI comments only</td><td>Most findings get acted on</td></tr>
+<tr><td>2. Tune</td><td>Fix the noisy rules, add Good examples, add <code>PIT-*</code> rules from incidents</td><td>Dismissal rate is low and stable</td></tr>
+<tr><td>3. Gate</td><td><code>"gate": "blocker"</code> for rule-backed blockers, override label available</td><td>Overrides are rare</td></tr>
+<tr><td>4. Scale</td><td>More teams; per-team wiki sections plus a shared security core</td><td>Review time goes down, escaped defects go down</td></tr>
+</table>
+
+<h2>8. Command cheat sheet</h2>
+<pre>aireview install [--only claude,cursor,agents,copilot,ci] [--force]   # add the kit to a repo
+aireview wiki-lint [--strict]                                          # check rules + routing
+aireview route &lt;paths…&gt;                                                # which wiki pages apply
+aireview checks   --base origin/main                                   # deterministic only
+aireview context  --base origin/main [--include-uncommitted]           # bundle for an agent
+aireview validate --base origin/main [--findings f.json]               # agent findings → report
+aireview run --runner claude|mock --base origin/main [--labels x]      # full pipeline (CI)
+
+demo/present.sh [--live|--auto]     # presenter walkthrough (this guide)
+demo/run_demo.sh [--live|--setup]   # quick end-to-end demo</pre>
+
+<h2>9. The project in 4 lines</h2>
+<div class="summary">
+1. A code-review tool that every AI agent can run (Claude Code, Cursor, Copilot, Codex) and that CI runs on every PR, with no developer API keys.<br>
+2. It's grounded in a team-owned markdown wiki of rule-ID'd guidance, routed by file path instead of RAG, and driven by one procedure file (<code>REVIEW.md</code>).<br>
+3. Deterministic checks run first (secrets, PR template, tests, size). The LLM proposes findings, and a validation layer drops anything not tied to a real rule and a changed line.<br>
+4. The output is a ranked PR report with a narrow, overridable merge gate. The stdlib Python CLI has 140 tests and a TypeScript demo that Claude Code reviewed live, catching every seeded issue.
+</div>
+
+<div class="foot">README: ~/work/git/personal_code/agents/ai_assisted_code_reviewer/README.md · Rebuild this PDF: <code>python3 docs/build_guide.py</code></div>
+</body>
+</html>
