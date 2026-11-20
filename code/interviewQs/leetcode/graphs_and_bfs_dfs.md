@@ -42,6 +42,7 @@ Topological sort (DAG ordering — course schedule family):
 - Find if Path Exists in Graph (LC 1971)
 - Flood Fill (LC 733)
 - Number of Provinces (LC 547)
+- Find the Town Judge (LC 997)
 
 ## Medium
 - Number of Islands (LC 200)
@@ -57,12 +58,22 @@ Topological sort (DAG ordering — course schedule family):
 - Is Graph Bipartite? (LC 785)
 - Network Delay Time (LC 743)
 - Walls and Gates (LC 286)
+- Evaluate Division (LC 399)
+- Find Eventual Safe States (LC 802)
+- Keys and Rooms (LC 841)
+- Cheapest Flights Within K Stops (LC 787)
+- Path with Maximum Probability (LC 1514)
+- Min Cost to Connect All Points (LC 1584)
+- Path With Minimum Effort (LC 1631)
 
 ## Hard
 - Word Ladder (LC 127)
 - Alien Dictionary (LC 269)
 - Shortest Path in a Grid with Obstacles Elimination (LC 1293)
 - Bus Routes (LC 815)
+- Longest Increasing Path in a Matrix (LC 329)
+- Reconstruct Itinerary (LC 332)
+- Largest Color Value in a Directed Graph (LC 1857)
 
 ## Solve Log
 

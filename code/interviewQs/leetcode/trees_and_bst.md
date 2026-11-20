@@ -41,11 +41,22 @@ Balanced: height O(log n); skewed: O(n) — recursion depth follows height (watc
 - Path Sum II (LC 113)
 - Binary Tree Zigzag Level Order Traversal (LC 103)
 - Delete Node in a BST (LC 450)
+- Flatten Binary Tree to Linked List (LC 114)
+- Populating Next Right Pointers in Each Node (LC 116)
+- Binary Search Tree Iterator (LC 173)
+- Count Complete Tree Nodes (LC 222)
+- House Robber III (LC 337)
+- Path Sum III (LC 437)
+- Convert BST to Greater Tree (LC 538)
+- Maximum Width of Binary Tree (LC 662)
+- All Nodes Distance K in Binary Tree (LC 863)
 
 ## Hard
 - Binary Tree Maximum Path Sum (LC 124)
 - Serialize and Deserialize Binary Tree (LC 297)
 - Recover Binary Search Tree (LC 99)
+- Binary Tree Cameras (LC 968)
+- Vertical Order Traversal of a Binary Tree (LC 987)
 
 ## Solve Log
 

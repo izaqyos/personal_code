@@ -32,6 +32,7 @@ while l < r:
 - Remove Element (LC 27)
 - Reverse String (LC 344)
 - Is Subsequence (LC 392)
+- Valid Palindrome II (LC 680)
 
 ## Medium
 - Two Sum II - Input Array Is Sorted (LC 167)
@@ -44,6 +45,12 @@ while l < r:
 - Boats to Save People (LC 881)
 - Partition Labels (LC 763)
 - Find the Duplicate Number (LC 287)
+- Remove Duplicates from Sorted Array II (LC 80)
+- Longest Word in Dictionary through Deleting (LC 524)
+- Valid Triangle Number (LC 611)
+- Longest Mountain in Array (LC 845)
+- 3Sum With Multiplicity (LC 923)
+- Max Number of K-Sum Pairs (LC 1679)
 
 ## Hard
 - Trapping Rain Water (LC 42)

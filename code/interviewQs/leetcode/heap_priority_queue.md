@@ -27,6 +27,8 @@ Need ALL elements ordered → sort. Need kth once with data in memory → quicks
 - Kth Largest Element in a Stream (LC 703)
 - Last Stone Weight (LC 1046)
 - Relative Ranks (LC 506)
+- The K Weakest Rows in a Matrix (LC 1337)
+- Take Gifts From the Richest Pile (LC 2558)
 
 ## Medium
 - Kth Largest Element in an Array (LC 215)
@@ -38,6 +40,10 @@ Need ALL elements ordered → sort. Need kth once with data in memory → quicks
 - Reorganize String (LC 767)
 - Single-Threaded CPU (LC 1834)
 - Design Twitter (LC 355)
+- Ugly Number II (LC 264)
+- Find K Pairs with Smallest Sums (LC 373)
+- Top K Frequent Words (LC 692)
+- Furthest Building You Can Reach (LC 1642)
 
 ## Hard
 - Find Median from Data Stream (LC 295)
@@ -45,6 +51,9 @@ Need ALL elements ordered → sort. Need kth once with data in memory → quicks
 - IPO (LC 502)
 - Smallest Range Covering Elements from K Lists (LC 632)
 - Sliding Window Median (LC 480)
+- Minimum Cost to Hire K Workers (LC 857)
+- Maximum Performance of a Team (LC 1383)
+- Meeting Rooms III (LC 2402)
 
 ## Solve Log
 

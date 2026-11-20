@@ -22,6 +22,7 @@
 - First Bad Version (LC 278)
 - Sqrt(x) (LC 69)
 - Guess Number Higher or Lower (LC 374)
+- Valid Perfect Square (LC 367)
 
 ## Medium
 - Search in Rotated Sorted Array (LC 33)
@@ -33,11 +34,17 @@
 - Capacity to Ship Packages Within D Days (LC 1011)
 - Time Based Key-Value Store (LC 981)
 - Search in Rotated Sorted Array II (LC 81)
+- Single Element in a Sorted Array (LC 540)
+- Find K Closest Elements (LC 658)
+- Snapshot Array (LC 1146)
+- Minimum Number of Days to Make m Bouquets (LC 1482)
+- Minimum Time to Complete Trips (LC 2187)
 
 ## Hard
 - Median of Two Sorted Arrays (LC 4)
 - Split Array Largest Sum (LC 410)
 - Find in Mountain Array (LC 1095)
+- Find K-th Smallest Pair Distance (LC 719)
 
 ## Solve Log
 

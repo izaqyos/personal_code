@@ -41,6 +41,8 @@ Know when sorting *is* the answer: dedup, anagram keys, meeting-style problems, 
 - Remove Duplicates from Sorted Array (LC 26)
 - Length of Last Word (LC 58)
 - Merge Strings Alternately (LC 1768)
+- Roman to Integer (LC 13)
+- Find All Numbers Disappeared in an Array (LC 448)
 
 ## Medium
 - Product of Array Except Self (LC 238)
@@ -60,6 +62,11 @@ Know when sorting *is* the answer: dedup, anagram keys, meeting-style problems, 
 - String Compression (LC 443)
 - Zigzag Conversion (LC 6)
 - Sort Colors (LC 75)
+- Integer to Roman (LC 12)
+- Next Permutation (LC 31)
+- Largest Number (LC 179)
+- Increasing Triplet Subsequence (LC 334)
+- Custom Sort String (LC 791)
 
 ## Hard
 - Trapping Rain Water (LC 42)

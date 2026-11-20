@@ -51,12 +51,19 @@ With both optimizations, ops are amortized O(α(n)) — inverse Ackermann, effec
 - Most Stones Removed with Same Row or Column (LC 947)
 - Longest Consecutive Sequence (LC 128) — alt UF solve; set approach is simpler
 - Number of Islands (LC 200) — alt UF solve; DFS is simpler
+- Lexicographically Smallest Equivalent String (LC 1061)
+- Number of Operations to Make Network Connected (LC 1319)
+- Min Cost to Connect All Points (LC 1584)
+- Count the Number of Complete Components (LC 2685)
 
 ## Hard
 - Number of Islands II (LC 305)
 - Similar String Groups (LC 839)
 - Swim in Rising Water (LC 778) — UF or binary-search+BFS
 - Smallest String With Swaps (LC 1202) — medium-hard bridge
+- Redundant Connection II (LC 685)
+- Remove Max Number of Edges to Keep Graph Fully Traversable (LC 1579)
+- Checking Existence of Edge Length Limited Paths (LC 1697)
 
 ## Solve Log
 

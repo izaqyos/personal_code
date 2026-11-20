@@ -37,11 +37,14 @@ Many queries against many words *by prefix*: autocomplete, prefix counting, wild
 - Lexicographical Numbers (LC 386)
 - Search Suggestions System (LC 1268)
 - Maximum XOR of Two Numbers in an Array (LC 421)
+- Short Encoding of Words (LC 820)
 
 ## Hard
 - Word Search II (LC 212)
 - Stream of Characters (LC 1032)
 - Palindrome Pairs (LC 336)
+- Prefix and Suffix Search (LC 745)
+- Sum of Prefix Scores of Strings (LC 2416)
 
 ## Solve Log
 

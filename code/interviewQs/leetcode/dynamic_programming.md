@@ -51,6 +51,12 @@ Memoization (top-down, `@cache` on recursion) and tabulation (bottom-up loops) a
 - Best Time to Buy and Sell Stock with Cooldown (LC 309)
 - Maximum Product Subarray (LC 152)
 - Jump Game (LC 55)
+- Interleaving String (LC 97)
+- Maximal Square (LC 221)
+- Perfect Squares (LC 279)
+- Coin Change II (LC 518)
+- Delete and Earn (LC 740)
+- Last Stone Weight II (LC 1049)
 
 ## Hard
 - Edit Distance (LC 72)
@@ -59,6 +65,9 @@ Memoization (top-down, `@cache` on recursion) and tabulation (bottom-up loops) a
 - Longest Valid Parentheses (LC 32)
 - Minimum Cost to Cut a Stick (LC 1547)
 - Best Time to Buy and Sell Stock IV (LC 188)
+- Distinct Subsequences (LC 115)
+- Best Time to Buy and Sell Stock III (LC 123)
+- Maximum Profit in Job Scheduling (LC 1235)
 
 ## Solve Log
 

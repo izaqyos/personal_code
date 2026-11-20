@@ -39,11 +39,17 @@
 - Insert Delete GetRandom O(1) (LC 380)
 - Valid Sudoku (LC 36)
 - Longest Consecutive Sequence (LC 128)
+- 4Sum II (LC 454)
+- Contiguous Array (LC 525)
+- Subarray Sums Divisible by K (LC 974)
+- Design Underground System (LC 1396)
 
 ## Hard
 - Substring with Concatenation of All Words (LC 30)
 - Max Points on a Line (LC 149)
 - Subarrays with K Different Integers (LC 992)
+- All O`one Data Structure (LC 432)
+- Maximum Frequency Stack (LC 895)
 
 ## Solve Log
 

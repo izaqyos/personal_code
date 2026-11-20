@@ -37,11 +37,15 @@ Two intervals `[a, b]`, `[c, d]` overlap iff `a <= d and c <= b`. After sorting 
 - Remove Covered Intervals (LC 1288)
 - Car Pooling (LC 1094)
 - My Calendar I (LC 729)
+- My Calendar II (LC 731)
+- Divide Intervals Into Minimum Number of Groups (LC 2406)
 
 ## Hard
 - The Skyline Problem (LC 218)
 - Employee Free Time (LC 759)
 - Data Stream as Disjoint Intervals (LC 352)
+- Minimum Interval to Include Each Query (LC 1851)
+- Meeting Rooms III (LC 2402)
 
 ## Solve Log
 

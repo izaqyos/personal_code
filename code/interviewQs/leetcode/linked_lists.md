@@ -25,6 +25,7 @@
 - Palindrome Linked List (LC 234)
 - Remove Duplicates from Sorted List (LC 83)
 - Intersection of Two Linked Lists (LC 160)
+- Remove Linked List Elements (LC 203)
 
 ## Medium
 - Add Two Numbers (LC 2)
@@ -38,6 +39,12 @@
 - Reverse Linked List II (LC 92)
 - Rotate List (LC 61)
 - Swap Nodes in Pairs (LC 24)
+- Odd Even Linked List (LC 328)
+- Flatten a Multilevel Doubly Linked List (LC 430)
+- Add Two Numbers II (LC 445)
+- Design Linked List (LC 707)
+- Design Browser History (LC 1472)
+- Maximum Twin Sum of a Linked List (LC 2130)
 
 ## Hard
 - Merge k Sorted Lists (LC 23)

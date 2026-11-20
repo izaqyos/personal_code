@@ -29,6 +29,8 @@ for i in range(n):                 # next-greater flavor: decreasing stack
 - Implement Stack using Queues (LC 225)
 - Min Stack (LC 155)
 - Next Greater Element I (LC 496)
+- Backspace String Compare (LC 844)
+- Remove All Adjacent Duplicates In String (LC 1047)
 
 ## Medium
 - Evaluate Reverse Polish Notation (LC 150)
@@ -41,12 +43,20 @@ for i in range(n):                 # next-greater flavor: decreasing stack
 - Next Greater Element II (LC 503)
 - Online Stock Span (LC 901)
 - Remove K Digits (LC 402)
+- Remove Duplicate Letters (LC 316)
+- 132 Pattern (LC 456)
+- Sum of Subarray Minimums (LC 907)
+- Validate Stack Sequences (LC 946)
+- Remove All Adjacent Duplicates in String II (LC 1209)
+- Minimum Remove to Make Valid Parentheses (LC 1249)
+- Removing Stars From a String (LC 2390)
 
 ## Hard
 - Largest Rectangle in Histogram (LC 84)
 - Maximal Rectangle (LC 85)
 - Basic Calculator (LC 224)
 - Longest Valid Parentheses (LC 32)
+- Maximum Frequency Stack (LC 895)
 
 ## Solve Log
 

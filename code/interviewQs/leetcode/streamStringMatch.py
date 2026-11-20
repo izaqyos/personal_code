@@ -23,8 +23,18 @@ def stream_contains_kmp(pattern: str, get_next_char: Callable[[], Optional[str]]
 
 
 def stream_contains_rk(pattern: str, get_next_char: Callable[[], Optional[str]]) -> bool:
-    pass
+    M = 2**61 -1 #mersenne prime
+    B = 31 # prime > alphbet size - lower letters english 
+    k = len(pattern)
+    
+    trg_hash = 0
+    for c in pattern:
+        trg_hash = (trg_hash*B + ord(c))%M
 
+    highestPower = pow(B, k-1, M) 
+
+    for c in get_next_char():
+        pass
 
 def str_str(haystack: str, needle: str) -> int:
     pass

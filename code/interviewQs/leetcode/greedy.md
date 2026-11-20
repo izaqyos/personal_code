@@ -38,11 +38,18 @@ A greedy algorithm commits to the locally best choice and never revisits. It's c
 - Non-overlapping Intervals (LC 435)
 - Reorganize String (LC 767)
 - Remove K Digits (LC 402)
+- Dota2 Senate (LC 649)
+- Two City Scheduling (LC 1029)
+- Longest Happy String (LC 1405)
+- Minimum Deletions to Make Character Frequencies Unique (LC 1647)
+- Optimal Partition of String (LC 2405)
 
 ## Hard
 - Candy (LC 135)
 - Patching Array (LC 330)
 - Minimum Number of Taps to Open to Water a Garden (LC 1326)
+- Course Schedule III (LC 630)
+- Minimum Number of Refueling Stops (LC 871)
 
 ## Solve Log
 

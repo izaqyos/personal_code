@@ -52,12 +52,17 @@ Exponential by nature (2ⁿ, n!, k^n) — acceptable because constraints are tin
 - Palindrome Partitioning (LC 131)
 - Generate Parentheses (LC 22)
 - Restore IP Addresses (LC 93)
+- Combination Sum III (LC 216)
+- Partition to K Equal Sum Subsets (LC 698)
+- Maximum Length of a Concatenated String with Unique Characters (LC 1239)
 
 ## Hard
 - N-Queens (LC 51)
 - Sudoku Solver (LC 37)
 - Word Search II (LC 212) — better with a Trie; cross-listed in tries.md
 - Expression Add Operators (LC 282)
+- N-Queens II (LC 52)
+- Remove Invalid Parentheses (LC 301)
 
 ## Solve Log
 

@@ -41,12 +41,17 @@ For SHORTEST-valid problems, invert: shrink while valid, record best inside the 
 - Max Consecutive Ones III (LC 1004)
 - Subarrays with K Different Integers — try atMost trick (LC 992, listed Hard on LC)
 - Find All Anagrams in a String (LC 438)
+- Longest Subarray of 1's After Deleting One Element (LC 1493)
+- Maximum Erasure Value (LC 1695)
+- Frequency of the Most Frequent Element (LC 1838)
+- Maximum Sum of Distinct Subarrays With Length K (LC 2461)
 
 ## Hard
 - Minimum Window Substring (LC 76)
 - Sliding Window Maximum (LC 239)
 - Substring with Concatenation of All Words (LC 30)
 - Longest Substring with At Most K Distinct Characters (LC 340)
+- Shortest Subarray with Sum at Least K (LC 862)
 
 ## Solve Log
 

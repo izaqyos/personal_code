@@ -56,4 +56,10 @@ if __name__ == "__main__":
     grid5 = [[1]]
     assert oranges_rotting(grid5) == -1
 
+    grid6 = [[2,1,1,1,2]]  # two sources rot from both ends at once
+    assert oranges_rotting(grid6) == 2
+
+    grid7 = [[2,2],[1,1],[0,0],[2,0]]
+    assert oranges_rotting(grid7) == 1
+
     print("All tests passed.")
