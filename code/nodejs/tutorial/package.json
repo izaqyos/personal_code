@@ -1,0 +1,43 @@
+{
+  "name": "tutorial",
+  "version": "1.0.0",
+  "description": "yosi izaq node.js tutorial",
+  "main": "server.js",
+  "dependencies": {
+    "axios": "^0.18.0",
+    "body-parser": "^1.18.3",
+    "cdm-schema": "^3.0.0-20190303185746",
+    "chai": "^4.2.0",
+    "cls-hooked": "^4.2.2",
+    "cookie-parser": "^1.4.3",
+    "express": "^4.16.4",
+    "mocha": "^5.2.0",
+    "multer": "^1.4.1",
+    "printf": "^0.5.2",
+    "request": "^2.88.0",
+    "retry-axios": "^1.0.1",
+    "valid-filename": "^2.0.1",
+    "winston": "^3.2.1",
+    "ws": "^7.2.1"
+  },
+  "devDependencies": {
+    "eslint": "^5.7.0",
+    "filename-regex": "^2.0.1",
+    "grunt": "^1.0.3",
+    "grunt-eslint": "^21.0.0",
+    "grunt-mocha-test": "^0.13.3",
+    "grunt-simple-nyc": "^1.1.1",
+    "load-grunt-tasks": "^4.0.0",
+    "mocha-test": "^2.0.4",
+    "sinon": "^7.0.0",
+    "supertest": "^3.3.0",
+    "uuid": "^3.3.2",
+    "uuid-validate": "0.0.3"
+  },
+  "scripts": {
+    "test": "./node_modules/.bin/mocha --reporter spec",
+    "start": "node server.js"
+  },
+  "author": "yosi izaq",
+  "license": "ISC"
+}

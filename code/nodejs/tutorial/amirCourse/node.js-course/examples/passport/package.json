@@ -1,0 +1,24 @@
+{
+  "name": "passport-example",
+  "version": "1.0.0",
+  "description": "passport examples",
+  "scripts": {
+    "start": "node app"
+  },
+  "author": "Amir Yahalom",
+  "license": "ISC",
+  "dependencies": {
+    "body-parser": "^1.17.1",
+    "compression": "^1.6.2",
+    "connect": "3.x",
+    "connect-ensure-login": "^0.1.1",
+    "connect-query": "^1.0.0",
+    "connect-route": "^0.1.5",
+    "express-session": "^1.15.2",
+    "lodash": "^4.17.4",
+    "morgan": "^1.8.1",
+    "passport": "^0.3.2",
+    "passport-local": "^1.0.0",
+    "serve-static": "^1.12.1"
+  }
+}

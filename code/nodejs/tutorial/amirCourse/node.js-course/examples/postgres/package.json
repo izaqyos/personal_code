@@ -1,0 +1,15 @@
+{
+  "name": "postgres-example",
+  "version": "1.0.0",
+  "description": "postgres examples",
+  "scripts": {
+    "start": "node app"
+  },
+  "author": "Amir Yahalom",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.15.4",
+    "pg": "^7.1.0",
+    "q": "^1.5.0"
+  }
+}

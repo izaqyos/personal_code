@@ -1,0 +1,17 @@
+{
+  "name": "local-proxy",
+  "version": "1.0.0",
+  "description": "",
+  "scripts": {
+    "start": "node main.js"
+  },
+  "dependencies": {
+    "axios": "^0.18.0",
+    "body-parser": "^1.18.3",
+    "compression": "^1.7.4",
+    "express": "^4.16.4",
+    "morgan": "^1.9.1",
+    "redis": "^2.8.0",
+    "request": "^2.88.0"
+  }
+}

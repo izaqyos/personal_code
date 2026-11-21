@@ -1,0 +1,11 @@
+{
+  "name": "async_hooks_demo",
+  "version": "1.0.0",
+  "description": "async hooks demo",
+  "main": "asyncHooksServer.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "yosi izaq",
+  "license": "ISC"
+}

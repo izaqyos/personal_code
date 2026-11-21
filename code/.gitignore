@@ -190,6 +190,9 @@ build/
 *.csv
 *.json
 !python/tools/daily_runner/config/schedules.example.json
+# project manifests are small and needed to run the demos
+!package.json
+!tsconfig.json
 
 # Generated Files
 *.js.map

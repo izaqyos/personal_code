@@ -1,0 +1,13 @@
+{
+  "name": "fs-exercise",
+  "version": "1.0.0",
+  "description": "fs exercise",
+  "scripts": {
+    "start": "node main"
+  },
+  "author": "Amir Yahalom",
+  "license": "ISC",
+  "dependencies": {
+    "minimatch": "^3.0.3"
+  }
+}

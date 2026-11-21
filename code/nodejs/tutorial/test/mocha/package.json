@@ -1,0 +1,19 @@
+{
+  "name": "mocha",
+  "version": "1.0.0",
+  "description": "mocha demo",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha --inline-diffs"
+  },
+  "keywords": [
+    "mocha",
+    "demo",
+    "tutorial"
+  ],
+  "author": "yosi izaq",
+  "license": "ISC",
+  "devDependencies": {
+    "mocha": "^9.2.1"
+  }
+}

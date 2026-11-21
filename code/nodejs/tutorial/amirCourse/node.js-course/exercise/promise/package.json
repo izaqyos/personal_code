@@ -1,0 +1,20 @@
+{
+  "name": "promise-exercise",
+  "version": "1.0.0",
+  "description": "promise-exercise",
+  "scripts": {
+    "test": "node_modules/.bin/mocha test/*.spec.js",
+    "start": "node main"
+  },
+  "author": "Amir Yahalom",
+  "license": "ISC",
+  "dependencies": {
+    "minimatch": "^3.0.3",
+    "async": "^2.1.4",
+    "q": "^1.4.1"
+  },
+  "devDependencies": {
+    "mocha": "^3.1.0",
+    "sinon": "^1.17.6"
+  }
+}
